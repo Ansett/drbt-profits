@@ -60,57 +60,62 @@
           class="pb-5 mt-5 md:mt-7"
           style="min-height: 11rem"
         >
-          <div class="flex flex-column align-items-center">
+          <div v-if="loading" class="flex flex-row align-items-center">
             <ProgressSpinner
-              v-if="loading"
-              style="width: 90px; height: 90px"
-              class="my-7"
+              style="width: 99px; height: 99px"
+              class="my-6 mx-auto"
             />
-            <template v-else>
-              <div>
-                <!-- FUNDS -->
-                <p class="text-xl">
-                  Final funds:
-                  <span class="font-bold text-primary">{{ finalETH }}</span>
-                  <span class="text-color-secondary"> ETH</span>
-                </p>
-                <!-- DRAWDOWN -->
-                <p class="text-lg">
-                  Drawdown:
-                  <span class="font-bold text-primary">{{ drawdown }}</span>
-                  <span class="text-color-secondary"> ETH</span>
-                </p>
-                <!-- NB CALLS -->
-                <p class="mt-3">
-                  <span class="text-color-secondary">Non-rug calls:</span>
-                  {{ filteredCalls.length }}
-                </p>
-                <!-- POST-ATH -->
-                <p>
-                  <span class="text-color-secondary"
-                    >Not included post-ATH calls:</span
-                  >
-                  {{ postATHCount }}
-                </p>
-                <!-- BUY EXPLANATIONS -->
-                <p class="text-sm">
-                  <span class="text-color-secondary">Buy calculations: </span
-                  ><span class="font-italic"
-                    >Investing selected position or max-buy, calculated using
-                    $2000 ETH value, minus gas cost. Buy tax is already
-                    subtracted from Xs.</span
-                  >
-                </p>
-                <!-- SELL EXPLANATIONS -->
-                <p class="text-sm">
-                  <span class="text-color-secondary">Exit strategy: </span
-                  ><span class="font-italic"
-                    >Selling 100% at target, minus gas and 5% tax. Counted as a
-                    loss if not reaching target.</span
-                  >
-                </p>
-              </div>
-            </template>
+          </div>
+          <div v-else class="flex flex-column align-items-start">
+            <!-- FUNDS -->
+            <p
+              class="text-xl"
+              v-tooltip="'Final wallet worth, starting from 0'"
+            >
+              Final funds:
+              <span class="font-bold text-primary">{{ finalETH }}</span>
+              <span class="text-color-secondary"> ETH</span>
+            </p>
+            <!-- DRAWDOWN -->
+            <div
+              class="text-lg"
+              v-tooltip="
+                'The lowest the wallet has fallen to, starting from 0. You need at least 2x this value to sustain the strategy'
+              "
+            >
+              Drawdown:
+              <span class="font-bold text-primary">{{ drawdown }}</span>
+              <span class="text-color-secondary"> ETH</span>
+            </div>
+            <!-- NB CALLS -->
+            <p class="mt-3">
+              <span class="text-color-secondary">Non-rug calls:</span>
+              {{ filteredCalls.length }}
+            </p>
+            <!-- POST-ATH -->
+            <p>
+              <span class="text-color-secondary"
+                >Not included post-ATH calls:</span
+              >
+              {{ postATHCount }}
+            </p>
+            <!-- BUY EXPLANATIONS -->
+            <p class="text-sm">
+              <span class="text-color-secondary">Buy calculations: </span
+              ><span class="font-italic"
+                >Investing selected position or max-buy, calculated using $2000
+                ETH value, minus gas cost. Buy tax is already subtracted from
+                Xs.</span
+              >
+            </p>
+            <!-- SELL EXPLANATIONS -->
+            <p class="text-sm">
+              <span class="text-color-secondary">Exit strategy: </span
+              ><span class="font-italic"
+                >Selling 100% at target, minus gas and 5% tax. Counted as a loss
+                if not reaching target.</span
+              >
+            </p>
           </div>
         </Fieldset>
       </div>
@@ -251,6 +256,7 @@ import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
+import vTooltip from "primevue/tooltip";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { round2Dec, sleep, debounce } from "./lib";
 import type { Call } from "./types/Call";
