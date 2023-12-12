@@ -12,8 +12,8 @@
     >
       <div class="min-w-min md:w-6 m-1 md:m-5" style="max-width: 50rem">
         <FileUpload
+          ref="uploader"
           mode="advanced"
-          customUpload
           accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           :showUploadButton="false"
           :showCancelButton="false"
@@ -28,25 +28,24 @@
                 class="pi pi-file mb-4"
                 style="font-size: 5.25rem; color: var(--primary-color)"
               />
-              <p class="text-center">Drag and drop a DRBT backtest export</p>
-              <p class="text-center text-sm font-italic text-color-secondary">
-                Nothing is uploaded, computation is done by your browser
+
+              <p
+                v-if="selectedFile"
+                class="text-2xl font-medium text-center mb-2"
+              >
+                {{ selectedFile.name }}
               </p>
+              <template v-else>
+                <p class="text-center">Drag and drop a DRBT backtest export</p>
+                <p class="text-center text-sm font-italic text-color-secondary">
+                  Nothing is uploaded, computation is done by your browser
+                </p>
+              </template>
             </div>
           </template>
 
-          <template #content="{ files }">
-            <div
-              v-if="files?.[0]"
-              class="flex flex-column gap-1 m-6 align-items-center justify-content-center"
-            >
-              <p class="text-2xl font-medium text-center">
-                {{ files[0].name }}
-              </p>
-              <p class="text-color-secondary text-center">
-                {{ convertBytes(files[0].size) }}
-              </p>
-            </div>
+          <template #content>
+            <div />
           </template>
         </FileUpload>
 
@@ -60,13 +59,16 @@
           class="pb-5 mt-5 md:mt-7"
           style="min-height: 11rem"
         >
-          <div v-if="loading" class="flex flex-row align-items-center">
+          <div class="flex flex-column align-items-start relative">
             <ProgressSpinner
-              style="width: 99px; height: 99px"
-              class="my-6 mx-auto"
+              v-if="loading"
+              class="absolute top-50 left-50"
+              style="
+                width: 99px;
+                height: 99px;
+                transform: translate(-50%, -50%);
+              "
             />
-          </div>
-          <div v-else class="flex flex-column align-items-start">
             <!-- FUNDS -->
             <p
               class="text-xl"
@@ -250,7 +252,7 @@
 import InputNumber from "primevue/inputnumber";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
-import FileUpload from "primevue/fileupload";
+import FileUpload, { type FileUploadSelectEvent } from "primevue/fileupload";
 import Fieldset from "primevue/fieldset";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
@@ -264,23 +266,18 @@ import Worker from "./worker?worker";
 
 const error = ref("");
 const loading = ref(false);
+const uploader = ref<InstanceType<typeof FileUpload>>();
 
-const onUpload = async ({ files }: { files: File[] }) => {
-  const xlsx = files?.[0];
-  if (xlsx) {
-    loading.value = true;
-    worker.postMessage({ type: "XLSX", xlsx });
-  }
-};
+const selectedFile = ref<File | null>(null);
+const onUpload = async (event: FileUploadSelectEvent) => {
+  const { files } = event;
+  if (!files?.length) return;
 
-const convertBytes = (bytes: number) => {
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-  if (bytes == 0) return "n/a";
+  selectedFile.value = files[0];
+  (uploader.value as any)?.clear();
 
-  const i = Number(Math.floor(Math.log(bytes) / Math.log(1024)));
-  if (i == 0) return bytes + " " + sizes[i];
-
-  return (bytes / Math.pow(1024, i)).toFixed(1) + " " + sizes[i];
+  loading.value = true;
+  worker.postMessage({ type: "XLSX", xlsx: selectedFile.value });
 };
 
 const calls = ref<Call[]>([]);
