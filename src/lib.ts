@@ -59,3 +59,7 @@ export function sleep(ms = 0, callback: Function = () => true) {
 export function round2Dec(value: number) {
   return Math.round(value * 100) / 100;
 }
+
+export function prettifyDate(date: string) {
+  return date.replace("T", " ").replace(".000Z", "");
+}

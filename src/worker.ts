@@ -2,6 +2,7 @@ import readXlsxFile from "read-excel-file/web-worker";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
+import { prettifyDate } from "./lib";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -77,7 +78,7 @@ function compute({
     for (const p of profitByDate) {
       p[1] += gain;
     }
-    drawdownByDate = [...drawdownByDate, [call.date, 0]];
+    drawdownByDate = [...drawdownByDate, [prettifyDate(call.date), 0]];
     for (const index in drawdownByDate) {
       if (profitByDate[index][1] < drawdownByDate[index][1])
         drawdownByDate[index][1] =
@@ -85,7 +86,7 @@ function compute({
     }
 
     logs.push({
-      date: call.date.replace(".000Z", ""),
+      date: prettifyDate(call.date),
       ca: call.ca,
       name: call.name,
       xs: call.xs,
