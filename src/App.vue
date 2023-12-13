@@ -82,12 +82,28 @@
             <div
               class="text-lg"
               v-tooltip="
-                'The lowest the wallet has fallen to, starting from 0. You need at least 2x this value to sustain the strategy, and it\'s really period-dependent'
+                'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.'
               "
             >
-              Drawdown:
+              Overall drawdown:
               <span class="font-bold text-primary">{{ drawdown }}</span>
               <span class="text-color-secondary"> ETH</span>
+            </div>
+            <div
+              class="text-lg"
+              v-tooltip="
+                'The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period. You need at least this value in your wallet to sustain the strategy.'
+              "
+            >
+              Worst drawdown:
+              <template v-if="worstDrawdown[0]">
+                <span class="font-bold text-primary">{{
+                  worstDrawdown[1]
+                }}</span>
+                <span class="text-color-secondary"> ETH </span>
+                <span class="text-xs">from {{ worstDrawdown[0] }}</span>
+              </template>
+              <template v-else>-</template>
             </div>
             <!-- NB CALLS -->
             <p class="mt-3">
@@ -386,6 +402,7 @@ const state = reactive({
 const initialized = ref(false);
 const finalETH = ref(0);
 const drawdown = ref(0);
+const worstDrawdown = ref(["", 0]);
 const postATHCount = ref(0);
 
 function storeForm() {
@@ -463,6 +480,7 @@ worker.onmessage = ({ data }) => {
   if (data.type === "COMPUTE") {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
+    worstDrawdown.value = data.worstDrawdown;
     postATHCount.value = data.postATHCount;
     logs.value = data.logs;
   }

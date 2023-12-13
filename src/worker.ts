@@ -34,6 +34,8 @@ function compute({
 }) {
   let finalETH = 0;
   let drawdown = 0;
+  let profitByDate: [string, number][] = [];
+  let drawdownByDate: [string, number][] = [];
   let postATHCount = 0;
   const logs: Log[] = [];
 
@@ -60,7 +62,22 @@ function compute({
     }
 
     finalETH += gain;
-    if (finalETH < drawdown) drawdown = finalETH;
+    if (finalETH < drawdown) drawdown = Math.round(finalETH * 100) / 100;
+    profitByDate = [...profitByDate, [call.date, 0]];
+    for (const p of profitByDate) {
+      p[1] += gain;
+    }
+    drawdownByDate = [...drawdownByDate, [call.date, 0]];
+    for (const index in drawdownByDate) {
+      if (profitByDate[index][1] < drawdownByDate[index][1])
+        drawdownByDate[index][1] =
+          Math.round(profitByDate[index][1] * 100) / 100;
+    }
+    console.log(
+      profitByDate[profitByDate.length - 1],
+      drawdownByDate[drawdownByDate.length - 1]
+    );
+    // t(2) -0.27
 
     logs.push({
       date: call.date.replace(".000Z", ""),
@@ -71,10 +88,15 @@ function compute({
       gain: Math.round(gain * 1000) / 1000,
     });
   });
-
+  console.log(profitByDate);
+  console.log(drawdownByDate);
   return {
     finalETH: Math.round(finalETH * 100) / 100,
-    drawdown: Math.round(drawdown * 100) / 100,
+    drawdown,
+    worstDrawdown: drawdownByDate.reduce(
+      (prev, cur) => (cur[1] < prev[1] ? cur : prev),
+      ["", 0]
+    ),
     postATHCount,
     logs,
   };
