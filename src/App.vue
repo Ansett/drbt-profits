@@ -71,7 +71,7 @@
             />
             <!-- FUNDS -->
             <p
-              class="text-xl"
+              class="text-2xl"
               v-tooltip="'Final wallet worth, starting from 0'"
             >
               Final funds:
@@ -92,18 +92,15 @@
             <div
               class="text-lg"
               v-tooltip="
-                'The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period. You need at least this value in your wallet to sustain the strategy.'
+                'The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period. You need at least this absolute value in your wallet to sustain the strategy.'
               "
             >
               Worst drawdown:
-              <template v-if="worstDrawdown[0]">
-                <span class="font-bold text-primary">{{
-                  worstDrawdown[1]
-                }}</span>
-                <span class="text-color-secondary"> ETH </span>
-                <span class="text-xs">from {{ worstDrawdown[0] }}</span>
-              </template>
-              <template v-else>-</template>
+              <span class="font-bold text-primary">{{ worstDrawdown[1] }}</span>
+              <span class="text-color-secondary"> ETH </span>
+              <span v-if="worstDrawdown[0]" class="text-xs"
+                >from {{ worstDrawdown[0] }}</span
+              >
             </div>
             <!-- NB CALLS -->
             <p class="mt-3">
@@ -128,10 +125,10 @@
             </p>
             <!-- SELL EXPLANATIONS -->
             <p class="text-sm">
-              <span class="text-color-secondary">Exit strategy: </span
+              <span class="text-color-secondary">Sell calculations: </span
               ><span class="font-italic"
-                >Selling 100% at target, minus gas and 5% tax. Counted as a loss
-                if not reaching target.</span
+                >Gas and 5% tax are removed from each sales. Investment is
+                counted as a loss if not reaching targets.</span
               >
             </p>
           </div>
@@ -216,15 +213,78 @@
             />
           </InputGroup>
         </div>
-        <!-- TP -->
+        <!-- TP 1 -->
         <div class="flex flex-column gap-2 p-3">
-          <label for="tp-input">Take profit target</label>
+          <label for="tp-input"
+            >Take profit target 1
+            <span class="text-xs">(size % and Xs)</span></label
+          >
           <InputGroup>
             <InputGroupAddon>
               <i class="pi pi-send"></i>
             </InputGroupAddon>
             <InputNumber
-              v-model="state.takeProfit"
+              v-model="state.takeProfit1.size"
+              id="tp-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              suffix="%"
+              :min="0"
+              :max="100"
+              :step="10"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+            <InputNumber
+              v-model="state.takeProfit1.xs"
+              id="tp-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              suffix="x"
+              :min="1"
+              :step="5"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+          </InputGroup>
+        </div>
+        <!-- TP 2 -->
+        <div class="flex flex-column gap-2 p-3">
+          <label for="tp-input"
+            >Take profit target 2
+            <span class="text-xs">(size % and Xs)</span></label
+          >
+          <InputGroup>
+            <InputGroupAddon>
+              <i class="pi pi-send"></i>
+            </InputGroupAddon>
+            <InputNumber
+              v-model="state.takeProfit2.size"
+              id="tp2-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              suffix="%"
+              :min="0"
+              :max="100 - state.takeProfit1.size"
+              :step="10"
+              :class="{
+                'p-invalid':
+                  state.takeProfit1.size + state.takeProfit2.size > 100,
+              }"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+            <InputNumber
+              v-model="state.takeProfit2.xs"
               id="tp-input"
               showButtons
               buttonLayout="stacked"
@@ -305,6 +365,7 @@ import { round2Dec, sleep, debounce } from "./lib";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
+import type { TakeProfit } from "./types/TakeProfit";
 
 const error = ref("");
 const loading = ref(false);
@@ -393,7 +454,8 @@ async function storeData(rows: (string | number)[][]) {
 
 const state = reactive({
   position: 0.05,
-  takeProfit: 100,
+  takeProfit1: { size: 50, xs: 10 } as TakeProfit,
+  takeProfit2: { size: 50, xs: 100 } as TakeProfit,
   gasPrice: 0.01,
   startDate: "",
   endDate: "",
@@ -405,17 +467,19 @@ const drawdown = ref(0);
 const worstDrawdown = ref(["", 0]);
 const postATHCount = ref(0);
 
+const STORAGE_KEY = "state-b";
 function storeForm() {
-  localStorage.setItem("state", JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 watch(state, () => storeForm(), { deep: true });
 function loadForm() {
-  const savedString = localStorage.getItem("state");
+  const savedString = localStorage.getItem(STORAGE_KEY);
   if (savedString) {
     try {
       const savedState = JSON.parse(savedString);
       state.position = savedState.position;
-      state.takeProfit = savedState.takeProfit;
+      state.takeProfit1 = savedState.takeProfit1;
+      state.takeProfit2 = savedState.takeProfit2;
       state.gasPrice = savedState.gasPrice;
       state.startDate = savedState.startDate;
       state.endDate = savedState.endDate;
@@ -453,7 +517,8 @@ const runCompute = () =>
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     gasPrice: state.gasPrice,
-    takeProfit: state.takeProfit,
+    takeProfit1: JSON.parse(JSON.stringify(state.takeProfit1)),
+    takeProfit2: JSON.parse(JSON.stringify(state.takeProfit2)),
   });
 const debouncedCompute = debounce(runCompute, 1000);
 watch(filteredCalls, () => {
@@ -463,7 +528,14 @@ watch(filteredCalls, () => {
   debouncedCompute();
 });
 watch(
-  [() => state.position, () => state.takeProfit, () => state.gasPrice],
+  [
+    () => state.position,
+    () => state.takeProfit1.size,
+    () => state.takeProfit1.xs,
+    () => state.takeProfit2.size,
+    () => state.takeProfit2.xs,
+    () => state.gasPrice,
+  ],
   () => {
     loading.value = true;
     debouncedCompute();

@@ -1,6 +1,7 @@
 import readXlsxFile from "read-excel-file/web-worker";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
+import type { TakeProfit } from "./types/TakeProfit";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -25,12 +26,14 @@ function compute({
   calls,
   position,
   gasPrice,
-  takeProfit,
+  takeProfit1,
+  takeProfit2,
 }: {
   calls: Call[];
   position: number;
   gasPrice: number;
-  takeProfit: number;
+  takeProfit1: TakeProfit;
+  takeProfit2: TakeProfit;
 }) {
   let finalETH = 0;
   let drawdown = 0;
@@ -52,11 +55,18 @@ function compute({
     }
 
     const xs = call.xs; // / (1 + entrySlippage);
-    if (xs >= takeProfit) {
+    if (xs >= takeProfit1.xs) {
       gain +=
-        ((invested * 100) / 100) *
-          takeProfit *
+        ((invested * takeProfit1.size) / 100) *
+          takeProfit1.xs *
           // (1 - call.buyTax) * // not accounting for tax because it's included in DRBT CallToATH_X
+          (1 - SELL_TAX) -
+        gasPrice;
+    }
+    if (xs >= takeProfit2.xs) {
+      gain +=
+        ((invested * takeProfit2.size) / 100) *
+          takeProfit2.xs *
           (1 - SELL_TAX) -
         gasPrice;
     }
@@ -73,11 +83,6 @@ function compute({
         drawdownByDate[index][1] =
           Math.round(profitByDate[index][1] * 100) / 100;
     }
-    console.log(
-      profitByDate[profitByDate.length - 1],
-      drawdownByDate[drawdownByDate.length - 1]
-    );
-    // t(2) -0.27
 
     logs.push({
       date: call.date.replace(".000Z", ""),
@@ -88,8 +93,7 @@ function compute({
       gain: Math.round(gain * 1000) / 1000,
     });
   });
-  console.log(profitByDate);
-  console.log(drawdownByDate);
+
   return {
     finalETH: Math.round(finalETH * 100) / 100,
     drawdown,
