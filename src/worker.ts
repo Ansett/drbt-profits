@@ -1,5 +1,6 @@
 import readXlsxFile from "read-excel-file/web-worker";
 import type { Call } from "./types/Call";
+import type { Log } from "./types/Log";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -34,6 +35,7 @@ function compute({
   let finalETH = 0;
   let drawdown = 0;
   let postATHCount = 0;
+  const logs: Log[] = [];
 
   calls.forEach((call) => {
     const maxBuyETH = computeMaxETH(call.currentMC, call.supply, call.maxBuy);
@@ -56,18 +58,24 @@ function compute({
           (1 - SELL_TAX) -
         gasPrice;
     }
+
     finalETH += gain;
-    console.log(
-      `${call.name} ${call.ca} buy ${Math.round(invested * 1000) / 1000} for ${
-        call.xs
-      }x ends up with ${Math.round(gain * 1000) / 1000} ETH`
-    );
     if (finalETH < drawdown) drawdown = finalETH;
+
+    logs.push({
+      date: call.date.replace(".000Z", ""),
+      ca: call.ca,
+      name: call.name,
+      xs: call.xs,
+      invested: Math.round(invested * 1000) / 1000,
+      gain: Math.round(gain * 1000) / 1000,
+    });
   });
 
   return {
     finalETH: Math.round(finalETH * 100) / 100,
     drawdown: Math.round(drawdown * 100) / 100,
     postATHCount,
+    logs,
   };
 }

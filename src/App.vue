@@ -54,8 +54,8 @@
         }}</Message>
 
         <!-- RESULTS -->
-        <Fieldset
-          legend="Results"
+        <Panel
+          header="STATISTICS"
           class="pb-5 mt-5 md:mt-7"
           style="min-height: 11rem"
         >
@@ -82,7 +82,7 @@
             <div
               class="text-lg"
               v-tooltip="
-                'The lowest the wallet has fallen to, starting from 0. You need at least 2x this value to sustain the strategy'
+                'The lowest the wallet has fallen to, starting from 0. You need at least 2x this value to sustain the strategy, and it\'s really period-dependent'
               "
             >
               Drawdown:
@@ -119,7 +119,32 @@
               >
             </p>
           </div>
-        </Fieldset>
+        </Panel>
+
+        <!-- LOGS -->
+        <Panel header="LOGS" toggleable collapsed>
+          <ul class="px-2">
+            <li v-for="log in logs" :key="log.ca" class="text-sm mb-3">
+              <!-- {{ log.ca }}<br /> -->
+              <span class="">[{{ log.date }}]</span
+              ><span class="text-color-secondary"> bought </span
+              ><span class="font-bold">{{ log.invested }}</span>
+              <span class="text-color-secondary"> of </span>
+              <span class="font-bold">{{ log.name }}</span>
+              <br />
+              <span class="text-xs">{{ log.ca }} </span>
+              <span class="text-color-secondary"> did </span>
+              <span class="font-bold">{{ log.xs }}x</span> ->
+              <span
+                :class="[
+                  'font-bold',
+                  log.gain > 0 ? 'text-cyan-300 underline' : 'text-purple-600	',
+                ]"
+                >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
+              >
+            </li>
+          </ul>
+        </Panel>
       </div>
 
       <div class="flex flex-column mx-1 md:mx-5 my-2">
@@ -253,7 +278,7 @@ import InputNumber from "primevue/inputnumber";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import FileUpload, { type FileUploadSelectEvent } from "primevue/fileupload";
-import Fieldset from "primevue/fieldset";
+import Panel from "primevue/panel";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import ProgressSpinner from "primevue/progressspinner";
@@ -262,6 +287,7 @@ import vTooltip from "primevue/tooltip";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { round2Dec, sleep, debounce } from "./lib";
 import type { Call } from "./types/Call";
+import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 
 const error = ref("");
@@ -280,6 +306,7 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   worker.postMessage({ type: "XLSX", xlsx: selectedFile.value });
 };
 
+const logs = ref<Log[]>([]);
 const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
@@ -316,8 +343,8 @@ async function storeData(rows: (string | number)[][]) {
   if (mcIndex < 0) return fail("CRT_MC header not found");
   const taxIndex = header.indexOf("BuyTax");
   if (taxIndex < 0) return fail("BuyTax header not found");
-  const dateIndex = header.indexOf("LiveAt");
-  if (dateIndex < 0) return fail("LiveAt header not found");
+  const dateIndex = header.indexOf("Logged");
+  if (dateIndex < 0) return fail("Logged header not found");
   const delayIndex = header.indexOf("LaunchedDelay");
   if (delayIndex < 0) return fail("LaunchedDelay header not found");
   const athDelayIndex = header.indexOf("ATHDelay");
@@ -437,6 +464,7 @@ worker.onmessage = ({ data }) => {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
     postATHCount.value = data.postATHCount;
+    logs.value = data.logs;
   }
   loading.value = false;
 };
