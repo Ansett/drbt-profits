@@ -302,8 +302,7 @@
         <!-- START -->
         <div class="flex flex-column gap-2 p-3">
           <label for="end-input"
-            >Start date at midnight
-            <span class="text-xs">(no limit if empty)</span></label
+            >Start date <span class="text-xs">(no limit if empty)</span></label
           ><InputGroup>
             <InputGroupAddon>
               <i class="pi pi-calendar-minus"></i>
@@ -317,14 +316,27 @@
               placeholder="YYYY-MM-DD"
             />
             <Button icon="pi pi-plus" @click="incStartDate()" />
-            <Button icon="pi pi-times" outlined @click="state.startDate = ''" />
+            <InputMask
+              v-model="state.startHour"
+              id="starth-input"
+              style="height: 4rem"
+              mask="99:99"
+              placeholder="00:00"
+            />
+            <Button
+              icon="pi pi-times"
+              outlined
+              @click="
+                state.startDate = '';
+                state.startHour = '';
+              "
+            />
           </InputGroup>
         </div>
         <!-- END DATE -->
         <div class="flex flex-column gap-2 p-3">
           <label for="end-input"
-            >End date at midnight
-            <span class="text-xs">(no limit if empty)</span></label
+            >End date <span class="text-xs">(no limit if empty)</span></label
           >
           <InputGroup>
             <InputGroupAddon>
@@ -339,7 +351,21 @@
               placeholder="YYYY-MM-DD"
             />
             <Button icon="pi pi-plus" @click="incEndDate()" />
-            <Button icon="pi pi-times" outlined @click="state.endDate = ''" />
+            <InputMask
+              v-model="state.endHour"
+              id="endh-input"
+              style="height: 4rem"
+              mask="99:99"
+              placeholder="00:00"
+            />
+            <Button
+              icon="pi pi-times"
+              outlined
+              @click="
+                state.endDate = '';
+                state.endHour = '';
+              "
+            />
           </InputGroup>
         </div>
       </div>
@@ -388,12 +414,16 @@ const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
     if (state.startDate) {
-      const startTime = state.startDate + "T00:00:00.000Z";
-      if (call.date < startTime) return false;
+      const time = state.startHour?.match(/\d\d:\d\d/)
+        ? state.startHour
+        : "00:00";
+      const fullStart = `${state.startDate}T${time}:00.000Z`;
+      if (call.date < fullStart) return false;
     }
     if (state.endDate) {
-      const endTime = state.endDate + "T00:00:00.000Z";
-      if (call.date > endTime) return false;
+      const time = state.endHour?.match(/\d\d:\d\d/) ? state.endHour : "00:00";
+      const fullEnd = `${state.endDate}T${time}:00.000Z`;
+      if (call.date > fullEnd) return false;
     }
     return true;
   })
@@ -452,13 +482,19 @@ async function storeData(rows: (string | number)[][]) {
   calls.value = newCalls;
 }
 
+const INIT_POSITION = 0.05;
+const INIT_TP1 = { size: 50, xs: 10 } as TakeProfit;
+const INIT_TP2 = { size: 50, xs: 100 } as TakeProfit;
+const INIT_GAS = 0.01;
 const state = reactive({
-  position: 0.05,
-  takeProfit1: { size: 50, xs: 10 } as TakeProfit,
-  takeProfit2: { size: 50, xs: 100 } as TakeProfit,
-  gasPrice: 0.01,
+  position: INIT_POSITION,
+  takeProfit1: INIT_TP1,
+  takeProfit2: INIT_TP2,
+  gasPrice: INIT_GAS,
   startDate: "",
+  startHour: "",
   endDate: "",
+  endHour: "",
 });
 
 const initialized = ref(false);
@@ -477,12 +513,14 @@ function loadForm() {
   if (savedString) {
     try {
       const savedState = JSON.parse(savedString);
-      state.position = savedState.position;
-      state.takeProfit1 = savedState.takeProfit1;
-      state.takeProfit2 = savedState.takeProfit2;
-      state.gasPrice = savedState.gasPrice;
-      state.startDate = savedState.startDate;
-      state.endDate = savedState.endDate;
+      state.position = savedState.position ?? INIT_POSITION;
+      state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
+      state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
+      state.gasPrice = savedState.gasPrice ?? INIT_GAS;
+      state.startDate = savedState.startDate ?? "";
+      state.endDate = savedState.endDate ?? "";
+      state.startHour = savedState.startHour ?? "";
+      state.endHour = savedState.endHour ?? "";
     } catch (e) {}
   }
 }
