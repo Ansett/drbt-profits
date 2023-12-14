@@ -1,6 +1,6 @@
 <template>
   <header
-    class="text-2xl md:text-6xl font-light text-color-secondary text-center mb-4"
+    class="text-2xl xl:text-6xl font-light text-color-secondary text-center mb-4"
   >
     Backtesting profits from DRBT
   </header>
@@ -8,9 +8,9 @@
   <main>
     <!-- CONFIG -->
     <div
-      class="flex flex-column md:flex-row gap-3 md:gap-1 align-items-center md:align-items-start justify-content-center"
+      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div class="min-w-min md:w-6 m-1 md:m-5" style="max-width: 50rem">
+      <div class="min-w-min xl:w-6 m-1 xl:m-5" style="max-width: 50rem">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -56,7 +56,7 @@
         <!-- RESULTS -->
         <Panel
           header="STATISTICS"
-          class="pb-5 mt-5 md:mt-7"
+          class="pb-5 mt-5 xl:mt-7"
           style="min-height: 11rem"
         >
           <div class="flex flex-column align-items-start relative">
@@ -160,10 +160,10 @@
         </Panel>
       </div>
 
-      <div class="flex flex-column mx-1 md:mx-5 my-2">
+      <div class="flex flex-column mx-1 xl:mx-5 my-2">
         <!-- POSITION -->
         <div class="flex flex-column gap-2 p-3">
-          <label for="position-input">Position size</label>
+          <label for="position-input">Max bought</label>
           <InputGroup>
             <InputGroupAddon>
               <i class="pi pi-wallet"></i>
@@ -370,51 +370,64 @@
               "
             />
           </InputGroup>
-          <!-- RANGE -->
-          <div class="flex flex-column gap-2 py-3">
-            <label for="end-input"
-              >Trading hours for each day
-              <span class="text-xs">(UTC)</span></label
-            >
-            <div class="flex flex-row gap-2">
-              <div class="flex-grow-1 flex flex-column">
+        </div>
+        <!-- RANGE -->
+        <div class="flex flex-column gap-2 p-3">
+          <label for="end-input"
+            >Trading hours each day <span class="text-xs">(UTC)</span></label
+          >
+          <div class="flex flex-row gap-2">
+            <div class="flex flex-column" style="flex: 1 1 50%">
+              <InputText
+                v-model="rangeStartIso"
+                disabled
+                style="height: 4rem"
+              />
+              <Slider
+                v-model="selection.range[0]"
+                :step="0.25"
+                :min="0"
+                :max="23.75"
+                :pt="{
+                  root: { class: 'bg-primary' },
+                  range: { class: 'bg-gray-600' },
+                }"
+              />
+            </div>
+            <div class="flex flex-column" style="flex: 1 1 50%">
+              <InputGroup>
+                <InputGroupAddon
+                  style="height: 4rem"
+                  v-show="selection.range[1] < selection.range[0]"
+                  ><i class="pi pi-arrow-right"></i
+                ></InputGroupAddon>
                 <InputText
-                  v-model="rangeStartIso"
+                  v-model="rangeEndIso"
                   disabled
                   style="height: 4rem"
                 />
-                <Slider
-                  v-model="selection.range[0]"
-                  :step="0.25"
-                  :min="0"
-                  :max="23.75"
-                  :pt="{
-                    root: { class: 'bg-primary' },
-                    range: { class: 'bg-gray-600' },
-                  }"
-                />
-              </div>
-              <div class="flex-grow-1 flex flex-column">
-                <InputGroup>
-                  <InputGroupAddon
-                    style="height: 4rem"
-                    v-show="selection.range[1] < selection.range[0]"
-                    ><i class="pi pi-arrow-right"></i
-                  ></InputGroupAddon>
-                  <InputText
-                    v-model="rangeEndIso"
-                    disabled
-                    style="height: 4rem"
-                  />
-                </InputGroup>
+              </InputGroup>
 
-                <Slider
-                  v-model="selection.range[1]"
-                  :step="0.25"
-                  :min="0.25"
-                  :max="24"
-                />
-              </div>
+              <Slider
+                v-model="selection.range[1]"
+                :step="0.25"
+                :min="0.25"
+                :max="24"
+              />
+            </div>
+          </div>
+        </div>
+        <!-- DAYS -->
+        <div class="flex flex-column gap-2 p-3">
+          <label>Trading days <span class="text-xs">(UTC)</span></label>
+          <div class="card flex flex-wrap justify-content-start gap-5">
+            <div
+              v-for="(day, index) of allDays"
+              :key="index"
+              class="flex align-items-center"
+            >
+              <Checkbox v-model="selection.week[index]" binary :inputId="day" />
+              <label :for="day" class="ml-2"> {{ day }} </label>
             </div>
           </div>
         </div>
@@ -437,6 +450,7 @@ import InputText from "primevue/inputtext";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
+import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { round2Dec, sleep, debounce, decimalHourToString } from "./lib";
@@ -465,6 +479,7 @@ const logs = ref<Log[]>([]);
 const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
+    // filtering period
     if (selection.startDate) {
       const time = selection.startHour?.match(/\d\d:\d\d/)
         ? selection.startHour
@@ -479,24 +494,14 @@ const filteredCalls = computed<Call[]>(() =>
       const fullEnd = `${selection.endDate}T${time}:00.000Z`;
       if (call.date > fullEnd) return false;
     }
+
+    // filtering trading hours
     if (selection.range[0] !== 0 || selection.range[1] !== 24) {
       const hourChunk = call.date.match(/T(\d\d:\d\d:\d\d)/)![1];
-      // const rangeStart = `${(selection.range[0] || 0)
-      //   .toString()
-      //   .padStart(2, "0")}:00:00`;
-      // const rangeEnd = `${(selection.range[1] || 24)
-      //   .toString()
-      //   .padStart(2, "0")}:59:59`;
       const adjustedRangeStart = rangeStartIso.value + ":00";
       const adjustedRangeEnd =
         rangeEndIso.value === "24:00" ? "23:59:59" : rangeEndIso.value + ":59 ";
-      if (call.name === "Friendtip")
-        console.log({
-          date: call.date,
-          hourChunk,
-          adjustedRangeStart,
-          adjustedRangeEnd,
-        });
+
       if (
         selection.range[0] <= selection.range[1] &&
         (hourChunk < adjustedRangeStart || hourChunk > adjustedRangeEnd)
@@ -509,6 +514,13 @@ const filteredCalls = computed<Call[]>(() =>
       )
         return false;
     }
+
+    // filtering days
+    if (selection.week.some((active) => !active)) {
+      const callDay = new Date(call.date).getUTCDay();
+      if (!selection.week[callDay]) return false;
+    }
+
     return true;
   })
 );
@@ -576,12 +588,22 @@ const state = reactive({
   takeProfit2: INIT_TP2,
   gasPrice: INIT_GAS,
 });
+const allDays = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 const selection = reactive({
   startDate: "",
   startHour: "",
   endDate: "",
   endHour: "",
   range: [0, 24],
+  week: [true, true, true, true, true, true, true], // starting sunday
 });
 
 const rangeStartIso = computed(() => decimalHourToString(selection.range[0]));
