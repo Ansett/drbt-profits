@@ -63,3 +63,14 @@ export function round2Dec(value: number) {
 export function prettifyDate(date: string) {
   return date.replace("T", " ").replace(".000Z", "");
 }
+
+export function decimalHourToString(num: number) {
+  var minutes = (num % 1) * 60;
+  const hours = num - (num % 1);
+
+  return (
+    hours.toString().padStart(2, "0") +
+    ":" +
+    minutes.toString().padStart(2, "0")
+  );
+}

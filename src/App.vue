@@ -299,6 +299,9 @@
             />
           </InputGroup>
         </div>
+
+        <hr class="m-3 border-1 border-solid border-indigo-900" />
+
         <!-- START -->
         <div class="flex flex-column gap-2 p-3">
           <label for="end-input"
@@ -309,7 +312,7 @@
             </InputGroupAddon>
             <Button icon="pi pi-minus" @click="incStartDate(-1)" />
             <InputMask
-              v-model="state.startDate"
+              v-model="selection.startDate"
               id="start-input"
               style="height: 4rem"
               mask="9999-99-99"
@@ -317,7 +320,7 @@
             />
             <Button icon="pi pi-plus" @click="incStartDate()" />
             <InputMask
-              v-model="state.startHour"
+              v-model="selection.startHour"
               id="starth-input"
               style="height: 4rem"
               mask="99:99"
@@ -327,8 +330,8 @@
               icon="pi pi-times"
               outlined
               @click="
-                state.startDate = '';
-                state.startHour = '';
+                selection.startDate = '';
+                selection.startHour = '';
               "
             />
           </InputGroup>
@@ -344,7 +347,7 @@
             </InputGroupAddon>
             <Button icon="pi pi-minus" @click="incEndDate(-1)" />
             <InputMask
-              v-model="state.endDate"
+              v-model="selection.endDate"
               id="end-input"
               style="height: 4rem"
               mask="9999-99-99"
@@ -352,7 +355,7 @@
             />
             <Button icon="pi pi-plus" @click="incEndDate()" />
             <InputMask
-              v-model="state.endHour"
+              v-model="selection.endHour"
               id="endh-input"
               style="height: 4rem"
               mask="99:99"
@@ -362,11 +365,58 @@
               icon="pi pi-times"
               outlined
               @click="
-                state.endDate = '';
-                state.endHour = '';
+                selection.endDate = '';
+                selection.endHour = '';
               "
             />
           </InputGroup>
+          <!-- RANGE -->
+          <div class="flex flex-column gap-2 py-3">
+            <label for="end-input"
+              >Trading hours for each day
+              <span class="text-xs">(UTC)</span></label
+            >
+            <div class="flex flex-row gap-2">
+              <div class="flex-grow-1 flex flex-column">
+                <InputText
+                  v-model="rangeStartIso"
+                  disabled
+                  style="height: 4rem"
+                />
+                <Slider
+                  v-model="selection.range[0]"
+                  :step="0.25"
+                  :min="0"
+                  :max="23.75"
+                  :pt="{
+                    root: { class: 'bg-primary' },
+                    range: { class: 'bg-gray-600' },
+                  }"
+                />
+              </div>
+              <div class="flex-grow-1 flex flex-column">
+                <InputGroup>
+                  <InputGroupAddon
+                    style="height: 4rem"
+                    v-show="selection.range[1] < selection.range[0]"
+                    ><i class="pi pi-arrow-right"></i
+                  ></InputGroupAddon>
+                  <InputText
+                    v-model="rangeEndIso"
+                    disabled
+                    style="height: 4rem"
+                  />
+                </InputGroup>
+
+                <Slider
+                  v-model="selection.range[1]"
+                  :step="0.25"
+                  :min="0.25"
+                  :max="24"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -383,11 +433,13 @@ import FileUpload, { type FileUploadSelectEvent } from "primevue/fileupload";
 import Panel from "primevue/panel";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
+import InputText from "primevue/inputtext";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
+import Slider from "primevue/slider";
 import vTooltip from "primevue/tooltip";
 import { computed, onMounted, reactive, ref, watch } from "vue";
-import { round2Dec, sleep, debounce } from "./lib";
+import { round2Dec, sleep, debounce, decimalHourToString } from "./lib";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
@@ -413,17 +465,49 @@ const logs = ref<Log[]>([]);
 const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
-    if (state.startDate) {
-      const time = state.startHour?.match(/\d\d:\d\d/)
-        ? state.startHour
+    if (selection.startDate) {
+      const time = selection.startHour?.match(/\d\d:\d\d/)
+        ? selection.startHour
         : "00:00";
-      const fullStart = `${state.startDate}T${time}:00.000Z`;
+      const fullStart = `${selection.startDate}T${time}:00.000Z`;
       if (call.date < fullStart) return false;
     }
-    if (state.endDate) {
-      const time = state.endHour?.match(/\d\d:\d\d/) ? state.endHour : "00:00";
-      const fullEnd = `${state.endDate}T${time}:00.000Z`;
+    if (selection.endDate) {
+      const time = selection.endHour?.match(/\d\d:\d\d/)
+        ? selection.endHour
+        : "00:00";
+      const fullEnd = `${selection.endDate}T${time}:00.000Z`;
       if (call.date > fullEnd) return false;
+    }
+    if (selection.range[0] !== 0 || selection.range[1] !== 24) {
+      const hourChunk = call.date.match(/T(\d\d:\d\d:\d\d)/)![1];
+      // const rangeStart = `${(selection.range[0] || 0)
+      //   .toString()
+      //   .padStart(2, "0")}:00:00`;
+      // const rangeEnd = `${(selection.range[1] || 24)
+      //   .toString()
+      //   .padStart(2, "0")}:59:59`;
+      const adjustedRangeStart = rangeStartIso.value + ":00";
+      const adjustedRangeEnd =
+        rangeEndIso.value === "24:00" ? "23:59:59" : rangeEndIso.value + ":59 ";
+      if (call.name === "Friendtip")
+        console.log({
+          date: call.date,
+          hourChunk,
+          adjustedRangeStart,
+          adjustedRangeEnd,
+        });
+      if (
+        selection.range[0] <= selection.range[1] &&
+        (hourChunk < adjustedRangeStart || hourChunk > adjustedRangeEnd)
+      )
+        return false;
+      if (
+        selection.range[0] > selection.range[1] &&
+        hourChunk < adjustedRangeStart &&
+        hourChunk > adjustedRangeEnd
+      )
+        return false;
     }
     return true;
   })
@@ -491,11 +575,17 @@ const state = reactive({
   takeProfit1: INIT_TP1,
   takeProfit2: INIT_TP2,
   gasPrice: INIT_GAS,
+});
+const selection = reactive({
   startDate: "",
   startHour: "",
   endDate: "",
   endHour: "",
+  range: [0, 24],
 });
+
+const rangeStartIso = computed(() => decimalHourToString(selection.range[0]));
+const rangeEndIso = computed(() => decimalHourToString(selection.range[1]));
 
 const initialized = ref(false);
 const finalETH = ref(0);
@@ -503,7 +593,7 @@ const drawdown = ref(0);
 const worstDrawdown = ref(["", 0]);
 const postATHCount = ref(0);
 
-const STORAGE_KEY = "state-b";
+const STORAGE_KEY = "state-c";
 function storeForm() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -517,10 +607,6 @@ function loadForm() {
       state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
       state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
       state.gasPrice = savedState.gasPrice ?? INIT_GAS;
-      state.startDate = savedState.startDate ?? "";
-      state.endDate = savedState.endDate ?? "";
-      state.startHour = savedState.startHour ?? "";
-      state.endHour = savedState.endHour ?? "";
     } catch (e) {}
   }
 }
@@ -530,23 +616,23 @@ onMounted(() => {
 });
 
 const incStartDate = (inc = 1) => {
-  const base = state.startDate || filteredCalls.value[0]?.date || "";
+  const base = selection.startDate || filteredCalls.value[0]?.date || "";
   if (!base) return;
-  const offset = state.startDate ? inc : 0;
+  const offset = selection.startDate ? inc : 0;
   const current = new Date(base);
   current.setDate(current.getDate() + offset);
-  state.startDate = current.toISOString().split("T")[0];
+  selection.startDate = current.toISOString().split("T")[0];
 };
 const incEndDate = (inc = 1) => {
   const base =
-    state.endDate ||
+    selection.endDate ||
     filteredCalls.value[filteredCalls.value.length - 1]?.date ||
     "";
   if (!base) return;
-  const offset = state.endDate ? inc : 1;
+  const offset = selection.endDate ? inc : 1;
   const current = new Date(base);
   current.setDate(current.getDate() + offset);
-  state.endDate = current.toISOString().split("T")[0];
+  selection.endDate = current.toISOString().split("T")[0];
 };
 
 const runCompute = () =>
@@ -566,18 +652,12 @@ watch(filteredCalls, () => {
   debouncedCompute();
 });
 watch(
-  [
-    () => state.position,
-    () => state.takeProfit1.size,
-    () => state.takeProfit1.xs,
-    () => state.takeProfit2.size,
-    () => state.takeProfit2.xs,
-    () => state.gasPrice,
-  ],
+  () => state,
   () => {
     loading.value = true;
     debouncedCompute();
-  }
+  },
+  { deep: true }
 );
 
 function fail(message: string) {
