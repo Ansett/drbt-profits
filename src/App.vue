@@ -26,7 +26,12 @@
             >
               <i
                 class="pi pi-file mb-4"
-                style="font-size: 5.25rem; color: var(--primary-color)"
+                :style="{
+                  fontSize: '5.25rem',
+                  color: selectedFile
+                    ? 'var(--primary-color)'
+                    : 'var(--cyan-300)',
+                }"
               />
 
               <p
@@ -496,21 +501,21 @@ const filteredCalls = computed<Call[]>(() =>
     }
 
     // filtering trading hours
-    if (selection.range[0] !== 0 || selection.range[1] !== 24) {
+    if (
+      adjustedRange.value.start !== RANGE_FULL_TIME_START ||
+      adjustedRange.value.end !== RANGE_FULL_TIME_END
+    ) {
       const hourChunk = call.date.match(/T(\d\d:\d\d:\d\d)/)![1];
-      const adjustedRangeStart = rangeStartIso.value + ":00";
-      const adjustedRangeEnd =
-        rangeEndIso.value === "24:00" ? "23:59:59" : rangeEndIso.value + ":59 ";
-
       if (
-        selection.range[0] <= selection.range[1] &&
-        (hourChunk < adjustedRangeStart || hourChunk > adjustedRangeEnd)
+        adjustedRange.value.start <= adjustedRange.value.end &&
+        (hourChunk < adjustedRange.value.start ||
+          hourChunk > adjustedRange.value.end)
       )
         return false;
       if (
-        selection.range[0] > selection.range[1] &&
-        hourChunk < adjustedRangeStart &&
-        hourChunk > adjustedRangeEnd
+        adjustedRange.value.start > adjustedRange.value.end &&
+        hourChunk < adjustedRange.value.start &&
+        hourChunk > adjustedRange.value.end
       )
         return false;
     }
@@ -588,15 +593,6 @@ const state = reactive({
   takeProfit2: INIT_TP2,
   gasPrice: INIT_GAS,
 });
-const allDays = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 const selection = reactive({
   startDate: "",
   startHour: "",
@@ -606,8 +602,33 @@ const selection = reactive({
   week: [true, true, true, true, true, true, true], // starting sunday
 });
 
+const RANGE_FULL_TIME_START = "00:00:00";
+const RANGE_FULL_TIME_END = "23:59:50";
 const rangeStartIso = computed(() => decimalHourToString(selection.range[0]));
 const rangeEndIso = computed(() => decimalHourToString(selection.range[1]));
+const adjustedRange = ref({
+  start: RANGE_FULL_TIME_START,
+  end: RANGE_FULL_TIME_END,
+});
+const rangeUpdate = () => {
+  adjustedRange.value.start = rangeStartIso.value + ":00";
+  adjustedRange.value.end =
+    rangeEndIso.value === "24:00"
+      ? RANGE_FULL_TIME_END
+      : rangeEndIso.value + ":59 ";
+};
+const debouncedRangeUpdate = debounce(rangeUpdate, 500);
+watch([rangeStartIso, rangeEndIso], () => debouncedRangeUpdate());
+
+const allDays = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const initialized = ref(false);
 const finalETH = ref(0);
