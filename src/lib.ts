@@ -74,3 +74,8 @@ export function decimalHourToString(num: number) {
     minutes.toString().padStart(2, "0")
   );
 }
+
+export function round(num: number, decimals = 2) {
+  const multiplicator = 10 ** decimals;
+  return Math.round(num * multiplicator) / multiplicator;
+}

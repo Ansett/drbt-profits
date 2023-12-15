@@ -115,17 +115,17 @@
             <!-- POST-ATH -->
             <p>
               <span class="text-color-secondary"
-                >Not included post-ATH calls:</span
+              v-tooltip="'Excluding call if ATH ocurred before the buy or if it did more than 100000x'"
+                >Not included unrealistic calls:</span
               >
-              {{ postATHCount }}
+              {{ unrealisticCount }}
             </p>
             <!-- BUY EXPLANATIONS -->
             <p class="text-sm">
               <span class="text-color-secondary">Buy calculations: </span
               ><span class="font-italic"
                 >Investing selected position or max-buy, calculated using $2000
-                ETH value, minus gas cost. Buy tax is already subtracted from
-                Xs.</span
+                ETH value, minus gas cost and tax.</span
               >
             </p>
             <!-- SELL EXPLANATIONS -->
@@ -222,7 +222,9 @@
         <div class="flex flex-column gap-2 p-3">
           <label for="tp-input"
             >Take profit target 1
-            <span class="text-xs">(size % and Xs)</span></label
+            <span class="text-xs"
+              >(size % and either Xs or fixed MC)</span
+            ></label
           >
           <InputGroup>
             <InputGroupAddon>
@@ -244,6 +246,22 @@
               decrementButtonClassName="p-button-secondary"
             />
             <InputNumber
+              v-if="state.takeProfit1.fixed"
+              v-model="state.takeProfit1.mc"
+              id="tp-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              prefix="$"
+              :min="0"
+              :step="10000"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+            <InputNumber
+              v-else
               v-model="state.takeProfit1.xs"
               id="tp-input"
               showButtons
@@ -257,13 +275,18 @@
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
             />
+            <InputGroupAddon>
+              <Checkbox v-model="state.takeProfit1.fixed" binary />
+            </InputGroupAddon>
           </InputGroup>
         </div>
         <!-- TP 2 -->
         <div class="flex flex-column gap-2 p-3">
           <label for="tp-input"
             >Take profit target 2
-            <span class="text-xs">(size % and Xs)</span></label
+            <span class="text-xs"
+              >(size % and either Xs or fixed MC)</span
+            ></label
           >
           <InputGroup>
             <InputGroupAddon>
@@ -279,6 +302,7 @@
               :min="0"
               :max="100 - state.takeProfit1.size"
               :step="10"
+              disabled
               :class="{
                 'p-invalid':
                   state.takeProfit1.size + state.takeProfit2.size > 100,
@@ -289,6 +313,22 @@
               decrementButtonClassName="p-button-secondary"
             />
             <InputNumber
+              v-if="state.takeProfit2.fixed"
+              v-model="state.takeProfit2.mc"
+              id="tp-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              prefix="$"
+              :min="0"
+              :step="10000"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+            <InputNumber
+              v-else
               v-model="state.takeProfit2.xs"
               id="tp-input"
               showButtons
@@ -302,6 +342,9 @@
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
             />
+            <InputGroupAddon>
+              <Checkbox v-model="state.takeProfit2.fixed" binary />
+            </InputGroupAddon>
           </InputGroup>
         </div>
 
@@ -452,6 +495,7 @@ import Panel from "primevue/panel";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import InputText from "primevue/inputtext";
+import InputSwitch from "primevue/inputswitch";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
@@ -541,13 +585,15 @@ async function storeData(rows: (string | number)[][]) {
   if (caIndex < 0) return fail("CA header not found");
   const rugIndex = header.indexOf("Rug");
   if (rugIndex < 0) return fail("Rug header not found");
-  const xsIndex = header.indexOf("CalltoATH_Xs");
+  const xsIndex = header.indexOf("CalltoATH_Xs"); // storing this from sheet only to remove suspicious Xs, but when computing profits we recalculate Xs from scratch
   if (xsIndex < 0) return fail("CalltoATH_Xs header not found");
+  const athIndex = header.indexOf("CRT_ATH_MC");
+  if (athIndex < 0) return fail("CRT_ATH_MC header not found");
   const supplyIndex = header.indexOf("TSupply");
   if (supplyIndex < 0) return fail("TSupply header not found");
   const maxIndex = header.indexOf("MaxBuyPRCT"); // MaxBuy is not realiable, using percentage instead
   if (maxIndex < 0) return fail("MaxBuyPRCT header not found");
-  const mcIndex = header.lastIndexOf("CRT_MC");
+  const mcIndex = header.lastIndexOf("CRT_MC"); // taking the second column with same name, the first one is MC at present time, not call-time
   if (mcIndex < 0) return fail("CRT_MC header not found");
   const taxIndex = header.indexOf("BuyTax");
   if (taxIndex < 0) return fail("BuyTax header not found");
@@ -570,6 +616,7 @@ async function storeData(rows: (string | number)[][]) {
       name: row[nameIndex] as string,
       ca: row[caIndex] as string,
       xs: row[xsIndex] as number,
+      ath: row[athIndex] as number,
       date,
       delay: row[delayIndex] as number,
       athDelay: (row[athDelayIndex] as number) * 60 * 60,
@@ -584,8 +631,8 @@ async function storeData(rows: (string | number)[][]) {
 }
 
 const INIT_POSITION = 0.05;
-const INIT_TP1 = { size: 50, xs: 10 } as TakeProfit;
-const INIT_TP2 = { size: 50, xs: 100 } as TakeProfit;
+const INIT_TP1 = { size: 50, xs: 10, mc: 250000, fixed: false } as TakeProfit;
+const INIT_TP2 = { size: 50, xs: 100, mc: 2500000, fixed: false } as TakeProfit;
 const INIT_GAS = 0.01;
 const state = reactive({
   position: INIT_POSITION,
@@ -593,6 +640,13 @@ const state = reactive({
   takeProfit2: INIT_TP2,
   gasPrice: INIT_GAS,
 });
+watch(
+  () => state.takeProfit1.size,
+  (size1) => {
+    state.takeProfit2.size = 100 - state.takeProfit1.size;
+  }
+);
+
 const selection = reactive({
   startDate: "",
   startHour: "",
@@ -634,7 +688,7 @@ const initialized = ref(false);
 const finalETH = ref(0);
 const drawdown = ref(0);
 const worstDrawdown = ref(["", 0]);
-const postATHCount = ref(0);
+const unrealisticCount = ref(0);
 
 const STORAGE_KEY = "state-c";
 function storeForm() {
@@ -648,7 +702,11 @@ function loadForm() {
       const savedState = JSON.parse(savedString);
       state.position = savedState.position ?? INIT_POSITION;
       state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
+      if (!state.takeProfit1.mc) state.takeProfit1.mc = INIT_TP1.mc;
+      if (!state.takeProfit1.fixed) state.takeProfit1.fixed = INIT_TP1.fixed;
       state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
+      if (!state.takeProfit2.mc) state.takeProfit2.mc = INIT_TP2.mc;
+      if (!state.takeProfit2.fixed) state.takeProfit2.fixed = INIT_TP2.fixed;
       state.gasPrice = savedState.gasPrice ?? INIT_GAS;
     } catch (e) {}
   }
@@ -714,7 +772,7 @@ worker.onmessage = ({ data }) => {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
     worstDrawdown.value = data.worstDrawdown;
-    postATHCount.value = data.postATHCount;
+    unrealisticCount.value = data.unrealisticCount;
     logs.value = data.logs;
   }
   loading.value = false;

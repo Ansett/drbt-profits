@@ -2,7 +2,7 @@ import readXlsxFile from "read-excel-file/web-worker";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
-import { prettifyDate } from "./lib";
+import { prettifyDate, round } from "./lib";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -40,7 +40,7 @@ function compute({
   let drawdown = 0;
   let profitByDate: [string, number][] = [];
   let drawdownByDate: [string, number][] = [];
-  let postATHCount = 0;
+  let unrealisticCount = 0;
   const logs: Log[] = [];
 
   calls.forEach((call) => {
@@ -50,30 +50,33 @@ function compute({
       invested = position;
     }
     let gain = -gasPrice - invested;
-    if (call.athDelay <= call.delay) {
-      postATHCount++;
+    if (call.athDelay <= call.delay || call.xs > 100000) {
+      unrealisticCount++;
       return;
     }
 
-    const xs = call.xs; // / (1 + entrySlippage);
-    if (xs >= takeProfit1.xs) {
+    const computeXs = (mc: number) => mc / (call.currentMC * (1 + call.buyTax)); // / (1 + entrySlippage);
+    const maxXs = computeXs(call.ath);
+    const targetXs1 = takeProfit1.fixed
+      ? computeXs(takeProfit1.mc)
+      : takeProfit1.xs;
+    const targetXs2 = takeProfit2.fixed
+      ? computeXs(takeProfit2.mc)
+      : takeProfit2.xs;
+
+    if (maxXs >= targetXs1) {
       gain +=
-        ((invested * takeProfit1.size) / 100) *
-          takeProfit1.xs *
-          // (1 - call.buyTax) * // not accounting for tax because it's included in DRBT CallToATH_X
-          (1 - SELL_TAX) -
+        ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
         gasPrice;
     }
-    if (xs >= takeProfit2.xs) {
+    if (maxXs >= targetXs2) {
       gain +=
-        ((invested * takeProfit2.size) / 100) *
-          takeProfit2.xs *
-          (1 - SELL_TAX) -
+        ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
         gasPrice;
     }
 
     finalETH += gain;
-    if (finalETH < drawdown) drawdown = Math.round(finalETH * 100) / 100;
+    if (finalETH < drawdown) drawdown = round(finalETH);
     profitByDate = [...profitByDate, [call.date, 0]];
     for (const p of profitByDate) {
       p[1] += gain;
@@ -81,28 +84,27 @@ function compute({
     drawdownByDate = [...drawdownByDate, [prettifyDate(call.date), 0]];
     for (const index in drawdownByDate) {
       if (profitByDate[index][1] < drawdownByDate[index][1])
-        drawdownByDate[index][1] =
-          Math.round(profitByDate[index][1] * 100) / 100;
+        drawdownByDate[index][1] = round(profitByDate[index][1]);
     }
 
     logs.push({
       date: prettifyDate(call.date),
       ca: call.ca,
       name: call.name,
-      xs: call.xs,
-      invested: Math.round(invested * 1000) / 1000,
-      gain: Math.round(gain * 1000) / 1000,
+      xs: round(maxXs, 1),
+      invested: round(invested, 3),
+      gain: round(gain, 3),
     });
   });
 
   return {
-    finalETH: Math.round(finalETH * 100) / 100,
-    drawdown,
+    finalETH: round(finalETH),
+    drawdown: round(drawdown),
     worstDrawdown: drawdownByDate.reduce(
       (prev, cur) => (cur[1] < prev[1] ? cur : prev),
       ["", 0]
     ),
-    postATHCount,
+    unrealisticCount,
     logs,
   };
 }
