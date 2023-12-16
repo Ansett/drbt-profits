@@ -114,8 +114,11 @@
             </p>
             <!-- POST-ATH -->
             <p>
-              <span class="text-color-secondary"
-              v-tooltip="'Excluding call if ATH ocurred before the buy or if it did more than 100000x'"
+              <span
+                class="text-color-secondary"
+                v-tooltip="
+                  'Excluding call if ATH ocurred before the buy or if it did more than 100000x'
+                "
                 >Not included unrealistic calls:</span
               >
               {{ unrealisticCount }}
@@ -619,7 +622,7 @@ async function storeData(rows: (string | number)[][]) {
       ath: row[athIndex] as number,
       date,
       delay: row[delayIndex] as number,
-      athDelay: (row[athDelayIndex] as number) * 60 * 60,
+      athDelay: row[athDelayIndex] as number,
       buyTax: (row[taxIndex] as number) / 100,
       supply: row[supplyIndex] as number,
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
