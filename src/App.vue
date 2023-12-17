@@ -109,7 +109,7 @@
             </div>
             <!-- NB CALLS -->
             <p class="mt-3">
-              <span class="text-color-secondary">Non-rug calls:</span>
+              <span class="text-color-secondary">Number of calls:</span>
               {{ filteredCalls.length }}
             </p>
             <!-- POST-ATH -->
@@ -609,8 +609,6 @@ async function storeData(rows: (string | number)[][]) {
 
   let newCalls: Call[] = [];
   for (const row of rows) {
-    if (row[rugIndex]) continue;
-
     let date = row[dateIndex] as string;
     if (!date) continue;
     date = new Date(Date.parse(date)).toISOString();
@@ -627,6 +625,7 @@ async function storeData(rows: (string | number)[][]) {
       supply: row[supplyIndex] as number,
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
       currentMC: row[mcIndex] as number,
+      rug: !!row[rugIndex],
     });
   }
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));

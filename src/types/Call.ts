@@ -10,4 +10,5 @@ export type Call = {
   maxBuy: number;
   currentMC: number;
   buyTax: number;
+  rug: boolean;
 };

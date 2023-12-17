@@ -50,7 +50,7 @@ function compute({
       invested = position;
     }
     let gain = -gasPrice - invested;
-    if (call.athDelay <= call.delay || call.xs > 100000) {
+    if (/*call.athDelay <= call.delay ||*/ !call.rug && call.xs > 100000) {
       unrealisticCount++;
       return;
     }
@@ -64,12 +64,12 @@ function compute({
       ? computeXs(takeProfit2.mc)
       : takeProfit2.xs;
 
-    if (maxXs >= targetXs1) {
+    if (!call.rug && maxXs >= targetXs1) {
       gain +=
         ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
         gasPrice;
     }
-    if (maxXs >= targetXs2) {
+    if (!call.rug && maxXs >= targetXs2) {
       gain +=
         ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
         gasPrice;
