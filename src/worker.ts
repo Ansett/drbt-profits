@@ -17,6 +17,7 @@ onmessage = function ({ data }) {
 
 const SELL_TAX = 5 / 100;
 const ETH_PRICE = 2000;
+const REALISTIC_MAX_XS = 10000;
 
 const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
   const supplyBought = maxBuy * supply;
@@ -41,6 +42,8 @@ function compute({
   let profitByDate: [string, number][] = [];
   let drawdownByDate: [string, number][] = [];
   let unrealisticCount = 0;
+  let postAthCount = 0;
+  let rugCount = 0;
   const logs: Log[] = [];
 
   calls.forEach((call) => {
@@ -49,14 +52,16 @@ function compute({
     if (Number.isNaN(invested)) {
       invested = position;
     }
+    if (call.rug) rugCount++;
+    const unrealistic = !call.rug && call.xs > REALISTIC_MAX_XS;
+    if (unrealistic) unrealisticCount++;
+    const postAth = !call.rug && call.ath <= call.callTimeAth;
+    if (postAth) postAthCount++;
+
     let gain = -gasPrice - invested;
-    if (/*call.athDelay <= call.delay ||*/ !call.rug && call.xs > 100000) {
-      unrealisticCount++;
-      return;
-    }
 
     const computeXs = (mc: number) => mc / (call.currentMC * (1 + call.buyTax)); // / (1 + entrySlippage);
-    const maxXs = computeXs(call.ath);
+    const maxXs = unrealistic ? REALISTIC_MAX_XS : computeXs(call.ath);
     const targetXs1 = takeProfit1.fixed
       ? computeXs(takeProfit1.mc)
       : takeProfit1.xs;
@@ -64,15 +69,17 @@ function compute({
       ? computeXs(takeProfit2.mc)
       : takeProfit2.xs;
 
-    if (!call.rug && maxXs >= targetXs1) {
-      gain +=
-        ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
-        gasPrice;
-    }
-    if (!call.rug && maxXs >= targetXs2) {
-      gain +=
-        ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
-        gasPrice;
+    if (!call.rug && !postAth) {
+      if (maxXs >= targetXs1) {
+        gain +=
+          ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
+          gasPrice;
+      }
+      if (!call.rug && maxXs >= targetXs2) {
+        gain +=
+          ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
+          gasPrice;
+      }
     }
 
     finalETH += gain;
@@ -92,6 +99,13 @@ function compute({
       ca: call.ca,
       name: call.name,
       xs: round(maxXs, 1),
+      info: call.rug
+        ? "RUG"
+        : unrealistic
+        ? `capped Xs`
+        : postAth
+        ? "post-ATH"
+        : "",
       invested: round(invested, 3),
       gain: round(gain, 3),
     });
@@ -105,6 +119,8 @@ function compute({
       ["", 0]
     ),
     unrealisticCount,
+    postAthCount,
+    rugCount,
     logs,
   };
 }

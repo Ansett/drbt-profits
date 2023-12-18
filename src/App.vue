@@ -77,67 +77,59 @@
             <!-- FUNDS -->
             <p
               class="text-2xl"
-              v-tooltip="'Final wallet worth, starting from 0'"
+              v-tooltip="{
+                value:
+                  'Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $2000 ETH value, minus gas cost and tax.</li><li>Sell calculations: Gas and 5% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>',
+                autoHide: false,
+                escape: false,
+              }"
             >
               Final funds:
               <span class="font-bold text-primary">{{ finalETH }}</span>
-              <span class="text-color-secondary"> ETH</span>
+              <span class="text-color-secondary text-lg"> ETH</span>
             </p>
             <!-- DRAWDOWN -->
             <div
               class="text-lg"
-              v-tooltip="
-                'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.'
-              "
+              v-tooltip="{
+                value:
+                  'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.',
+                autoHide: false,
+              }"
             >
               Overall drawdown:
               <span class="font-bold text-primary">{{ drawdown }}</span>
-              <span class="text-color-secondary"> ETH</span>
+              <span class="text-color-secondary text-xs"> ETH</span>
             </div>
             <div
               class="text-lg"
-              v-tooltip="
-                'The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period. You need at least this absolute value in your wallet to sustain the strategy.'
-              "
+              v-tooltip="{
+                value: `The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
+                  worstDrawdown[0] ? ` (${worstDrawdown[0]} in this case)` : ''
+                }.<br>You need at least this absolute value in your wallet to sustain the strategy.`,
+                autoHide: false,
+                escape: false,
+              }"
             >
               Worst drawdown:
               <span class="font-bold text-primary">{{ worstDrawdown[1] }}</span>
-              <span class="text-color-secondary"> ETH </span>
-              <span v-if="worstDrawdown[0]" class="text-xs"
-                >from {{ worstDrawdown[0] }}</span
-              >
+              <span class="text-color-secondary text-xs"> ETH </span>
             </div>
             <!-- NB CALLS -->
-            <p class="mt-3">
-              <span class="text-color-secondary">Number of calls:</span>
-              {{ filteredCalls.length }}
-            </p>
-            <!-- POST-ATH -->
-            <p>
-              <span
-                class="text-color-secondary"
-                v-tooltip="
-                  'Excluding call if ATH ocurred before the buy or if it did more than 100000x'
-                "
-                >Not included unrealistic calls:</span
-              >
-              {{ unrealisticCount }}
-            </p>
-            <!-- BUY EXPLANATIONS -->
-            <p class="text-sm">
-              <span class="text-color-secondary">Buy calculations: </span
-              ><span class="font-italic"
-                >Investing selected position or max-buy, calculated using $2000
-                ETH value, minus gas cost and tax.</span
-              >
-            </p>
-            <!-- SELL EXPLANATIONS -->
-            <p class="text-sm">
-              <span class="text-color-secondary">Sell calculations: </span
-              ><span class="font-italic"
-                >Gas and 5% tax are removed from each sales. Investment is
-                counted as a loss if not reaching targets.</span
-              >
+            <p
+              class="text-lg"
+              v-tooltip="{
+                value: `Including<ul>${
+                  unrealisticCount
+                    ? `<li>${unrealisticCount} unrealistic trades where we had to cap Xs</li>`
+                    : ''
+                }<li>${rugCount} rugs</li><li>${postAthCount} calls which occurred after ATH and thus counted as losses</li></ul>`,
+                autoHide: false,
+                escape: false,
+              }"
+            >
+              <span class="">Number of calls: </span>
+              <span class="text-primary">{{ filteredCalls.length }}</span>
             </p>
           </div>
         </Panel>
@@ -154,8 +146,11 @@
               <span class="font-bold">{{ log.name }}</span>
               <br />
               <span class="text-xs">{{ log.ca }} </span>
+              <br />
               <span class="text-color-secondary"> did </span>
-              <span class="font-bold">{{ log.xs }}x</span> ->
+              <span class="font-bold">{{ log.xs }}x</span>
+              <span v-if="log.info" class=""> ({{ log.info }})</span>
+              <span class="text-color-secondary"> resulting in </span>
               <span
                 :class="[
                   'font-bold',
@@ -163,6 +158,7 @@
                 ]"
                 >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
               >
+              <span class="text-color-secondary"> ETH</span>
             </li>
           </ul>
         </Panel>
@@ -257,7 +253,7 @@
               style="height: 4rem"
               prefix="$"
               :min="0"
-              :step="10000"
+              :step="100000"
               incrementButtonIcon="pi pi-plus"
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
@@ -324,7 +320,7 @@
               style="height: 4rem"
               prefix="$"
               :min="0"
-              :step="10000"
+              :step="100000"
               incrementButtonIcon="pi pi-plus"
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
@@ -592,6 +588,8 @@ async function storeData(rows: (string | number)[][]) {
   if (xsIndex < 0) return fail("CalltoATH_Xs header not found");
   const athIndex = header.indexOf("CRT_ATH_MC");
   if (athIndex < 0) return fail("CRT_ATH_MC header not found");
+  const callAthIndex = header.indexOf("ATH_MC");
+  if (callAthIndex < 0) return fail("ATH_MC header not found");
   const supplyIndex = header.indexOf("TSupply");
   if (supplyIndex < 0) return fail("TSupply header not found");
   const maxIndex = header.indexOf("MaxBuyPRCT"); // MaxBuy is not realiable, using percentage instead
@@ -604,8 +602,8 @@ async function storeData(rows: (string | number)[][]) {
   if (dateIndex < 0) return fail("Logged header not found");
   const delayIndex = header.indexOf("LaunchedDelay");
   if (delayIndex < 0) return fail("LaunchedDelay header not found");
-  const athDelayIndex = header.indexOf("ATHDelay");
-  if (athDelayIndex < 0) return fail("ATHDelay header not found");
+  // const athDelayIndex = header.indexOf("ATHDelay"); // many seconds before current call we had the last ATH
+  // if (athDelayIndex < 0) return fail("ATHDelay header not found");
 
   let newCalls: Call[] = [];
   for (const row of rows) {
@@ -618,9 +616,10 @@ async function storeData(rows: (string | number)[][]) {
       ca: row[caIndex] as string,
       xs: row[xsIndex] as number,
       ath: row[athIndex] as number,
+      callTimeAth: row[callAthIndex] as number,
       date,
       delay: row[delayIndex] as number,
-      athDelay: row[athDelayIndex] as number,
+      // athDelay: row[athDelayIndex] as number,
       buyTax: (row[taxIndex] as number) / 100,
       supply: row[supplyIndex] as number,
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
@@ -691,6 +690,8 @@ const finalETH = ref(0);
 const drawdown = ref(0);
 const worstDrawdown = ref(["", 0]);
 const unrealisticCount = ref(0);
+const postAthCount = ref(0);
+const rugCount = ref(0);
 
 const STORAGE_KEY = "state-c";
 function storeForm() {
@@ -775,6 +776,8 @@ worker.onmessage = ({ data }) => {
     drawdown.value = data.drawdown;
     worstDrawdown.value = data.worstDrawdown;
     unrealisticCount.value = data.unrealisticCount;
+    postAthCount.value = data.postAthCount;
+    rugCount.value = data.rugCount;
     logs.value = data.logs;
   }
   loading.value = false;

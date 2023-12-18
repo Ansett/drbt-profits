@@ -11,6 +11,12 @@ p {
 ul {
   list-style-type: none;
 }
+.p-tooltip ul {
+  list-style-type: disc;
+}
+.p-tooltip {
+  max-width: 27rem;
+}
 
 body {
   min-height: 100vh;
