@@ -120,10 +120,18 @@
               class="text-lg"
               v-tooltip="{
                 value: `Including<ul>${
-                  unrealisticCount
-                    ? `<li>${unrealisticCount} unrealistic trades where we had to cap Xs</li>`
+                  counters.unrealistic
+                    ? `<li>${counters.unrealistic} unrealistic trades where we had to cap Xs</li>`
                     : ''
-                }<li>${rugCount} rugs</li><li>${postAthCount} calls which occurred after ATH and thus counted as losses</li></ul>`,
+                }<li>${counters.rug} rugs</li><li>${
+                  counters.postAth
+                } calls that occurred after ATH and thus counted as losses</li><li>${
+                  counters.x100
+                } calls that made 100x</li><li>${
+                  counters.x50
+                } calls that made 50x</li><li>${
+                  counters.x10
+                } calls that made 10x</li></ul>`,
                 autoHide: false,
                 escape: false,
               }"
@@ -689,9 +697,14 @@ const initialized = ref(false);
 const finalETH = ref(0);
 const drawdown = ref(0);
 const worstDrawdown = ref(["", 0]);
-const unrealisticCount = ref(0);
-const postAthCount = ref(0);
-const rugCount = ref(0);
+const counters = ref({
+  rug: 0,
+  unrealistic: 0,
+  postAth: 0,
+  x100: 0,
+  x50: 0,
+  x10: 0,
+});
 
 const STORAGE_KEY = "state-c";
 function storeForm() {
@@ -775,9 +788,7 @@ worker.onmessage = ({ data }) => {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
     worstDrawdown.value = data.worstDrawdown;
-    unrealisticCount.value = data.unrealisticCount;
-    postAthCount.value = data.postAthCount;
-    rugCount.value = data.rugCount;
+    counters.value = data.counters;
     logs.value = data.logs;
   }
   loading.value = false;

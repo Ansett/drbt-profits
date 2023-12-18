@@ -41,9 +41,14 @@ function compute({
   let drawdown = 0;
   let profitByDate: [string, number][] = [];
   let drawdownByDate: [string, number][] = [];
-  let unrealisticCount = 0;
-  let postAthCount = 0;
-  let rugCount = 0;
+  const counters = {
+    rug: 0,
+    unrealistic: 0,
+    postAth: 0,
+    x100: 0,
+    x50: 0,
+    x10: 0,
+  };
   const logs: Log[] = [];
 
   calls.forEach((call) => {
@@ -52,34 +57,38 @@ function compute({
     if (Number.isNaN(invested)) {
       invested = position;
     }
-    if (call.rug) rugCount++;
+
+    if (call.rug) counters.rug++;
     const unrealistic = !call.rug && call.xs > REALISTIC_MAX_XS;
-    if (unrealistic) unrealisticCount++;
+    if (unrealistic) counters.unrealistic++;
     const postAth = !call.rug && call.ath <= call.callTimeAth;
-    if (postAth) postAthCount++;
+    if (postAth) counters.postAth++;
 
     let gain = -gasPrice - invested;
+    const bestXs = unrealistic ? REALISTIC_MAX_XS : call.xs;
 
-    const computeXs = (mc: number) => mc / (call.currentMC * (1 + call.buyTax)); // / (1 + entrySlippage);
-    const maxXs = unrealistic ? REALISTIC_MAX_XS : computeXs(call.ath);
     const targetXs1 = takeProfit1.fixed
-      ? computeXs(takeProfit1.mc)
+      ? (call.xs / call.ath) * takeProfit1.mc
       : takeProfit1.xs;
     const targetXs2 = takeProfit2.fixed
-      ? computeXs(takeProfit2.mc)
+      ? (call.xs / call.ath) * takeProfit2.mc
       : takeProfit2.xs;
 
     if (!call.rug && !postAth) {
-      if (maxXs >= targetXs1) {
+      if (bestXs >= targetXs1) {
         gain +=
           ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
           gasPrice;
       }
-      if (!call.rug && maxXs >= targetXs2) {
+      if (bestXs >= targetXs2) {
         gain +=
           ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
           gasPrice;
       }
+
+      if (bestXs >= 100) counters.x100++;
+      if (bestXs >= 50) counters.x50++;
+      if (bestXs >= 10) counters.x10++;
     }
 
     finalETH += gain;
@@ -98,7 +107,7 @@ function compute({
       date: prettifyDate(call.date),
       ca: call.ca,
       name: call.name,
-      xs: round(maxXs, 1),
+      xs: round(bestXs, 1),
       info: call.rug
         ? "RUG"
         : unrealistic
@@ -118,9 +127,7 @@ function compute({
       (prev, cur) => (cur[1] < prev[1] ? cur : prev),
       ["", 0]
     ),
-    unrealisticCount,
-    postAthCount,
-    rugCount,
+    counters,
     logs,
   };
 }
