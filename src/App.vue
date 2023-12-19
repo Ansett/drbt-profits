@@ -75,7 +75,7 @@
               "
             />
             <!-- FUNDS -->
-            <p
+            <div
               class="text-2xl"
               v-tooltip="{
                 value:
@@ -87,7 +87,7 @@
               Final funds:
               <span class="font-bold text-primary">{{ finalETH }}</span>
               <span class="text-color-secondary text-lg"> ETH</span>
-            </p>
+            </div>
             <!-- DRAWDOWN -->
             <div
               class="text-lg"
@@ -116,7 +116,7 @@
               <span class="text-color-secondary text-xs"> ETH </span>
             </div>
             <!-- NB CALLS -->
-            <p
+            <div
               class="text-lg"
               v-tooltip="{
                 value: `Including<ul>${
@@ -138,7 +138,7 @@
             >
               <span class="">Number of calls: </span>
               <span class="text-primary">{{ filteredCalls.length }}</span>
-            </p>
+            </div>
           </div>
         </Panel>
 

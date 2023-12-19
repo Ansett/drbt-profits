@@ -75,12 +75,12 @@ function compute({
       : takeProfit2.xs;
 
     if (!call.rug && !postAth) {
-      if (bestXs >= targetXs1) {
+      if (bestXs >= targetXs1 && takeProfit1.size) {
         gain +=
           ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
           gasPrice;
       }
-      if (bestXs >= targetXs2) {
+      if (bestXs >= targetXs2 && takeProfit2.size) {
         gain +=
           ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
           gasPrice;
