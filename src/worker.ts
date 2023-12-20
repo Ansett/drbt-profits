@@ -2,7 +2,7 @@ import readXlsxFile from "read-excel-file/web-worker";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
-import { prettifyDate, round } from "./lib";
+import { prettifyDate, prettifyMc, round } from "./lib";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -108,6 +108,7 @@ function compute({
       ca: call.ca,
       name: call.name,
       xs: round(bestXs, 1),
+      mc: prettifyMc(call.ath),
       info: call.rug
         ? "RUG"
         : unrealistic

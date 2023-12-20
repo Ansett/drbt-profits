@@ -79,3 +79,8 @@ export function round(num: number, decimals = 2) {
   const multiplicator = 10 ** decimals;
   return Math.round(num * multiplicator) / multiplicator;
 }
+
+const formatter = Intl.NumberFormat("en", { notation: "compact" });
+export function prettifyMc(mc: number) {
+  return formatter.format(mc);
+}

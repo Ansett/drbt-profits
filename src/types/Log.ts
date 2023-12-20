@@ -4,6 +4,7 @@ export type Log = {
   name: string;
   invested: number;
   xs: number;
+  mc: string;
   gain: number;
   info: string;
 };

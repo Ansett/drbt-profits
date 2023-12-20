@@ -157,7 +157,9 @@
               <br />
               <span class="text-color-secondary"> did </span>
               <span class="font-bold">{{ log.xs }}x</span>
-              <span v-if="log.info" class=""> ({{ log.info }})</span>
+              <span class="text-color-secondary"> to </span>
+              <span class="font-bold">{{ log.mc }}</span>
+              <span v-if="log.info" class="font-bold"> ({{ log.info }})</span>
               <span class="text-color-secondary"> resulting in </span>
               <span
                 :class="[
