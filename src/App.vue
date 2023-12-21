@@ -84,7 +84,7 @@
                 escape: false,
               }"
             >
-              Final funds:
+              Final profits:
               <span class="font-bold text-primary">{{ finalETH }}</span>
               <span class="text-color-secondary text-lg"> ETH</span>
             </div>
