@@ -59,11 +59,7 @@
         }}</Message>
 
         <!-- RESULTS -->
-        <Panel
-          header="STATISTICS"
-          class="pb-5 mt-5 xl:mt-7"
-          style="min-height: 11rem"
-        >
+        <Panel header="STATISTICS" class="pb-5 mt-5" style="min-height: 11rem">
           <div class="flex flex-column align-items-start relative">
             <ProgressSpinner
               v-if="loading"
@@ -143,7 +139,7 @@
         </Panel>
 
         <!-- LOGS -->
-        <Panel header="LOGS" toggleable collapsed>
+        <Panel header="LOGS" toggleable collapsed class="pb-5">
           <ul class="px-2">
             <li v-for="log in logs" :key="log.ca" class="text-sm mb-3">
               <!-- {{ log.ca }}<br /> -->
@@ -153,7 +149,14 @@
               <span class="text-color-secondary"> of </span>
               <span class="font-bold">{{ log.name }}</span>
               <br />
-              <span class="text-xs">{{ log.ca }} </span>
+              <a
+                class="text-xs text-color hoverlink"
+                target="_blank"
+                rel="noopener"
+                :href="'https://dexscreener.com/ethereum/' + log.ca"
+              >
+                {{ log.ca }}</a
+              >
               <br />
               <span class="text-color-secondary"> did </span>
               <span class="font-bold">{{ log.xs }}x</span>
@@ -172,6 +175,128 @@
             </li>
           </ul>
         </Panel>
+
+        <!-- HASHES -->
+        <Panel header="FUNCTION HASHES" toggleable collapsed>
+          <div class="flex flex-column align-items-start relative">
+            <ul class="px-2">
+              <li
+                v-for="hash in hashesWithTags"
+                :key="hash.id"
+                class="text-sm mb-2"
+              >
+                <span class="text-color-secondary">[</span>
+                <code>{{ hash.id }}</code>
+                <span class="text-color-secondary">] </span>
+                <i
+                  class="text-color-secondary pi pi-bell ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Number of calls'"
+                ></i
+                >&nbsp;<span class="link" @click="inspectedHash = hash">
+                  {{ hash.allCalls.length }}
+                </span>
+                <i
+                  class="text-color-secondary pi pi-sort ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Xs average'"
+                ></i>
+                {{ Math.round(hash.xSum / hash.allCalls.length) }}
+                <i
+                  class="text-color-secondary pi pi-thumbs-up ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'10x count and %'"
+                ></i>
+                {{ hash.x10Calls.length }} ({{
+                  Math.round(
+                    (hash.x10Calls.length / hash.allCalls.length) * 100
+                  ) + "%"
+                }})
+                <i
+                  class="text-color-secondary pi pi-thumbs-up-fill ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'50x count and %'"
+                ></i>
+                {{ hash.x50Calls.length }} ({{
+                  Math.round(
+                    (hash.x50Calls.length / hash.allCalls.length) * 100
+                  ) + "%"
+                }})
+                <i
+                  class="text-color-secondary pi pi-thumbs-down ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Rugs count and %'"
+                ></i>
+                {{ hash.rugs }} ({{
+                  Math.round((hash.rugs / hash.allCalls.length) * 100) + "%"
+                }})
+                <i
+                  class="link pi pi-tags ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Add a tag'"
+                  @click="showTagInput(hash.id, $event)"
+                ></i>
+                <span v-for="(tag, index) in hash.tags" :key="index"
+                  >{{ index ? ", " : " "
+                  }}<span class="link" @click="removeTag(hash.id, index)">{{
+                    tag
+                  }}</span></span
+                >
+              </li>
+            </ul>
+          </div>
+        </Panel>
+
+        <!-- Tag input -->
+        <OverlayPanel ref="tagDropdown">
+          <InputGroup>
+            <InputGroupAddon>
+              <i class="pi pi-tags"></i>
+            </InputGroupAddon>
+            <InputText
+              ref="tagInput"
+              type="text"
+              v-model="newTag"
+              @keyup.enter.native="addTag()"
+            />
+            <InputGroupAddon>
+              <i class="pi pi-reply rotated"></i>
+            </InputGroupAddon>
+          </InputGroup>
+        </OverlayPanel>
+
+        <!-- Hash calls popup -->
+        <Sidebar
+          :visible="!!inspectedHash"
+          position="right"
+          :header="'Calls with f-hash ' + inspectedHash?.id"
+          class="w-full md:w-30rem"
+          @update:visible="inspectedHash = null"
+          @hide="inspectedHash = null"
+        >
+          <ul v-if="inspectedHash" class="px-2">
+            <li
+              v-for="call in inspectedHash.allCalls"
+              :key="call.ca"
+              class="text-sm mb-3"
+            >
+              <a
+                class="text-color-secondary hoverlink"
+                target="_blank"
+                rel="noopener"
+                :href="'https://dexscreener.com/ethereum/' + call.ca"
+              >
+                {{ call.ca }}</a
+              >
+              <br />
+              {{ call.name }}:&nbsp; {{ call.xs }}x
+              <span class="text-color-secondary">
+                {{ prettifyMc(call.ath) }}</span
+              >
+              <span v-if="call.rug"> [RUG] </span>
+            </li>
+          </ul>
+        </Sidebar>
       </div>
 
       <div class="flex flex-column mx-1 xl:mx-5 my-2">
@@ -285,7 +410,15 @@
               decrementButtonClassName="p-button-secondary"
             />
             <InputGroupAddon>
-              <Checkbox v-model="state.takeProfit1.fixed" binary />
+              <Checkbox
+                v-model="state.takeProfit1.fixed"
+                binary
+                v-tooltip="
+                  state.takeProfit1.fixed
+                    ? 'Switch to % target '
+                    : 'Switch to MC target'
+                "
+              />
             </InputGroupAddon>
           </InputGroup>
         </div>
@@ -352,7 +485,15 @@
               decrementButtonClassName="p-button-secondary"
             />
             <InputGroupAddon>
-              <Checkbox v-model="state.takeProfit2.fixed" binary />
+              <Checkbox
+                v-model="state.takeProfit2.fixed"
+                binary
+                v-tooltip="
+                  state.takeProfit2.fixed
+                    ? 'Switch to % target '
+                    : 'Switch to MC target'
+                "
+              />
             </InputGroupAddon>
           </InputGroup>
         </div>
@@ -509,13 +650,26 @@ import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
+import Sidebar from "primevue/sidebar";
+import OverlayPanel from "primevue/overlaypanel";
 import vTooltip from "primevue/tooltip";
-import { computed, onMounted, reactive, ref, watch } from "vue";
-import { round2Dec, sleep, debounce, decimalHourToString } from "./lib";
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import {
+  round2Dec,
+  sleep,
+  debounce,
+  decimalHourToString,
+  localStorageSetObject,
+  localStorageGetObject,
+  prettifyMc,
+} from "./lib";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
+import type { HashInfo } from "./types/HashInfo";
+
+const HASH_COUNT_THRESHOLD = 10;
 
 const error = ref("");
 const loading = ref(false);
@@ -534,6 +688,88 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 };
 
 const logs = ref<Log[]>([]);
+
+const TAGS_STORAGE_KEY = "tags";
+const TAG_SEPARATOR = ", ";
+const localTags = ref<Record<string, string[]>>(
+  localStorageGetObject(TAGS_STORAGE_KEY) || {}
+);
+const tagDropdown = ref<InstanceType<typeof OverlayPanel>>();
+const tagInput = ref();
+const removeTag = (hash: string, index: number) => {
+  localTags.value[hash]?.splice(index, 1);
+};
+const showTagInput = async (hash: string, event: MouseEvent) => {
+  editingForHash.value = hash;
+  newTag.value = "";
+  tagDropdown.value?.show(event);
+  await nextTick();
+  tagInput.value?.$el.focus();
+};
+const newTag = ref("");
+const editingForHash = ref("");
+const addTag = () => {
+  tagDropdown.value?.hide();
+  if (!editingForHash.value) return;
+
+  if (!localTags.value[editingForHash.value])
+    localTags.value[editingForHash.value] = [];
+  localTags.value[editingForHash.value].push(
+    newTag.value.trim().replace(TAG_SEPARATOR.trim(), "")
+  );
+  newTag.value = "";
+  editingForHash.value = "";
+};
+watch(
+  localTags,
+  () => {
+    localStorageSetObject(TAGS_STORAGE_KEY, localTags.value);
+  },
+  { deep: true }
+);
+
+const inspectedHash = ref<HashInfo | null>(null);
+const hashes = ref<Record<string, HashInfo>>({});
+const hashesWithTags = computed<HashInfo[]>(() => {
+  // Show only hashes with some calls, and sort calls by Xs and rug status
+  const bigHashes = Object.keys(hashes.value).reduce((arr, h) => {
+    if (hashes.value[h].allCalls.length >= HASH_COUNT_THRESHOLD) {
+      hashes.value[h].allCalls.sort((a, b) =>
+        !a.rug && b.rug
+          ? -1
+          : a.rug && !b.rug
+          ? 1
+          : a.xs > b.xs
+          ? -1
+          : a.xs < b.xs
+          ? 1
+          : 0
+      );
+
+      arr.push(hashes.value[h]);
+    }
+    return arr;
+  }, [] as HashInfo[]);
+
+  // Add tags
+  if (localTags.value) {
+    for (const hash of bigHashes) {
+      if (localTags.value[hash.id]) hash.tags = localTags.value[hash.id];
+    }
+  }
+
+  // Sort hashes by calls count
+  bigHashes.sort((a, b) =>
+    a.allCalls.length > b.allCalls.length
+      ? -1
+      : a.allCalls.length < b.allCalls.length
+      ? 1
+      : 0
+  );
+
+  return bigHashes;
+});
+
 const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
@@ -606,6 +842,8 @@ async function storeData(rows: (string | number)[][]) {
   if (maxIndex < 0) return fail("MaxBuyPRCT header not found");
   const mcIndex = header.lastIndexOf("CRT_MC"); // taking the second column with same name, the first one is MC at present time, not call-time
   if (mcIndex < 0) return fail("CRT_MC header not found");
+  const hashIndex = header.indexOf("HashF");
+  if (hashIndex < 0) return fail("HashF header not found");
   const taxIndex = header.indexOf("BuyTax");
   if (taxIndex < 0) return fail("BuyTax header not found");
   const dateIndex = header.indexOf("Logged");
@@ -635,6 +873,7 @@ async function storeData(rows: (string | number)[][]) {
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
       currentMC: row[mcIndex] as number,
       rug: !!row[rugIndex],
+      hashF: row[hashIndex] as string,
     });
   }
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -708,26 +947,23 @@ const counters = ref({
   x10: 0,
 });
 
-const STORAGE_KEY = "state-c";
+const STATE_STORAGE_KEY = "state-c";
 function storeForm() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorageSetObject(STATE_STORAGE_KEY, state);
 }
 watch(state, () => storeForm(), { deep: true });
 function loadForm() {
-  const savedString = localStorage.getItem(STORAGE_KEY);
-  if (savedString) {
-    try {
-      const savedState = JSON.parse(savedString);
-      state.position = savedState.position ?? INIT_POSITION;
-      state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
-      if (!state.takeProfit1.mc) state.takeProfit1.mc = INIT_TP1.mc;
-      if (!state.takeProfit1.fixed) state.takeProfit1.fixed = INIT_TP1.fixed;
-      state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
-      if (!state.takeProfit2.mc) state.takeProfit2.mc = INIT_TP2.mc;
-      if (!state.takeProfit2.fixed) state.takeProfit2.fixed = INIT_TP2.fixed;
-      state.gasPrice = savedState.gasPrice ?? INIT_GAS;
-    } catch (e) {}
-  }
+  const savedState = localStorageGetObject(STATE_STORAGE_KEY);
+  if (!savedState) return;
+
+  state.position = savedState.position ?? INIT_POSITION;
+  state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
+  if (!state.takeProfit1.mc) state.takeProfit1.mc = INIT_TP1.mc;
+  if (!state.takeProfit1.fixed) state.takeProfit1.fixed = INIT_TP1.fixed;
+  state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
+  if (!state.takeProfit2.mc) state.takeProfit2.mc = INIT_TP2.mc;
+  if (!state.takeProfit2.fixed) state.takeProfit2.fixed = INIT_TP2.fixed;
+  state.gasPrice = savedState.gasPrice ?? INIT_GAS;
 }
 onMounted(() => {
   loadForm();
@@ -792,6 +1028,7 @@ worker.onmessage = ({ data }) => {
     worstDrawdown.value = data.worstDrawdown;
     counters.value = data.counters;
     logs.value = data.logs;
+    hashes.value = data.hashes;
   }
   loading.value = false;
 };
@@ -800,4 +1037,26 @@ worker.onerror = ({ message }) => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.link {
+  cursor: pointer;
+  color: var(--primary-color);
+}
+.link:hover,
+.link:focus {
+  text-decoration: underline;
+}
+
+.hoverlink {
+  text-decoration: none;
+}
+.hoverlink:hover,
+.hoverlink:focus {
+  text-decoration: underline;
+  color: var(--primary-color) !important;
+}
+
+.rotated {
+  transform: rotate(-0.5turn);
+}
+</style>

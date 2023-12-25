@@ -3,6 +3,7 @@ import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
 import { prettifyDate, prettifyMc, round } from "./lib";
+import type { HashInfo } from "./types/HashInfo";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -50,6 +51,7 @@ function compute({
     x10: 0,
   };
   const logs: Log[] = [];
+  const hashes: Record<string, HashInfo> = {};
 
   calls.forEach((call) => {
     const maxBuyETH = computeMaxETH(call.currentMC, call.supply, call.maxBuy);
@@ -103,6 +105,25 @@ function compute({
         drawdownByDate[index][1] = round(profitByDate[index][1]);
     }
 
+    // Regrouping hashes
+    if (call.hashF) {
+      if (!hashes[call.hashF])
+        hashes[call.hashF] = {
+          id: call.hashF,
+          tags: [],
+          x10Calls: [],
+          x50Calls: [],
+          rugs: 0,
+          xSum: 0,
+          allCalls: [],
+        };
+      hashes[call.hashF].allCalls.push(call);
+      if (call.rug) hashes[call.hashF].rugs++;
+      if (call.xs >= 10 && !call.rug) hashes[call.hashF].x10Calls.push(call);
+      if (call.xs >= 50 && !call.rug) hashes[call.hashF].x50Calls.push(call);
+      hashes[call.hashF].xSum += call.rug ? 0 : call.xs;
+    }
+
     logs.push({
       date: prettifyDate(call.date),
       ca: call.ca,
@@ -130,5 +151,6 @@ function compute({
     ),
     counters,
     logs,
+    hashes,
   };
 }

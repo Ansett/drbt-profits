@@ -12,4 +12,5 @@ export type Call = {
   currentMC: number;
   buyTax: number;
   rug: boolean;
+  hashF: string;
 };

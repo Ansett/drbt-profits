@@ -84,3 +84,32 @@ const formatter = Intl.NumberFormat("en", { notation: "compact" });
 export function prettifyMc(mc: number) {
   return formatter.format(mc);
 }
+
+export function localStorageSet(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {} // in case storage is corrupted
+}
+export function localStorageSetObject(key: string, value: Record<string, any>) {
+  try {
+    localStorageSet(key, JSON.stringify(value));
+  } catch (e) {} // in case storage is corrupted
+}
+
+export function localStorageGet(key: string): string | null {
+  let value: string | null = null;
+  try {
+    value = localStorage.getItem(key);
+  } catch (e) {} // in case storage is corrupted
+  return value;
+}
+
+export function localStorageGetObject(key: string): Record<string, any> | null {
+  let value: string | null = localStorageGet(key);
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed;
+  } catch (e) {} // in case storage is corrupted
+  return null;
+}
