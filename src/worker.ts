@@ -52,6 +52,7 @@ function compute({
   };
   const logs: Log[] = [];
   const hashes: Record<string, HashInfo> = {};
+  const signatures: Record<string, HashInfo> = {};
 
   calls.forEach((call) => {
     const maxBuyETH = computeMaxETH(call.currentMC, call.supply, call.maxBuy);
@@ -124,6 +125,27 @@ function compute({
       hashes[call.hashF].xSum += call.rug ? 0 : call.xs;
     }
 
+    // Regrouping function 4bytes
+    if (call.fList) {
+      for (const id of call.fList.split(",")) {
+        if (!signatures[id])
+          signatures[id] = {
+            id,
+            tags: [],
+            x10Calls: [],
+            x50Calls: [],
+            rugs: 0,
+            xSum: 0,
+            allCalls: [],
+          };
+        signatures[id].allCalls.push(call);
+        if (call.rug) signatures[id].rugs++;
+        if (call.xs >= 10 && !call.rug) signatures[id].x10Calls.push(call);
+        if (call.xs >= 50 && !call.rug) signatures[id].x50Calls.push(call);
+        signatures[id].xSum += call.rug ? 0 : call.xs;
+      }
+    }
+
     logs.push({
       date: prettifyDate(call.date),
       ca: call.ca,
@@ -152,5 +174,6 @@ function compute({
     counters,
     logs,
     hashes,
+    signatures,
   };
 }

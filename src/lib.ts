@@ -1,3 +1,8 @@
+import type { Call } from "./types/Call";
+import type { HashInfo } from "./types/HashInfo";
+
+const HASH_COUNT_THRESHOLD = 10;
+
 export interface DebouncedFunction<
   Args extends any[],
   F extends (...args: Args) => any
@@ -112,4 +117,44 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
     return parsed;
   } catch (e) {} // in case storage is corrupted
   return null;
+}
+
+export function addTagsToHashes(
+  hashes: Record<string, HashInfo>,
+  tags: Record<string, string[]> | null,
+  sorting = (i: HashInfo) => i.allCalls.length
+) {
+  // Show only hashes with some calls, and sort calls by Xs and rug status
+  const bigHashes = Object.keys(hashes).reduce((arr, h) => {
+    if (hashes[h].allCalls.length >= HASH_COUNT_THRESHOLD) {
+      hashes[h].allCalls.sort((a, b) =>
+        !a.rug && b.rug
+          ? -1
+          : a.rug && !b.rug
+          ? 1
+          : a.xs > b.xs
+          ? -1
+          : a.xs < b.xs
+          ? 1
+          : 0
+      );
+
+      arr.push(hashes[h]);
+    }
+    return arr;
+  }, [] as HashInfo[]);
+
+  // Add tags
+  if (tags) {
+    for (const hash of bigHashes) {
+      if (tags[hash.id]) hash.tags = tags[hash.id];
+    }
+  }
+
+  // Sort hashes by calls count
+  bigHashes.sort((a, b) =>
+    sorting(a) > sorting(b) ? -1 : sorting(a) < sorting(b) ? 1 : 0
+  );
+
+  return bigHashes;
 }

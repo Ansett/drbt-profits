@@ -80,7 +80,7 @@
                 escape: false,
               }"
             >
-              Final profits:
+              Realized profits:
               <span class="font-bold text-primary">{{ finalETH }}</span>
               <span class="text-color-secondary text-lg"> ETH</span>
             </div>
@@ -177,8 +177,9 @@
         </Panel>
 
         <!-- HASHES -->
-        <Panel header="FUNCTION HASHES" toggleable collapsed>
+        <Panel header="FUNCTIONS HASH" toggleable collapsed class="pb-5">
           <div class="flex flex-column align-items-start relative">
+            <i class="text-sm">Sorted by calls count</i>
             <ul class="px-2">
               <li
                 v-for="hash in hashesWithTags"
@@ -247,6 +248,78 @@
           </div>
         </Panel>
 
+        <!-- SIGNATURES -->
+        <Panel header="FUNCTION SIGNATURE" toggleable collapsed>
+          <div class="flex flex-column align-items-start relative">
+            <i class="text-sm">Sorted by rug %</i>
+            <ul class="px-2">
+              <li
+                v-for="sig in signaturesWithTags"
+                :key="sig.id"
+                class="text-sm mb-2"
+              >
+                <span class="text-color-secondary">[</span>
+                <code>{{ sig.id }}</code>
+                <span class="text-color-secondary">] </span>
+                <i
+                  class="text-color-secondary pi pi-bell ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Number of calls'"
+                ></i
+                >&nbsp;<span class="link" @click="inspectedHash = sig">
+                  {{ sig.allCalls.length }}
+                </span>
+                <i
+                  class="text-color-secondary pi pi-sort ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Xs average'"
+                ></i>
+                {{ Math.round(sig.xSum / sig.allCalls.length) }}
+                <i
+                  class="text-color-secondary pi pi-thumbs-up ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'10x count and %'"
+                ></i>
+                {{ sig.x10Calls.length }} ({{
+                  Math.round(
+                    (sig.x10Calls.length / sig.allCalls.length) * 100
+                  ) + "%"
+                }})
+                <i
+                  class="text-color-secondary pi pi-thumbs-up-fill ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'50x count and %'"
+                ></i>
+                {{ sig.x50Calls.length }} ({{
+                  Math.round(
+                    (sig.x50Calls.length / sig.allCalls.length) * 100
+                  ) + "%"
+                }})
+                <i
+                  class="text-color-secondary pi pi-thumbs-down ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Rugs count and %'"
+                ></i>
+                {{ sig.rugs }} ({{
+                  Math.round((sig.rugs / sig.allCalls.length) * 100) + "%"
+                }})
+                <i
+                  class="link pi pi-tags ml-1"
+                  style="font-size: 0.8rem"
+                  v-tooltip.top="'Add a tag'"
+                  @click="showTagInput(sig.id, $event)"
+                ></i>
+                <span v-for="(tag, index) in sig.tags" :key="index"
+                  >{{ index ? ", " : " "
+                  }}<span class="link" @click="removeTag(sig.id, index)">{{
+                    tag
+                  }}</span></span
+                >
+              </li>
+            </ul>
+          </div>
+        </Panel>
+
         <!-- Tag input -->
         <OverlayPanel ref="tagDropdown">
           <InputGroup>
@@ -269,7 +342,7 @@
         <Sidebar
           :visible="!!inspectedHash"
           position="right"
-          :header="'Calls with f-hash ' + inspectedHash?.id"
+          :header="`Calls with hash or sig ${inspectedHash?.id}`"
           class="w-full md:w-30rem"
           @update:visible="inspectedHash = null"
           @hide="inspectedHash = null"
@@ -662,14 +735,13 @@ import {
   localStorageSetObject,
   localStorageGetObject,
   prettifyMc,
+  addTagsToHashes,
 } from "./lib";
 import type { Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
 import type { HashInfo } from "./types/HashInfo";
-
-const HASH_COUNT_THRESHOLD = 10;
 
 const error = ref("");
 const loading = ref(false);
@@ -730,45 +802,17 @@ watch(
 
 const inspectedHash = ref<HashInfo | null>(null);
 const hashes = ref<Record<string, HashInfo>>({});
-const hashesWithTags = computed<HashInfo[]>(() => {
-  // Show only hashes with some calls, and sort calls by Xs and rug status
-  const bigHashes = Object.keys(hashes.value).reduce((arr, h) => {
-    if (hashes.value[h].allCalls.length >= HASH_COUNT_THRESHOLD) {
-      hashes.value[h].allCalls.sort((a, b) =>
-        !a.rug && b.rug
-          ? -1
-          : a.rug && !b.rug
-          ? 1
-          : a.xs > b.xs
-          ? -1
-          : a.xs < b.xs
-          ? 1
-          : 0
-      );
-
-      arr.push(hashes.value[h]);
-    }
-    return arr;
-  }, [] as HashInfo[]);
-
-  // Add tags
-  if (localTags.value) {
-    for (const hash of bigHashes) {
-      if (localTags.value[hash.id]) hash.tags = localTags.value[hash.id];
-    }
-  }
-
-  // Sort hashes by calls count
-  bigHashes.sort((a, b) =>
-    a.allCalls.length > b.allCalls.length
-      ? -1
-      : a.allCalls.length < b.allCalls.length
-      ? 1
-      : 0
-  );
-
-  return bigHashes;
-});
+const hashesWithTags = computed<HashInfo[]>(() =>
+  addTagsToHashes(hashes.value, localTags.value)
+);
+const signatures = ref<Record<string, HashInfo>>({});
+const signaturesWithTags = computed<HashInfo[]>(() =>
+  addTagsToHashes(
+    signatures.value,
+    localTags.value,
+    (i) => i.rugs / i.allCalls.length
+  )
+);
 
 const calls = ref<Call[]>([]);
 const filteredCalls = computed<Call[]>(() =>
@@ -850,6 +894,8 @@ async function storeData(rows: (string | number)[][]) {
   if (dateIndex < 0) return fail("Logged header not found");
   const delayIndex = header.indexOf("LaunchedDelay");
   if (delayIndex < 0) return fail("LaunchedDelay header not found");
+  const fListIndex = header.indexOf("FList");
+  if (fListIndex < 0) return fail("FList header not found");
   // const athDelayIndex = header.indexOf("ATHDelay"); // many seconds before current call we had the last ATH
   // if (athDelayIndex < 0) return fail("ATHDelay header not found");
 
@@ -868,6 +914,7 @@ async function storeData(rows: (string | number)[][]) {
       date,
       delay: row[delayIndex] as number,
       // athDelay: row[athDelayIndex] as number,
+      fList: row[fListIndex] as string,
       buyTax: (row[taxIndex] as number) / 100,
       supply: row[supplyIndex] as number,
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
@@ -1029,6 +1076,7 @@ worker.onmessage = ({ data }) => {
     counters.value = data.counters;
     logs.value = data.logs;
     hashes.value = data.hashes;
+    signatures.value = data.signatures;
   }
   loading.value = false;
 };
