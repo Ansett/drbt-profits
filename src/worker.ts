@@ -143,6 +143,7 @@ function compute({
         if (call.xs >= 10 && !call.rug) signatures[id].x10Calls.push(call);
         if (call.xs >= 50 && !call.rug) signatures[id].x50Calls.push(call);
         signatures[id].xSum += call.rug ? 0 : call.xs;
+        if (isNaN(signatures[id].xSum)) console.log(signatures[id]);
       }
     }
 

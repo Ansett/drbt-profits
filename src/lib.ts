@@ -121,8 +121,7 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
 
 export function addTagsToHashes(
   hashes: Record<string, HashInfo>,
-  tags: Record<string, string[]> | null,
-  sorting = (i: HashInfo) => i.allCalls.length
+  tags: Record<string, string[]> | null
 ) {
   // Show only hashes with some calls, and sort calls by Xs and rug status
   const bigHashes = Object.keys(hashes).reduce((arr, h) => {
@@ -150,11 +149,6 @@ export function addTagsToHashes(
       if (tags[hash.id]) hash.tags = tags[hash.id];
     }
   }
-
-  // Sort hashes by calls count
-  bigHashes.sort((a, b) =>
-    sorting(a) > sorting(b) ? -1 : sorting(a) < sorting(b) ? 1 : 0
-  );
 
   return bigHashes;
 }

@@ -10,7 +10,7 @@
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div class="min-w-min xl:w-6 m-1 xl:m-5" style="max-width: 50rem">
+      <div class="xl:w-6 m-1 xl:m-5" style="max-width: 75rem">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -58,144 +58,163 @@
           error
         }}</Message>
 
-        <!-- RESULTS -->
-        <Panel header="STATISTICS" class="pb-5 mt-5" style="min-height: 11rem">
-          <div class="flex flex-column align-items-start relative">
-            <ProgressSpinner
-              v-if="loading"
-              class="absolute top-50 left-50"
-              style="
-                width: 99px;
-                height: 99px;
-                transform: translate(-50%, -50%);
-              "
+        <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
+          <!-- RESULTS -->
+          <AccordionTab header="STATISTICS">
+            <div class="flex flex-column align-items-start relative">
+              <ProgressSpinner
+                v-if="loading"
+                class="absolute top-50 left-50"
+                style="
+                  width: 99px;
+                  height: 99px;
+                  transform: translate(-50%, -50%);
+                "
+              />
+              <!-- FUNDS -->
+              <div
+                class="text-2xl"
+                v-tooltip="{
+                  value:
+                    'Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $2000 ETH value, minus gas cost and tax.</li><li>Sell calculations: Gas and 5% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>',
+                  autoHide: false,
+                  escape: false,
+                }"
+              >
+                Realized profits:
+                <span class="font-bold text-primary">{{ finalETH }}</span>
+                <span class="text-color-secondary text-lg"> ETH</span>
+              </div>
+              <!-- DRAWDOWN -->
+              <div
+                class="text-lg"
+                v-tooltip="{
+                  value:
+                    'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.',
+                  autoHide: false,
+                }"
+              >
+                Overall drawdown:
+                <span class="font-bold text-primary">{{ drawdown }}</span>
+                <span class="text-color-secondary text-xs"> ETH</span>
+              </div>
+              <div
+                class="text-lg"
+                v-tooltip="{
+                  value: `The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
+                    worstDrawdown[0]
+                      ? ` (${worstDrawdown[0]} in this case)`
+                      : ''
+                  }.<br>You need at least this absolute value in your wallet to sustain the strategy.`,
+                  autoHide: false,
+                  escape: false,
+                }"
+              >
+                Worst drawdown:
+                <span class="font-bold text-primary">{{
+                  worstDrawdown[1]
+                }}</span>
+                <span class="text-color-secondary text-xs"> ETH </span>
+              </div>
+              <!-- NB CALLS -->
+              <div
+                class="text-lg"
+                v-tooltip="{
+                  value: `Including<ul>${
+                    counters.unrealistic
+                      ? `<li>${counters.unrealistic} unrealistic trades where we had to cap Xs</li>`
+                      : ''
+                  }<li>${counters.rug} rugs</li><li>${
+                    counters.postAth
+                  } calls that occurred after ATH and thus counted as losses</li><li>${
+                    counters.x100
+                  } calls that made 100x</li><li>${
+                    counters.x50
+                  } calls that made 50x</li><li>${
+                    counters.x10
+                  } calls that made 10x</li></ul>`,
+                  autoHide: false,
+                  escape: false,
+                }"
+              >
+                <span class="">Number of calls: </span>
+                <span class="text-primary">{{ filteredCalls.length }}</span>
+              </div>
+            </div>
+          </AccordionTab>
+
+          <!-- LOGS -->
+          <AccordionTab header="LOGS">
+            <ul class="px-2">
+              <li v-for="log in logs" :key="log.ca" class="text-sm mb-3">
+                <!-- {{ log.ca }}<br /> -->
+                <span class="">[{{ log.date }}]</span
+                ><span class="text-color-secondary"> bought </span
+                ><span class="font-bold">{{ log.invested }}</span>
+                <span class="text-color-secondary"> of </span>
+                <span class="font-bold">{{ log.name }}</span>
+                <br />
+                <a
+                  class="text-xs text-color hoverlink"
+                  target="_blank"
+                  rel="noopener"
+                  :href="'https://dexscreener.com/ethereum/' + log.ca"
+                >
+                  {{ log.ca }}</a
+                >
+                <br />
+                <span class="text-color-secondary"> did </span>
+                <span class="font-bold">{{ log.xs }}x</span>
+                <span class="text-color-secondary"> to </span>
+                <span class="font-bold">{{ log.mc }}</span>
+                <span v-if="log.info" class="font-bold"> ({{ log.info }})</span>
+                <span class="text-color-secondary"> resulting in </span>
+                <span
+                  :class="[
+                    'font-bold',
+                    log.gain > 0
+                      ? 'text-cyan-300 underline'
+                      : 'text-purple-600	',
+                  ]"
+                  >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
+                >
+                <span class="text-color-secondary"> ETH</span>
+              </li>
+            </ul>
+          </AccordionTab>
+
+          <!-- HASHES -->
+          <AccordionTab
+            header="FUNCTIONS HASH"
+            :pt="{ content: { class: 'p-0' } }"
+          >
+            <HashTable
+              :lines="hashesWithTags"
+              filter-template="HashF not in [{}]"
+              @removeTag="removeTag"
+              @addTag="addTag"
             />
-            <!-- FUNDS -->
-            <div
-              class="text-2xl"
-              v-tooltip="{
-                value:
-                  'Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $2000 ETH value, minus gas cost and tax.</li><li>Sell calculations: Gas and 5% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>',
-                autoHide: false,
-                escape: false,
-              }"
-            >
-              Realized profits:
-              <span class="font-bold text-primary">{{ finalETH }}</span>
-              <span class="text-color-secondary text-lg"> ETH</span>
-            </div>
-            <!-- DRAWDOWN -->
-            <div
-              class="text-lg"
-              v-tooltip="{
-                value:
-                  'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.',
-                autoHide: false,
-              }"
-            >
-              Overall drawdown:
-              <span class="font-bold text-primary">{{ drawdown }}</span>
-              <span class="text-color-secondary text-xs"> ETH</span>
-            </div>
-            <div
-              class="text-lg"
-              v-tooltip="{
-                value: `The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
-                  worstDrawdown[0] ? ` (${worstDrawdown[0]} in this case)` : ''
-                }.<br>You need at least this absolute value in your wallet to sustain the strategy.`,
-                autoHide: false,
-                escape: false,
-              }"
-            >
-              Worst drawdown:
-              <span class="font-bold text-primary">{{ worstDrawdown[1] }}</span>
-              <span class="text-color-secondary text-xs"> ETH </span>
-            </div>
-            <!-- NB CALLS -->
-            <div
-              class="text-lg"
-              v-tooltip="{
-                value: `Including<ul>${
-                  counters.unrealistic
-                    ? `<li>${counters.unrealistic} unrealistic trades where we had to cap Xs</li>`
-                    : ''
-                }<li>${counters.rug} rugs</li><li>${
-                  counters.postAth
-                } calls that occurred after ATH and thus counted as losses</li><li>${
-                  counters.x100
-                } calls that made 100x</li><li>${
-                  counters.x50
-                } calls that made 50x</li><li>${
-                  counters.x10
-                } calls that made 10x</li></ul>`,
-                autoHide: false,
-                escape: false,
-              }"
-            >
-              <span class="">Number of calls: </span>
-              <span class="text-primary">{{ filteredCalls.length }}</span>
-            </div>
-          </div>
-        </Panel>
+          </AccordionTab>
 
-        <!-- LOGS -->
-        <Panel header="LOGS" toggleable collapsed class="pb-5">
-          <ul class="px-2">
-            <li v-for="log in logs" :key="log.ca" class="text-sm mb-3">
-              <!-- {{ log.ca }}<br /> -->
-              <span class="">[{{ log.date }}]</span
-              ><span class="text-color-secondary"> bought </span
-              ><span class="font-bold">{{ log.invested }}</span>
-              <span class="text-color-secondary"> of </span>
-              <span class="font-bold">{{ log.name }}</span>
-              <br />
-              <a
-                class="text-xs text-color hoverlink"
-                target="_blank"
-                rel="noopener"
-                :href="'https://dexscreener.com/ethereum/' + log.ca"
-              >
-                {{ log.ca }}</a
-              >
-              <br />
-              <span class="text-color-secondary"> did </span>
-              <span class="font-bold">{{ log.xs }}x</span>
-              <span class="text-color-secondary"> to </span>
-              <span class="font-bold">{{ log.mc }}</span>
-              <span v-if="log.info" class="font-bold"> ({{ log.info }})</span>
-              <span class="text-color-secondary"> resulting in </span>
-              <span
-                :class="[
-                  'font-bold',
-                  log.gain > 0 ? 'text-cyan-300 underline' : 'text-purple-600	',
-                ]"
-                >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
-              >
-              <span class="text-color-secondary"> ETH</span>
-            </li>
-          </ul>
-        </Panel>
-
-        <!-- HASHES -->
-        <Panel header="FUNCTIONS HASH" toggleable collapsed class="pb-5">
-          <HashTable
-            :lines="hashesWithTags"
-            @removeTag="removeTag"
-            @addTag="addTag"
-          />
-        </Panel>
-
-        <!-- SIGNATURES -->
-        <Panel header="FUNCTION SIGNATURE" toggleable collapsed>
-          <HashTable
-            :lines="signaturesWithTags"
-            @removeTag="removeTag"
-            @addTag="addTag"
-          />
-        </Panel>
+          <!-- SIGNATURES -->
+          <AccordionTab
+            header="FUNCTION SIGNATURE"
+            :pt="{ content: { class: 'p-0' } }"
+          >
+            <HashTable
+              :lines="signaturesWithTags"
+              filter-template="~FList.str.contains('{}', na=False)"
+              @removeTag="removeTag"
+              @addTag="addTag"
+            />
+          </AccordionTab>
+        </Accordion>
       </div>
 
-      <div class="flex flex-column mx-1 xl:mx-5 my-2">
+      <div
+        class="flex flex-column mx-1 xl:mx-5 my-2"
+        style="max-width: 35rem; min-width: 32rem"
+      >
         <!-- POSITION -->
         <div class="flex flex-column gap-2 p-3">
           <label for="position-input">Max bought</label>
@@ -527,6 +546,8 @@
         </div>
       </div>
     </div>
+
+    <Toast />
   </main>
 </template>
 
@@ -537,7 +558,8 @@ import InputNumber from "primevue/inputnumber";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import FileUpload, { type FileUploadSelectEvent } from "primevue/fileupload";
-import Panel from "primevue/panel";
+import Accordion from "primevue/accordion";
+import AccordionTab from "primevue/accordiontab";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import InputText from "primevue/inputtext";
@@ -548,6 +570,7 @@ import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
+import Toast from 'primevue/toast';
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import {
   round2Dec,
@@ -609,11 +632,7 @@ const hashesWithTags = computed<HashInfo[]>(() =>
 );
 const signatures = ref<Record<string, HashInfo>>({});
 const signaturesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(
-    signatures.value,
-    localTags.value,
-    (i) => i.rugs / i.allCalls.length
-  )
+  addTagsToHashes(signatures.value, localTags.value)
 );
 
 const calls = ref<Call[]>([]);
@@ -710,7 +729,7 @@ async function storeData(rows: (string | number)[][]) {
     newCalls.push({
       name: row[nameIndex] as string,
       ca: row[caIndex] as string,
-      xs: row[xsIndex] as number,
+      xs: Number(row[xsIndex] as number) || 0,
       ath: row[athIndex] as number,
       callTimeAth: row[callAthIndex] as number,
       date,

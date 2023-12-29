@@ -51,3 +51,7 @@ body {
   text-decoration: underline;
   color: var(--primary-color) !important;
 }
+
+.p-panel {
+  max-width: 94vw;
+}
