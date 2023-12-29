@@ -33,3 +33,21 @@ body {
   -moz-osx-font-smoothing: grayscale;
   padding: 2rem;
 }
+
+.link {
+  cursor: pointer;
+  color: var(--primary-color);
+}
+.link:hover,
+.link:focus {
+  text-decoration: underline;
+}
+
+.hoverlink {
+  text-decoration: none;
+}
+.hoverlink:hover,
+.hoverlink:focus {
+  text-decoration: underline;
+  color: var(--primary-color) !important;
+}

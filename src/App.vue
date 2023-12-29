@@ -178,198 +178,21 @@
 
         <!-- HASHES -->
         <Panel header="FUNCTIONS HASH" toggleable collapsed class="pb-5">
-          <div class="flex flex-column align-items-start relative">
-            <i class="text-sm">Sorted by calls count</i>
-            <ul class="px-2">
-              <li
-                v-for="hash in hashesWithTags"
-                :key="hash.id"
-                class="text-sm mb-2"
-              >
-                <span class="text-color-secondary">[</span>
-                <code>{{ hash.id }}</code>
-                <span class="text-color-secondary">] </span>
-                <i
-                  class="text-color-secondary pi pi-bell ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Number of calls'"
-                ></i
-                >&nbsp;<span class="link" @click="inspectedHash = hash">
-                  {{ hash.allCalls.length }}
-                </span>
-                <i
-                  class="text-color-secondary pi pi-sort ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Xs average'"
-                ></i>
-                {{ Math.round(hash.xSum / hash.allCalls.length) }}
-                <i
-                  class="text-color-secondary pi pi-thumbs-up ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'10x count and %'"
-                ></i>
-                {{ hash.x10Calls.length }} ({{
-                  Math.round(
-                    (hash.x10Calls.length / hash.allCalls.length) * 100
-                  ) + "%"
-                }})
-                <i
-                  class="text-color-secondary pi pi-thumbs-up-fill ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'50x count and %'"
-                ></i>
-                {{ hash.x50Calls.length }} ({{
-                  Math.round(
-                    (hash.x50Calls.length / hash.allCalls.length) * 100
-                  ) + "%"
-                }})
-                <i
-                  class="text-color-secondary pi pi-thumbs-down ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Rugs count and %'"
-                ></i>
-                {{ hash.rugs }} ({{
-                  Math.round((hash.rugs / hash.allCalls.length) * 100) + "%"
-                }})
-                <i
-                  class="link pi pi-tags ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Add a tag'"
-                  @click="showTagInput(hash.id, $event)"
-                ></i>
-                <span v-for="(tag, index) in hash.tags" :key="index"
-                  >{{ index ? ", " : " "
-                  }}<span class="link" @click="removeTag(hash.id, index)">{{
-                    tag
-                  }}</span></span
-                >
-              </li>
-            </ul>
-          </div>
+          <HashTable
+            :lines="hashesWithTags"
+            @removeTag="removeTag"
+            @addTag="addTag"
+          />
         </Panel>
 
         <!-- SIGNATURES -->
         <Panel header="FUNCTION SIGNATURE" toggleable collapsed>
-          <div class="flex flex-column align-items-start relative">
-            <i class="text-sm">Sorted by rug %</i>
-            <ul class="px-2">
-              <li
-                v-for="sig in signaturesWithTags"
-                :key="sig.id"
-                class="text-sm mb-2"
-              >
-                <span class="text-color-secondary">[</span>
-                <code>{{ sig.id }}</code>
-                <span class="text-color-secondary">] </span>
-                <i
-                  class="text-color-secondary pi pi-bell ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Number of calls'"
-                ></i
-                >&nbsp;<span class="link" @click="inspectedHash = sig">
-                  {{ sig.allCalls.length }}
-                </span>
-                <i
-                  class="text-color-secondary pi pi-sort ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Xs average'"
-                ></i>
-                {{ Math.round(sig.xSum / sig.allCalls.length) }}
-                <i
-                  class="text-color-secondary pi pi-thumbs-up ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'10x count and %'"
-                ></i>
-                {{ sig.x10Calls.length }} ({{
-                  Math.round(
-                    (sig.x10Calls.length / sig.allCalls.length) * 100
-                  ) + "%"
-                }})
-                <i
-                  class="text-color-secondary pi pi-thumbs-up-fill ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'50x count and %'"
-                ></i>
-                {{ sig.x50Calls.length }} ({{
-                  Math.round(
-                    (sig.x50Calls.length / sig.allCalls.length) * 100
-                  ) + "%"
-                }})
-                <i
-                  class="text-color-secondary pi pi-thumbs-down ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Rugs count and %'"
-                ></i>
-                {{ sig.rugs }} ({{
-                  Math.round((sig.rugs / sig.allCalls.length) * 100) + "%"
-                }})
-                <i
-                  class="link pi pi-tags ml-1"
-                  style="font-size: 0.8rem"
-                  v-tooltip.top="'Add a tag'"
-                  @click="showTagInput(sig.id, $event)"
-                ></i>
-                <span v-for="(tag, index) in sig.tags" :key="index"
-                  >{{ index ? ", " : " "
-                  }}<span class="link" @click="removeTag(sig.id, index)">{{
-                    tag
-                  }}</span></span
-                >
-              </li>
-            </ul>
-          </div>
+          <HashTable
+            :lines="signaturesWithTags"
+            @removeTag="removeTag"
+            @addTag="addTag"
+          />
         </Panel>
-
-        <!-- Tag input -->
-        <OverlayPanel ref="tagDropdown">
-          <InputGroup>
-            <InputGroupAddon>
-              <i class="pi pi-tags"></i>
-            </InputGroupAddon>
-            <InputText
-              ref="tagInput"
-              type="text"
-              v-model="newTag"
-              @keyup.enter.native="addTag()"
-            />
-            <InputGroupAddon>
-              <i class="pi pi-reply rotated"></i>
-            </InputGroupAddon>
-          </InputGroup>
-        </OverlayPanel>
-
-        <!-- Hash calls popup -->
-        <Sidebar
-          :visible="!!inspectedHash"
-          position="right"
-          :header="`Calls with hash or sig ${inspectedHash?.id}`"
-          class="w-full md:w-30rem"
-          @update:visible="inspectedHash = null"
-          @hide="inspectedHash = null"
-        >
-          <ul v-if="inspectedHash" class="px-2">
-            <li
-              v-for="call in inspectedHash.allCalls"
-              :key="call.ca"
-              class="text-sm mb-3"
-            >
-              <a
-                class="text-color-secondary hoverlink"
-                target="_blank"
-                rel="noopener"
-                :href="'https://dexscreener.com/ethereum/' + call.ca"
-              >
-                {{ call.ca }}</a
-              >
-              <br />
-              {{ call.name }}:&nbsp; {{ call.xs }}x
-              <span class="text-color-secondary">
-                {{ prettifyMc(call.ath) }}</span
-              >
-              <span v-if="call.rug"> [RUG] </span>
-            </li>
-          </ul>
-        </Sidebar>
       </div>
 
       <div class="flex flex-column mx-1 xl:mx-5 my-2">
@@ -723,9 +546,8 @@ import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
-import Sidebar from "primevue/sidebar";
-import OverlayPanel from "primevue/overlaypanel";
 import vTooltip from "primevue/tooltip";
+import HashTable from "./components/HashTable.vue";
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import {
   round2Dec,
@@ -762,35 +584,16 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 const logs = ref<Log[]>([]);
 
 const TAGS_STORAGE_KEY = "tags";
-const TAG_SEPARATOR = ", ";
 const localTags = ref<Record<string, string[]>>(
   localStorageGetObject(TAGS_STORAGE_KEY) || {}
 );
-const tagDropdown = ref<InstanceType<typeof OverlayPanel>>();
-const tagInput = ref();
+
 const removeTag = (hash: string, index: number) => {
   localTags.value[hash]?.splice(index, 1);
 };
-const showTagInput = async (hash: string, event: MouseEvent) => {
-  editingForHash.value = hash;
-  newTag.value = "";
-  tagDropdown.value?.show(event);
-  await nextTick();
-  tagInput.value?.$el.focus();
-};
-const newTag = ref("");
-const editingForHash = ref("");
-const addTag = () => {
-  tagDropdown.value?.hide();
-  if (!editingForHash.value) return;
-
-  if (!localTags.value[editingForHash.value])
-    localTags.value[editingForHash.value] = [];
-  localTags.value[editingForHash.value].push(
-    newTag.value.trim().replace(TAG_SEPARATOR.trim(), "")
-  );
-  newTag.value = "";
-  editingForHash.value = "";
+const addTag = (hash: string, newTag: string) => {
+  if (!localTags.value[hash]) localTags.value[hash] = [];
+  localTags.value[hash].push(newTag);
 };
 watch(
   localTags,
@@ -800,7 +603,6 @@ watch(
   { deep: true }
 );
 
-const inspectedHash = ref<HashInfo | null>(null);
 const hashes = ref<Record<string, HashInfo>>({});
 const hashesWithTags = computed<HashInfo[]>(() =>
   addTagsToHashes(hashes.value, localTags.value)
@@ -1085,26 +887,4 @@ worker.onerror = ({ message }) => {
 };
 </script>
 
-<style scoped>
-.link {
-  cursor: pointer;
-  color: var(--primary-color);
-}
-.link:hover,
-.link:focus {
-  text-decoration: underline;
-}
-
-.hoverlink {
-  text-decoration: none;
-}
-.hoverlink:hover,
-.hoverlink:focus {
-  text-decoration: underline;
-  color: var(--primary-color) !important;
-}
-
-.rotated {
-  transform: rotate(-0.5turn);
-}
-</style>
+<style scoped></style>
