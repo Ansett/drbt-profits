@@ -125,7 +125,7 @@ function compute({
       hashes[call.hashF].xSum += call.rug ? 0 : call.xs;
     }
 
-    // Regrouping function 4bytes
+    // Regrouping function 4bytes signatures
     if (call.fList) {
       for (const id of call.fList.split(",")) {
         if (!signatures[id])
@@ -143,7 +143,6 @@ function compute({
         if (call.xs >= 10 && !call.rug) signatures[id].x10Calls.push(call);
         if (call.xs >= 50 && !call.rug) signatures[id].x50Calls.push(call);
         signatures[id].xSum += call.rug ? 0 : call.xs;
-        if (isNaN(signatures[id].xSum)) console.log(signatures[id]);
       }
     }
 

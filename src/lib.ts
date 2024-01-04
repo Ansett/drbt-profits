@@ -1,8 +1,6 @@
 import type { Call } from "./types/Call";
 import type { HashInfo } from "./types/HashInfo";
 
-const HASH_COUNT_THRESHOLD = 10;
-
 export interface DebouncedFunction<
   Args extends any[],
   F extends (...args: Args) => any
@@ -121,11 +119,12 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
 
 export function addTagsToHashes(
   hashes: Record<string, HashInfo>,
-  tags: Record<string, string[]> | null
+  tags: Record<string, string[]> | null,
+  minCallsCount: number
 ) {
   // Show only hashes with some calls, and sort calls by Xs and rug status
   const bigHashes = Object.keys(hashes).reduce((arr, h) => {
-    if (hashes[h].allCalls.length >= HASH_COUNT_THRESHOLD) {
+    if (hashes[h].allCalls.length >= minCallsCount) {
       hashes[h].allCalls.sort((a, b) =>
         !a.rug && b.rug
           ? -1

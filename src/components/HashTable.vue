@@ -7,14 +7,17 @@
       dataKey="id"
       :sortOrder="-1"
       sortMode="single"
-      :globalFilterFields="['tags']"
+      :globalFilterFields="['id', 'tags']"
       v-model:filters="filters"
       v-model:selection="selection"
-      paginator
-      :rows="25"
+      :paginator="lines.length > rowPagination"
+      :rows="rowPagination"
       @value-change="onDataChange"
     >
-      <template #header>
+      <template #empty>
+        No hash or signature available (check input for minimum calls limit)
+      </template>
+      <template #header v-if="lines.length">
         <div class="flex justify-content-end">
           <SplitButton
             label="Export"
@@ -185,11 +188,10 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import SplitButton from "primevue/splitbutton";
 import { useToast } from "primevue/usetoast";
-
-import { FilterMatchMode, FilterOperator } from "primevue/api";
-
+import { FilterMatchMode } from "primevue/api";
 import { prettifyMc } from "../lib";
 
+const rowPagination = 25;
 const TAG_SEPARATOR = ", ";
 
 const props = defineProps<{

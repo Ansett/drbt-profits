@@ -544,6 +544,31 @@
             </div>
           </div>
         </div>
+
+        <!-- MIN CALLS -->
+        <div class="flex flex-column gap-2 p-3">
+          <label for="gas-input"
+            >Minimum calls count to show hashes and signatures</label
+          >
+          <InputGroup>
+            <InputGroupAddon>
+              <i class="pi pi-megaphone"></i>
+            </InputGroupAddon>
+            <InputNumber
+              v-model="state.minCallsForHash"
+              id="gas-input"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              :min="1"
+              :step="10"
+              incrementButtonIcon="pi pi-plus"
+              incrementButtonClassName="p-button-secondary"
+              decrementButtonIcon="pi pi-minus"
+              decrementButtonClassName="p-button-secondary"
+            />
+          </InputGroup>
+        </div>
       </div>
     </div>
 
@@ -570,7 +595,7 @@ import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
-import Toast from 'primevue/toast';
+import Toast from "primevue/toast";
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import {
   round2Dec,
@@ -628,11 +653,11 @@ watch(
 
 const hashes = ref<Record<string, HashInfo>>({});
 const hashesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(hashes.value, localTags.value)
+  addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash)
 );
 const signatures = ref<Record<string, HashInfo>>({});
 const signaturesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(signatures.value, localTags.value)
+  addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash)
 );
 
 const calls = ref<Call[]>([]);
@@ -752,11 +777,13 @@ const INIT_POSITION = 0.05;
 const INIT_TP1 = { size: 50, xs: 10, mc: 250000, fixed: false } as TakeProfit;
 const INIT_TP2 = { size: 50, xs: 100, mc: 2500000, fixed: false } as TakeProfit;
 const INIT_GAS = 0.01;
+const INIT_MIN_CALLS = 5;
 const state = reactive({
   position: INIT_POSITION,
   takeProfit1: INIT_TP1,
   takeProfit2: INIT_TP2,
   gasPrice: INIT_GAS,
+  minCallsForHash: INIT_MIN_CALLS,
 });
 watch(
   () => state.takeProfit1.size,
@@ -832,6 +859,7 @@ function loadForm() {
   if (!state.takeProfit2.mc) state.takeProfit2.mc = INIT_TP2.mc;
   if (!state.takeProfit2.fixed) state.takeProfit2.fixed = INIT_TP2.fixed;
   state.gasPrice = savedState.gasPrice ?? INIT_GAS;
+  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
 }
 onMounted(() => {
   loadForm();
