@@ -3,7 +3,7 @@
     <DataTable
       ref="table"
       :value="lines"
-      :sortField="(d) => d.allCalls.length + ''"
+      sortField="allCalls.length"
       dataKey="id"
       :sortOrder="-1"
       sortMode="single"
@@ -39,7 +39,7 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       ></Column>
       <Column
-        :field="(d) => d.allCalls.length + ''"
+        field="allCalls.length"
         header="Nb calls"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
