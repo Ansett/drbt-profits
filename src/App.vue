@@ -5,7 +5,7 @@
     Backtesting profits from DRBT
   </header>
 
-  <main>
+  <main class="main">
     <!-- CONFIG -->
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
@@ -58,7 +58,7 @@
           error
         }}</Message>
 
-        <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
+        <Accordion :activeIndex="[0]" multiple lazy class="mt-5 accordion">
           <!-- RESULTS -->
           <AccordionTab header="STATISTICS">
             <div class="flex flex-column align-items-start relative">
@@ -211,10 +211,7 @@
         </Accordion>
       </div>
 
-      <div
-        class="flex flex-column mx-1 xl:mx-5 my-2"
-        style="max-width: 35rem; min-width: 32rem"
-      >
+      <div class="flex flex-column mx-1 xl:mx-5 my-2" style="max-width: 40rem">
         <!-- POSITION -->
         <div class="flex flex-column gap-2 p-3">
           <label for="position-input">Max bought</label>
@@ -227,7 +224,6 @@
               id="position-input"
               showButtons
               buttonLayout="stacked"
-              style="height: 4rem"
               suffix=" ETH"
               :min="0.01"
               :minFractionDigits="1"
@@ -238,6 +234,8 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
+              style="height: 4rem"
             />
           </InputGroup>
         </div>
@@ -253,7 +251,6 @@
               id="gas-input"
               showButtons
               buttonLayout="stacked"
-              style="height: 4rem"
               suffix=" ETH"
               :min="0.005"
               :minFractionDigits="1"
@@ -264,18 +261,21 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
+              style="height: 4rem"
             />
           </InputGroup>
         </div>
         <!-- TP 1 -->
-        <div class="flex flex-column gap-2 p-3">
-          <label for="tp-input"
+        <div class="flex flex-row flex-wrap gap-2 p-3">
+          <label for="tp-input" class="min-w-full"
             >Take profit target 1
             <span class="text-xs"
               >(size % and either Xs or fixed MC)</span
             ></label
           >
-          <InputGroup>
+
+          <InputGroup class="flex-1">
             <InputGroupAddon>
               <i class="pi pi-send"></i>
             </InputGroupAddon>
@@ -293,7 +293,10 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInputSmall"
             />
+          </InputGroup>
+          <InputGroup class="flex-1">
             <InputNumber
               v-if="state.takeProfit1.fixed"
               v-model="state.takeProfit1.mc"
@@ -308,6 +311,7 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
             />
             <InputNumber
               v-else
@@ -323,6 +327,7 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
             />
             <InputGroupAddon>
               <Checkbox
@@ -338,14 +343,14 @@
           </InputGroup>
         </div>
         <!-- TP 2 -->
-        <div class="flex flex-column gap-2 p-3">
-          <label for="tp-input"
+        <div class="flex flex-row flex-wrap gap-2 p-3">
+          <label for="tp-input" class="min-w-full"
             >Take profit target 2
             <span class="text-xs"
               >(size % and either Xs or fixed MC)</span
             ></label
           >
-          <InputGroup>
+          <InputGroup class="flex-1">
             <InputGroupAddon>
               <i class="pi pi-send"></i>
             </InputGroupAddon>
@@ -360,15 +365,20 @@
               :max="100 - state.takeProfit1.size"
               :step="10"
               disabled
-              :class="{
-                'p-invalid':
-                  state.takeProfit1.size + state.takeProfit2.size > 100,
-              }"
+              :class="[
+                'settingInputSmall',
+                {
+                  'p-invalid':
+                    state.takeProfit1.size + state.takeProfit2.size > 100,
+                },
+              ]"
               incrementButtonIcon="pi pi-plus"
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
             />
+          </InputGroup>
+          <InputGroup class="flex-1">
             <InputNumber
               v-if="state.takeProfit2.fixed"
               v-model="state.takeProfit2.mc"
@@ -383,6 +393,7 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
             />
             <InputNumber
               v-else
@@ -398,6 +409,7 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
             />
             <InputGroupAddon>
               <Checkbox
@@ -416,10 +428,12 @@
         <hr class="m-3 border-1 border-solid border-indigo-900" />
 
         <!-- START -->
-        <div class="flex flex-column gap-2 p-3">
-          <label for="end-input"
+        <div class="flex flex-row flex-wrap gap-2 p-3">
+          <label for="end-input" class="min-w-full"
             >Start date <span class="text-xs">(no limit if empty)</span></label
-          ><InputGroup>
+          >
+
+          <InputGroup class="flex-50">
             <InputGroupAddon>
               <i class="pi pi-calendar-minus"></i>
             </InputGroupAddon>
@@ -430,14 +444,18 @@
               style="height: 4rem"
               mask="9999-99-99"
               placeholder="YYYY-MM-DD"
+              class="settingInput"
             />
             <Button icon="pi pi-plus" @click="incStartDate()" />
+          </InputGroup>
+          <InputGroup class="flex-1">
             <InputMask
               v-model="selection.startHour"
               id="starth-input"
               style="height: 4rem"
               mask="99:99"
               placeholder="00:00"
+              class="settingInputSmall"
             />
             <Button
               icon="pi pi-times"
@@ -450,11 +468,11 @@
           </InputGroup>
         </div>
         <!-- END DATE -->
-        <div class="flex flex-column gap-2 p-3">
-          <label for="end-input"
+        <div class="flex flex-row flex-wrap gap-2 p-3">
+          <label for="end-input" class="min-w-full"
             >End date <span class="text-xs">(no limit if empty)</span></label
           >
-          <InputGroup>
+          <InputGroup class="flex-50">
             <InputGroupAddon>
               <i class="pi pi-calendar-plus"></i>
             </InputGroupAddon>
@@ -465,14 +483,18 @@
               style="height: 4rem"
               mask="9999-99-99"
               placeholder="YYYY-MM-DD"
+              class="settingInput"
             />
             <Button icon="pi pi-plus" @click="incEndDate()" />
+          </InputGroup>
+          <InputGroup class="flex-1">
             <InputMask
               v-model="selection.endHour"
               id="endh-input"
               style="height: 4rem"
               mask="99:99"
               placeholder="00:00"
+              class="settingInputSmall"
             />
             <Button
               icon="pi pi-times"
@@ -490,11 +512,12 @@
             >Trading hours each day <span class="text-xs">(UTC)</span></label
           >
           <div class="flex flex-row gap-2">
-            <div class="flex flex-column" style="flex: 1 1 50%">
+            <div class="flex flex-column" style="width: 50%">
               <InputText
                 v-model="rangeStartIso"
                 disabled
                 style="height: 4rem"
+                class="settingInputSmall"
               />
               <Slider
                 v-model="selection.range[0]"
@@ -507,7 +530,7 @@
                 }"
               />
             </div>
-            <div class="flex flex-column" style="flex: 1 1 50%">
+            <div class="flex flex-column" style="width: 50%">
               <InputGroup>
                 <InputGroupAddon
                   style="height: 4rem"
@@ -518,6 +541,7 @@
                   v-model="rangeEndIso"
                   disabled
                   style="height: 4rem"
+                  class="settingInputSmall"
                 />
               </InputGroup>
 
@@ -566,6 +590,7 @@
               incrementButtonClassName="p-button-secondary"
               decrementButtonIcon="pi pi-minus"
               decrementButtonClassName="p-button-secondary"
+              class="settingInput"
             />
           </InputGroup>
         </div>
@@ -934,4 +959,21 @@ worker.onerror = ({ message }) => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.main {
+  max-width: 90vw;
+  overflow: hidden;
+}
+.accordion {
+  max-width: 79vw;
+}
+.settingInput {
+  min-width: 10rem;
+}
+.settingInputSmall {
+  min-width: 7rem;
+}
+.flex-50 {
+  flex: 1 1 50%;
+}
+</style>

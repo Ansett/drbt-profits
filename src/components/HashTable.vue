@@ -18,18 +18,17 @@
         No hash or signature available (check input for minimum calls limit)
       </template>
       <template #header v-if="lines.length">
-        <div class="flex justify-content-end">
+        <div class="flex flex-wrap justify-content-end gap-3">
           <SplitButton
             label="Export"
             @click="exporting"
             :model="exportOptions"
-            class="mr-3"
           />
           <span class="p-input-icon-left">
             <i class="pi pi-search" />
             <InputText
               v-model="filters['global'].value"
-              placeholder="Tag search"
+              placeholder="Tag or ID search"
             />
           </span>
         </div>
