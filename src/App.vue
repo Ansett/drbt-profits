@@ -5,12 +5,12 @@
     Backtesting profits from DRBT
   </header>
 
-  <main class="main">
+  <main>
     <!-- CONFIG -->
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div class="xl:w-6 m-1 xl:m-5" style="max-width: 75rem">
+      <div class="w-full xl:w-6 m-1 xl:m-5" style="max-width: min(90vw, 75rem)">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -58,7 +58,7 @@
           error
         }}</Message>
 
-        <Accordion :activeIndex="[0]" multiple lazy class="mt-5 accordion">
+        <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
           <!-- RESULTS -->
           <AccordionTab header="STATISTICS">
             <div class="flex flex-column align-items-start relative">
@@ -211,7 +211,10 @@
         </Accordion>
       </div>
 
-      <div class="flex flex-column mx-1 xl:mx-5 my-2" style="max-width: 40rem">
+      <div
+        class="flex flex-column mx-1 xl:mx-5 my-2"
+        style="max-width: min(90vw, 40rem)"
+      >
         <!-- POSITION -->
         <div class="flex flex-column gap-2 p-3">
           <label for="position-input">Max bought</label>
@@ -960,13 +963,6 @@ worker.onerror = ({ message }) => {
 </script>
 
 <style scoped>
-.main {
-  max-width: 90vw;
-  overflow: hidden;
-}
-.accordion {
-  max-width: 79vw;
-}
 .settingInput {
   min-width: 10rem;
 }
