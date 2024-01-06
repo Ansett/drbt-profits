@@ -15,3 +15,8 @@ export type Call = {
   rug: boolean;
   hashF: string;
 };
+
+export type CallArchive = {
+  fileName: string;
+  calls: Call[];
+};

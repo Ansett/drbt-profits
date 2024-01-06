@@ -34,12 +34,15 @@
                 }"
               />
 
-              <p
-                v-if="selectedFile"
-                class="text-2xl font-medium text-center mb-2"
-              >
-                {{ selectedFile.name }}
-              </p>
+              <template v-if="selectedFile">
+                <Dropdown
+                  v-model="current"
+                  optionLabel="fileName"
+                  :options="archives"
+                  aria-label="Current calls file"
+                  style="max-width: 21rem"
+                />
+              </template>
               <template v-else>
                 <p class="text-center">Drag and drop a DRBT backtest export</p>
                 <p class="text-center text-sm font-italic text-color-secondary">
@@ -624,18 +627,16 @@ import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
 import Toast from "primevue/toast";
+import Dropdown from "primevue/dropdown";
 import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 import {
-  round2Dec,
-  sleep,
   debounce,
   decimalHourToString,
   localStorageSetObject,
   localStorageGetObject,
-  prettifyMc,
   addTagsToHashes,
 } from "./lib";
-import type { Call } from "./types/Call";
+import { type CallDiff, type CallArchive, type Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
@@ -645,16 +646,15 @@ const error = ref("");
 const loading = ref(false);
 const uploader = ref<InstanceType<typeof FileUpload>>();
 
-const selectedFile = ref<File | null>(null);
 const onUpload = async (event: FileUploadSelectEvent) => {
   const { files } = event;
   if (!files?.length) return;
 
-  selectedFile.value = files[0];
+  const xlsx = files[0];
   (uploader.value as any)?.clear();
 
   loading.value = true;
-  worker.postMessage({ type: "XLSX", xlsx: selectedFile.value });
+  worker.postMessage({ type: "XLSX", xlsx });
 };
 
 const logs = ref<Log[]>([]);
@@ -688,7 +688,10 @@ const signaturesWithTags = computed<HashInfo[]>(() =>
   addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash)
 );
 
-const calls = ref<Call[]>([]);
+const archives = ref<CallArchive[]>([]);
+const current = ref<CallArchive | null>(null);
+const selectedFile = computed(() => current.value?.fileName || "");
+const calls = computed(() => current.value?.calls || []);
 const filteredCalls = computed<Call[]>(() =>
   calls.value.filter((call) => {
     // filtering period
@@ -737,7 +740,7 @@ const filteredCalls = computed<Call[]>(() =>
   })
 );
 
-async function storeData(rows: (string | number)[][]) {
+async function storeData(rows: (string | number)[][], fileName: string) {
   const header = rows[0];
   rows.splice(0, 1);
   if (!rows.length) return;
@@ -797,8 +800,12 @@ async function storeData(rows: (string | number)[][]) {
       hashF: row[hashIndex] as string,
     });
   }
+
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  calls.value = newCalls;
+
+  const newArchive = { calls: newCalls, fileName };
+  current.value = newArchive;
+  archives.value.push(newArchive);
 }
 
 const INIT_POSITION = 0.05;
@@ -945,8 +952,10 @@ function fail(message: string) {
 
 const worker = new Worker();
 worker.onmessage = ({ data }) => {
-  if (data.type === "XLSX") return storeData(data.rows);
-  if (data.type === "COMPUTE") {
+  loading.value = false;
+
+  if (data.type === "XLSX") return storeData(data.rows, data.fileName);
+  else if (data.type === "COMPUTE") {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
     worstDrawdown.value = data.worstDrawdown;
@@ -954,8 +963,9 @@ worker.onmessage = ({ data }) => {
     logs.value = data.logs;
     hashes.value = data.hashes;
     signatures.value = data.signatures;
+  } else if (data.type === "DIFF") {
+    // callsDiff.value = data.diff;
   }
-  loading.value = false;
 };
 worker.onerror = ({ message }) => {
   error.value = message;

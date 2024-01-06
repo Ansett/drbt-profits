@@ -7,6 +7,7 @@
       dataKey="id"
       :sortOrder="-1"
       sortMode="single"
+      size="small"
       :globalFilterFields="['id', 'tags']"
       v-model:filters="filters"
       v-model:selection="selection"
@@ -21,6 +22,7 @@
         <div class="flex flex-wrap justify-content-end gap-3">
           <SplitButton
             label="Export"
+            size="small"
             @click="exporting"
             :model="exportOptions"
           />
@@ -29,6 +31,7 @@
             <InputText
               v-model="filters['global'].value"
               placeholder="Tag or ID search"
+              style="height: 2.5rem"
             />
           </span>
         </div>
