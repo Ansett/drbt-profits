@@ -35,13 +35,38 @@
               />
 
               <template v-if="selectedFile">
-                <Dropdown
-                  v-model="current"
-                  optionLabel="fileName"
-                  :options="archives"
-                  aria-label="Current calls file"
-                  style="max-width: 21rem"
-                />
+                <InputGroup class="w-auto">
+                  <Dropdown
+                    v-model="current"
+                    optionLabel="fileName"
+                    :options="archives"
+                    aria-label="Current calls file"
+                    style="max-width: 21rem"
+                    scrollHeight="300px"
+                  >
+                    <template #option="{ option, index }">
+                      <div class="flex align-items-center gap-3">
+                        <div class="flex-auto">{{ option.fileName }}</div>
+                        <Button
+                          icon="pi pi-trash"
+                          severity="secondary"
+                          text
+                          rounded
+                          size="small"
+                          aria-label="Delete"
+                          @click.stop="removeArchive(index)"
+                        />
+                      </div>
+                    </template>
+                  </Dropdown>
+                  <Button
+                    v-if="archives.length >= 2"
+                    icon="pi pi-code"
+                    outlined
+                    aria-label="Difference"
+                    @click="showDiff = true"
+                  />
+                </InputGroup>
               </template>
               <template v-else>
                 <p class="text-center">Drag and drop a DRBT backtest export</p>
@@ -157,14 +182,7 @@
                 <span class="text-color-secondary"> of </span>
                 <span class="font-bold">{{ log.name }}</span>
                 <br />
-                <a
-                  class="text-xs text-color hoverlink"
-                  target="_blank"
-                  rel="noopener"
-                  :href="'https://dexscreener.com/ethereum/' + log.ca"
-                >
-                  {{ log.ca }}</a
-                >
+                <CaLink :ca="log.ca" small />
                 <br />
                 <span class="text-color-secondary"> did </span>
                 <span class="font-bold">{{ log.xs }}x</span>
@@ -341,7 +359,7 @@
                 binary
                 v-tooltip="
                   state.takeProfit1.fixed
-                    ? 'Switch to % target '
+                    ? 'Switch to Xs target '
                     : 'Switch to MC target'
                 "
               />
@@ -423,7 +441,7 @@
                 binary
                 v-tooltip="
                   state.takeProfit2.fixed
-                    ? 'Switch to % target '
+                    ? 'Switch to Xs target '
                     : 'Switch to MC target'
                 "
               />
@@ -604,6 +622,13 @@
     </div>
 
     <Toast />
+
+    <DiffDialog
+      v-if="current && showDiff"
+      :archives="archives"
+      :current="current"
+      @closed="showDiff = false"
+    />
   </main>
 </template>
 
@@ -619,16 +644,25 @@ import AccordionTab from "primevue/accordiontab";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import InputText from "primevue/inputtext";
-import InputSwitch from "primevue/inputswitch";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
+import DiffDialog from "./components/DiffDialog.vue";
+import CaLink from "./components/CaLink.vue";
 import Toast from "primevue/toast";
 import Dropdown from "primevue/dropdown";
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import {
+  computed,
+  inject,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import {
   debounce,
   decimalHourToString,
@@ -658,6 +692,7 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 };
 
 const logs = ref<Log[]>([]);
+const showDiff = ref(false);
 
 const TAGS_STORAGE_KEY = "tags";
 const localTags = ref<Record<string, string[]>>(
@@ -690,6 +725,12 @@ const signaturesWithTags = computed<HashInfo[]>(() =>
 
 const archives = ref<CallArchive[]>([]);
 const current = ref<CallArchive | null>(null);
+const removeArchive = (index: number) => {
+  if (archives.value[index].fileName === current.value?.fileName)
+    current.value = archives.value[0];
+  archives.value.splice(index, 1);
+};
+
 const selectedFile = computed(() => current.value?.fileName || "");
 const calls = computed(() => current.value?.calls || []);
 const filteredCalls = computed<Call[]>(() =>
@@ -805,7 +846,11 @@ async function storeData(rows: (string | number)[][], fileName: string) {
 
   const newArchive = { calls: newCalls, fileName };
   current.value = newArchive;
-  archives.value.push(newArchive);
+  const existIndex = archives.value.findIndex(
+    (a) => a.fileName === newArchive.fileName
+  );
+  if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive);
+  else archives.value.push(newArchive);
 }
 
 const INIT_POSITION = 0.05;

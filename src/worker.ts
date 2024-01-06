@@ -1,5 +1,5 @@
 import readXlsxFile from "read-excel-file/web-worker";
-import type { Call } from "./types/Call";
+import type { Call, CallDiff } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
 import { prettifyDate, prettifyMc, round } from "./lib";
@@ -10,10 +10,15 @@ onmessage = function ({ data }) {
 
   if (data.type === "XLSX")
     return readXlsxFile(data.xlsx).then((rows) => {
-      postMessage({ type: "XLSX", rows });
+      postMessage({ type: "XLSX", rows, fileName: data.xlsx.name });
     });
   if (data.type === "COMPUTE")
     return postMessage({ type: "COMPUTE", ...compute(data) });
+  if (data.type === "DIFF")
+    return postMessage({
+      type: "DIFF",
+      diff: getCallsDiff(data.previousCalls, data.newCalls),
+    });
 };
 
 const SELL_TAX = 5 / 100;
@@ -176,4 +181,20 @@ function compute({
     hashes,
     signatures,
   };
+}
+
+function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {
+  if (!previousCalls.length || !newCalls.length) return [];
+  const diff = [] as CallDiff[];
+
+  for (const call of newCalls) {
+    if (previousCalls.every((c) => c.ca !== call.ca))
+      diff.push({ call, status: "added" });
+  }
+  for (const call of previousCalls) {
+    if (newCalls.every((c) => c.ca !== call.ca))
+      diff.push({ call, status: "removed" });
+  }
+
+  return diff;
 }

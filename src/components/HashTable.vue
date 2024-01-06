@@ -26,14 +26,23 @@
             @click="exporting"
             :model="exportOptions"
           />
-          <span class="p-input-icon-left">
-            <i class="pi pi-search" />
+          <InputGroup class="w-auto">
+            <InputGroupAddon style="height: 2.5rem">
+              <i class="pi pi-search"></i>
+            </InputGroupAddon>
             <InputText
               v-model="filters['global'].value"
               placeholder="Tag or ID search"
               style="height: 2.5rem"
             />
-          </span>
+            <Button
+              icon="pi pi-times"
+              outlined
+              class="text-color-secondary"
+              style="height: 2.5rem"
+              @click="filters['global'].value = null"
+            />
+          </InputGroup>
         </div>
       </template>
 
@@ -141,14 +150,7 @@
           :key="call.ca"
           class="text-sm mb-3"
         >
-          <a
-            class="text-color-secondary hoverlink"
-            target="_blank"
-            rel="noopener"
-            :href="'https://dexscreener.com/ethereum/' + call.ca"
-          >
-            {{ call.ca }}</a
-          >
+          <CaLink :ca="call.ca" gray />
           <br />
           {{ call.name }}:&nbsp; {{ call.xs }}x
           <span class="text-color-secondary"> {{ prettifyMc(call.ath) }}</span>
@@ -186,12 +188,14 @@ import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import vTooltip from "primevue/tooltip";
+import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import SplitButton from "primevue/splitbutton";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "primevue/api";
 import { prettifyMc } from "../lib";
+import CaLink from "./CaLink.vue";
 
 const rowPagination = 25;
 const TAG_SEPARATOR = ", ";

@@ -16,6 +16,11 @@ export type Call = {
   hashF: string;
 };
 
+export type CallDiff = {
+  call: Call;
+  status: "added" | "removed";
+};
+
 export type CallArchive = {
   fileName: string;
   calls: Call[];
