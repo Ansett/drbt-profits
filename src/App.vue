@@ -268,7 +268,7 @@
           <label for="gas-input">Gas price</label>
           <InputGroup>
             <InputGroupAddon>
-              <i class="pi pi-money-bill"></i>
+              <span class="material-symbols-outlined">local_gas_station</span>
             </InputGroupAddon>
             <InputNumber
               v-model="state.gasPrice"
@@ -459,7 +459,7 @@
 
           <InputGroup class="flex-50">
             <InputGroupAddon>
-              <i class="pi pi-calendar-minus"></i>
+              <span class="material-symbols-outlined">today</span>
             </InputGroupAddon>
             <Button icon="pi pi-minus" @click="incStartDate(-1)" />
             <InputMask
@@ -498,7 +498,7 @@
           >
           <InputGroup class="flex-50">
             <InputGroupAddon>
-              <i class="pi pi-calendar-plus"></i>
+              <span class="material-symbols-outlined">event</span>
             </InputGroupAddon>
             <Button icon="pi pi-minus" @click="incEndDate(-1)" />
             <InputMask
@@ -635,6 +635,7 @@
 <script setup lang="ts">
 // https://primevue.org/icons/#list
 // https://primeflex.org/flexdirection
+// https://fonts.google.com/icons?selected=Material+Symbols+Outlined:thumb_up:FILL@0;wght@400;GRAD@0;opsz@24&icon.set=Material+Symbols&icon.style=Outlined
 import InputNumber from "primevue/inputnumber";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
