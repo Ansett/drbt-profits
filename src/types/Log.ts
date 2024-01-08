@@ -7,4 +7,5 @@ export type Log = {
   mc: string;
   gain: number;
   info: string;
+  hitTp: string[];
 };

@@ -200,6 +200,11 @@
                   >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
                 >
                 <span class="text-color-secondary"> ETH</span>
+                <span v-if="log.hitTp.length">
+                  (
+                  {{ log.hitTp.join(" & ") + " hit" }}
+                  )
+                </span>
               </li>
             </ul>
           </AccordionTab>
@@ -234,7 +239,7 @@
 
       <div
         class="flex flex-column mx-1 xl:mx-5 my-2"
-        style="max-width: min(90vw, 40rem)"
+        style="max-width: min(90vw, 50rem)"
       >
         <!-- POSITION -->
         <div class="flex flex-column gap-2 p-3">
@@ -254,10 +259,7 @@
               :maxFractionDigits="2"
               mode="decimal"
               :step="0.01"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
+              :pt="ptNumberInput"
               class="settingInput"
               style="height: 4rem"
             />
@@ -281,173 +283,91 @@
               :maxFractionDigits="3"
               mode="decimal"
               :step="0.005"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
+              :pt="ptNumberInput"
               class="settingInput"
               style="height: 4rem"
             />
           </InputGroup>
         </div>
-        <!-- TP 1 -->
-        <div class="flex flex-row flex-wrap gap-2 p-3">
-          <label for="tp-input" class="min-w-full"
-            >Take profit target 1
-            <span class="text-xs"
-              >(size % and either Xs or fixed MC)</span
-            ></label
-          >
+        <!-- TP -->
+        <div
+          v-for="(takeProfit, index) in state.takeProfits"
+          :key="index"
+          class="flex flex-row flex-wrap gap-2 p-3"
+        >
+          <label :for="'tp-input' + index" class="min-w-full"
+            >Take profit target {{ index + 1 }}
+            <span class="text-xs">(size % and first encountered MC or Xs)</span>
+          </label>
 
+          <!-- TP size -->
           <InputGroup class="flex-1">
-            <InputGroupAddon>
-              <i class="pi pi-send"></i>
+            <InputGroupAddon :class="{ 'target-parent': index > 0 }">
+              <i class="pi pi-send target-icon"></i>
+              <Button
+                v-if="index > 0"
+                icon="pi pi-times"
+                severity="danger"
+                text
+                aria-label="Remove"
+                class="target-remove"
+                @click="removeTarget(index)"
+              />
             </InputGroupAddon>
             <InputNumber
-              v-model="state.takeProfit1.size"
-              id="tp-input"
+              v-model="takeProfit.size"
+              :id="'tp-input' + index"
               showButtons
               buttonLayout="stacked"
               style="height: 4rem"
               suffix="%"
               :min="0"
-              :max="100"
+              :max="getMaxSize(index)"
               :step="10"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
+              :pt="ptNumberInput"
               class="settingInputSmall"
             />
           </InputGroup>
+          <!-- TP Xs -->
           <InputGroup class="flex-1">
             <InputNumber
-              v-if="state.takeProfit1.fixed"
-              v-model="state.takeProfit1.mc"
-              id="tp-input"
-              showButtons
-              buttonLayout="stacked"
-              style="height: 4rem"
-              prefix="$"
-              :min="0"
-              :step="100000"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
-              class="settingInput"
-            />
-            <InputNumber
-              v-else
-              v-model="state.takeProfit1.xs"
-              id="tp-input"
+              v-model="takeProfit.xs"
               showButtons
               buttonLayout="stacked"
               style="height: 4rem"
               suffix="x"
               :min="1"
               :step="5"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
-              class="settingInput"
+              :pt="ptNumberInput"
+              :disabled="!takeProfit.withXs"
+              class="settingInputSmall"
             />
             <InputGroupAddon>
-              <Checkbox
-                v-model="state.takeProfit1.fixed"
-                binary
-                v-tooltip="
-                  state.takeProfit1.fixed
-                    ? 'Switch to Xs target '
-                    : 'Switch to MC target'
-                "
-              />
+              <Checkbox v-model="takeProfit.withXs" binary />
             </InputGroupAddon>
           </InputGroup>
-        </div>
-        <!-- TP 2 -->
-        <div class="flex flex-row flex-wrap gap-2 p-3">
-          <label for="tp-input" class="min-w-full"
-            >Take profit target 2
-            <span class="text-xs"
-              >(size % and either Xs or fixed MC)</span
-            ></label
-          >
-          <InputGroup class="flex-1">
-            <InputGroupAddon>
-              <i class="pi pi-send"></i>
-            </InputGroupAddon>
-            <InputNumber
-              v-model="state.takeProfit2.size"
-              id="tp2-input"
-              showButtons
-              buttonLayout="stacked"
-              style="height: 4rem"
-              suffix="%"
-              :min="0"
-              :max="100 - state.takeProfit1.size"
-              :step="10"
-              disabled
-              :class="[
-                'settingInputSmall',
-                {
-                  'p-invalid':
-                    state.takeProfit1.size + state.takeProfit2.size > 100,
-                },
-              ]"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
-            />
-          </InputGroup>
+          <!-- TP MC -->
           <InputGroup class="flex-1">
             <InputNumber
-              v-if="state.takeProfit2.fixed"
-              v-model="state.takeProfit2.mc"
-              id="tp-input"
+              v-model="takeProfit.mc"
               showButtons
               buttonLayout="stacked"
               style="height: 4rem"
               prefix="$"
               :min="0"
               :step="100000"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
-              class="settingInput"
-            />
-            <InputNumber
-              v-else
-              v-model="state.takeProfit2.xs"
-              id="tp-input"
-              showButtons
-              buttonLayout="stacked"
-              style="height: 4rem"
-              suffix="x"
-              :min="1"
-              :step="5"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
+              :pt="ptNumberInput"
+              :disabled="!takeProfit.withMc"
               class="settingInput"
             />
             <InputGroupAddon>
-              <Checkbox
-                v-model="state.takeProfit2.fixed"
-                binary
-                v-tooltip="
-                  state.takeProfit2.fixed
-                    ? 'Switch to Xs target '
-                    : 'Switch to MC target'
-                "
-              />
+              <Checkbox v-model="takeProfit.withMc" binary />
             </InputGroupAddon>
           </InputGroup>
         </div>
+        <Button class="m-3 align-self-start" @click="addTarget"
+          >Add a target</Button
+        >
 
         <hr class="m-3 border-1 border-solid border-indigo-900" />
 
@@ -461,7 +381,7 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">today</span>
             </InputGroupAddon>
-            <Button icon="pi pi-minus" @click="incStartDate(-1)" />
+            <Button icon="pi pi-minus" outlined @click="incStartDate(-1)" />
             <InputMask
               v-model="selection.startDate"
               id="start-input"
@@ -470,7 +390,7 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button icon="pi pi-plus" @click="incStartDate()" />
+            <Button icon="pi pi-plus" outlined @click="incStartDate()" />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
@@ -500,7 +420,7 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">event</span>
             </InputGroupAddon>
-            <Button icon="pi pi-minus" @click="incEndDate(-1)" />
+            <Button icon="pi pi-minus" outlined @click="incEndDate(-1)" />
             <InputMask
               v-model="selection.endDate"
               id="end-input"
@@ -509,7 +429,7 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button icon="pi pi-plus" @click="incEndDate()" />
+            <Button icon="pi pi-plus" outlined @click="incEndDate()" />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
@@ -610,10 +530,7 @@
               style="height: 4rem"
               :min="1"
               :step="10"
-              incrementButtonIcon="pi pi-plus"
-              incrementButtonClassName="p-button-secondary"
-              decrementButtonIcon="pi pi-minus"
-              decrementButtonClassName="p-button-secondary"
+              :pt="ptNumberInput"
               class="settingInput"
             />
           </InputGroup>
@@ -670,6 +587,7 @@ import {
   localStorageSetObject,
   localStorageGetObject,
   addTagsToHashes,
+  sumObjectProperty,
 } from "./lib";
 import { type CallDiff, type CallArchive, type Call } from "./types/Call";
 import type { Log } from "./types/Log";
@@ -855,23 +773,21 @@ async function storeData(rows: (string | number)[][], fileName: string) {
 }
 
 const INIT_POSITION = 0.05;
-const INIT_TP1 = { size: 50, xs: 10, mc: 250000, fixed: false } as TakeProfit;
-const INIT_TP2 = { size: 50, xs: 100, mc: 2500000, fixed: false } as TakeProfit;
+const INIT_TP = {
+  size: 100,
+  xs: 50,
+  withXs: true,
+  mc: 1000000,
+  withMc: true,
+} as TakeProfit;
 const INIT_GAS = 0.01;
 const INIT_MIN_CALLS = 5;
 const state = reactive({
   position: INIT_POSITION,
-  takeProfit1: INIT_TP1,
-  takeProfit2: INIT_TP2,
+  takeProfits: [INIT_TP],
   gasPrice: INIT_GAS,
   minCallsForHash: INIT_MIN_CALLS,
 });
-watch(
-  () => state.takeProfit1.size,
-  (size1) => {
-    state.takeProfit2.size = 100 - state.takeProfit1.size;
-  }
-);
 
 const selection = reactive({
   startDate: "",
@@ -933,12 +849,7 @@ function loadForm() {
   if (!savedState) return;
 
   state.position = savedState.position ?? INIT_POSITION;
-  state.takeProfit1 = savedState.takeProfit1 ?? INIT_TP1;
-  if (!state.takeProfit1.mc) state.takeProfit1.mc = INIT_TP1.mc;
-  if (!state.takeProfit1.fixed) state.takeProfit1.fixed = INIT_TP1.fixed;
-  state.takeProfit2 = savedState.takeProfit2 ?? INIT_TP2;
-  if (!state.takeProfit2.mc) state.takeProfit2.mc = INIT_TP2.mc;
-  if (!state.takeProfit2.fixed) state.takeProfit2.fixed = INIT_TP2.fixed;
+  state.takeProfits = savedState.takeProfits ?? [INIT_TP];
   state.gasPrice = savedState.gasPrice ?? INIT_GAS;
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
 }
@@ -946,6 +857,26 @@ onMounted(() => {
   loadForm();
   initialized.value = true;
 });
+
+const addTarget = () => {
+  const lastTarget = state.takeProfits[state.takeProfits.length - 1];
+  const remainingPct =
+    100 - sumObjectProperty(state.takeProfits, (tp) => tp.size);
+  state.takeProfits.push({
+    ...INIT_TP,
+    ...lastTarget,
+    size: remainingPct,
+  });
+};
+const removeTarget = (index: number) => {
+  state.takeProfits.splice(index, 1);
+};
+
+const getMaxSize = (index: number): number => {
+  const otherTps = [...state.takeProfits];
+  otherTps.splice(index, 1);
+  return 100 - sumObjectProperty(otherTps, (tp) => tp.size);
+};
 
 const incStartDate = (inc = 1) => {
   const base = selection.startDate || filteredCalls.value[0]?.date || "";
@@ -973,8 +904,7 @@ const runCompute = () =>
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     gasPrice: state.gasPrice,
-    takeProfit1: JSON.parse(JSON.stringify(state.takeProfit1)),
-    takeProfit2: JSON.parse(JSON.stringify(state.takeProfit2)),
+    takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
 const debouncedCompute = debounce(runCompute, 1000);
 watch(filteredCalls, () => {
@@ -1016,6 +946,19 @@ worker.onmessage = ({ data }) => {
 worker.onerror = ({ message }) => {
   error.value = message;
 };
+
+const ptNumberInput = {
+  decrementButton: {
+    root: {
+      class: "p-button-outlined",
+    },
+  },
+  incrementButton: {
+    root: {
+      class: "p-button-outlined",
+    },
+  },
+};
 </script>
 
 <style scoped>
@@ -1027,5 +970,26 @@ worker.onerror = ({ message }) => {
 }
 .flex-50 {
   flex: 1 1 50%;
+}
+
+.target-parent {
+  position: relative;
+}
+.target-icon {
+  opacity: 1;
+}
+.target-remove {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  height: 4rem;
+}
+.target-parent:hover .target-icon {
+  opacity: 0;
+}
+.target-parent:hover .target-remove {
+  opacity: 1;
 }
 </style>

@@ -1,6 +1,7 @@
 export type TakeProfit = {
   size: number;
   xs: number;
+  withXs: boolean;
   mc: number;
-  fixed: boolean;
+  withMc: boolean;
 };

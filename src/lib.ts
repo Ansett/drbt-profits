@@ -151,3 +151,10 @@ export function addTagsToHashes(
 
   return bigHashes;
 }
+
+export function sumObjectProperty<T extends Record<string, any>>(
+  arr: T[],
+  numGetter: (t: T) => number
+) {
+  return arr.reduce((sum, obj) => sum + numGetter(obj), 0);
+}

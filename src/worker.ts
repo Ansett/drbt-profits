@@ -34,14 +34,12 @@ function compute({
   calls,
   position,
   gasPrice,
-  takeProfit1,
-  takeProfit2,
+  takeProfits,
 }: {
   calls: Call[];
   position: number;
   gasPrice: number;
-  takeProfit1: TakeProfit;
-  takeProfit2: TakeProfit;
+  takeProfits: TakeProfit[];
 }) {
   let finalETH = 0;
   let drawdown = 0;
@@ -74,24 +72,29 @@ function compute({
 
     let gain = -gasPrice - invested;
     const bestXs = unrealistic ? REALISTIC_MAX_XS : call.xs;
-
-    const targetXs1 = takeProfit1.fixed
-      ? (call.xs / call.ath) * takeProfit1.mc
-      : takeProfit1.xs;
-    const targetXs2 = takeProfit2.fixed
-      ? (call.xs / call.ath) * takeProfit2.mc
-      : takeProfit2.xs;
+    const hitTp = [];
 
     if (!call.rug && !postAth) {
-      if (bestXs >= targetXs1 && takeProfit1.size) {
-        gain +=
-          ((invested * takeProfit1.size) / 100) * targetXs1 * (1 - SELL_TAX) -
-          gasPrice;
-      }
-      if (bestXs >= targetXs2 && takeProfit2.size) {
-        gain +=
-          ((invested * takeProfit2.size) / 100) * targetXs2 * (1 - SELL_TAX) -
-          gasPrice;
+      let remainingPosition = 100;
+      let tpIndex = 0;
+      for (const tp of takeProfits) {
+        const targetXsDirect = tp.withXs ? tp.xs : 0;
+        const targetXsFromMc = tp.withMc ? (call.xs / call.ath) * tp.mc : 0;
+        const firstTargetMet = !targetXsDirect
+          ? targetXsFromMc
+          : !targetXsFromMc
+          ? targetXsDirect
+          : Math.min(targetXsDirect, targetXsFromMc);
+
+        if (bestXs >= firstTargetMet && tp.size) {
+          gain +=
+            ((invested * tp.size) / 100) * firstTargetMet * (1 - SELL_TAX) -
+            gasPrice;
+          remainingPosition -= tp.size;
+          hitTp.push("TP" + (tpIndex + 1));
+        }
+        if (remainingPosition <= 0) break;
+        tpIndex++;
       }
 
       if (bestXs >= 100) counters.x100++;
@@ -166,6 +169,7 @@ function compute({
         : "",
       invested: round(invested, 3),
       gain: round(gain, 3),
+      hitTp,
     });
   });
 
