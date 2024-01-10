@@ -16,6 +16,8 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@bugsnag/js": "^7.22.3",
+    "@bugsnag/plugin-vue": "^7.22.3",
     "primeflex": "^3.3.1",
     "primeicons": "^6.0.1",
     "primevue": "^3.43.0",
