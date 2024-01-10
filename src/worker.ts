@@ -145,14 +145,9 @@ function compute({
       ca: call.ca,
       name: call.name,
       xs: round(bestXs, 1),
-      mc: prettifyMc(call.ath),
-      info: call.rug
-        ? "RUG"
-        : unrealistic
-        ? `capped Xs`
-        : postAth
-        ? "post-ATH"
-        : "",
+      ath: call.ath,
+      rug: call.rug,
+      info: unrealistic ? "unrealistic" : postAth ? "post-ath" : "",
       invested: round(invested, 3),
       gain: round(gain, 3),
       hitTp,

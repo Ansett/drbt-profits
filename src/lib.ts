@@ -85,7 +85,8 @@ export function round(num: number, decimals = 2) {
 
 const formatter = Intl.NumberFormat("en", { notation: "compact" });
 export function prettifyMc(mc: number) {
-  return formatter.format(mc);
+  const formatted = formatter.format(mc);
+  return formatted.endsWith("T") ? "..." : formatted;
 }
 
 export function localStorageSet(key: string, value: string) {

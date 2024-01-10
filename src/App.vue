@@ -173,40 +173,111 @@
 
           <!-- LOGS -->
           <AccordionTab header="LOGS">
-            <ul class="px-2">
-              <li v-for="log in logs" :key="log.ca" class="text-sm mb-3">
-                <!-- {{ log.ca }}<br /> -->
-                <span class="">[{{ log.date }}]</span
-                ><span class="text-color-secondary"> bought </span
-                ><span class="font-bold">{{ log.invested }}</span>
-                <span class="text-color-secondary"> of </span>
-                <span class="font-bold">{{ log.name }}</span>
-                <br />
-                <CaLink :ca="log.ca" small />
-                <br />
-                <span class="text-color-secondary"> did </span>
-                <span class="font-bold">{{ log.xs }}x</span>
-                <span class="text-color-secondary"> to </span>
-                <span class="font-bold">{{ log.mc }}</span>
-                <span v-if="log.info" class="font-bold"> ({{ log.info }})</span>
-                <span class="text-color-secondary"> resulting in </span>
-                <span
-                  :class="[
-                    'font-bold',
-                    log.gain > 0
-                      ? 'text-cyan-300 underline'
-                      : 'text-purple-600	',
-                  ]"
-                  >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
-                >
-                <span class="text-color-secondary"> ETH</span>
-                <span v-if="log.hitTp.length">
-                  (
-                  {{ log.hitTp.join(" & ") + " hit" }}
-                  )
-                </span>
-              </li>
-            </ul>
+            <DataTable
+              ref="logTable"
+              :value="logs"
+              dataKey="ca"
+              size="small"
+              sortField="date"
+              :sortOrder="1"
+              sortMode="single"
+              :paginator="logs.length > 25"
+              :rows="25"
+              :globalFilterFields="['ca', 'name', 'date']"
+              v-model:filters="logFilters"
+            >
+              <template #empty> No calls yet </template>
+
+              <template #header v-if="logs.length">
+                <div class="flex flex-wrap justify-content-end gap-3">
+                  <Button
+                    icon="pi pi-file-export"
+                    aria-label="Export CSV"
+                    v-tooltip.top="'Export CSV'"
+                    @click="exportLogs()"
+                  />
+
+                  <InputGroup class="w-auto">
+                    <InputGroupAddon class="narrowInput">
+                      <i class="pi pi-search"></i>
+                    </InputGroupAddon>
+                    <InputText
+                      v-model="logFilters.global.value"
+                      placeholder="Search"
+                      class="narrowInput"
+                    />
+                    <Button
+                      icon="pi pi-times"
+                      outlined
+                      class="narrowInput text-color-secondary"
+                      @click="logFilters.global.value = null"
+                    />
+                  </InputGroup></div
+              ></template>
+
+              <Column
+                :field="(d) => prettifyDate(d.date)"
+                header="Date"
+                sortable
+              >
+                <template #body="{ data }">
+                  {{ prettifyDate(data.date) }}</template
+                ></Column
+              >
+              <Column field="name" header="CA" sortable>
+                <template #body="{ data }">
+                  <CaLink :name="data.name" :ca="data.ca" />
+                </template>
+              </Column>
+              <Column field="invested" header="Invested" sortable>
+                <template #body="{ data }">
+                  {{ data.invested }}
+                </template>
+              </Column>
+              <Column :field="(d) => (d.rug ? 0 : d.xs)" header="Xs" sortable>
+                <template #body="{ data }">
+                  <Tag v-if="data.rug" value="rug" severity="warning" />
+                  <span v-else class="nowrap"
+                    >{{ data.xs
+                    }}<Tag
+                      v-if="data.info"
+                      :value="data.info"
+                      class="ml-2 nowrap"
+                      :pt="{
+                        root: {
+                          style: {
+                            background: 'var(--cyan-300)',
+                          },
+                        },
+                      }"
+                  /></span>
+                </template>
+              </Column>
+              <Column field="ath" header="ATH" sortable>
+                <template #body="{ data }">
+                  <span
+                    :class="{ 'text-color-secondary font-italic': data.rug }"
+                    >{{ prettifyMc(data.ath) }}</span
+                  >
+                </template></Column
+              >
+              <Column field="gain" header="Gain" sortable>
+                <template #body="{ data }">
+                  <span v-if="data.gain <= 0">{{ data.gain }}</span>
+                  <span v-else class="nowrap">
+                    <span class="font-bold text-cyan-300">{{
+                      "+" + data.gain
+                    }}</span>
+                    <span
+                      v-if="data.hitTp.length"
+                      class="text-sm ml-2 text-color-secondary"
+                    >
+                      ({{ data.hitTp.join(" & ") }})
+                    </span>
+                  </span>
+                </template>
+              </Column>
+            </DataTable>
           </AccordionTab>
 
           <!-- HASHES -->
@@ -375,7 +446,7 @@
 
         <!-- START -->
         <div class="flex flex-row flex-wrap gap-2 p-3">
-          <label for="end-input" class="min-w-full"
+          <label for="start-input" class="min-w-full"
             >Start date <span class="text-xs">(no limit if empty)</span></label
           >
 
@@ -383,7 +454,12 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">today</span>
             </InputGroupAddon>
-            <Button icon="pi pi-minus" outlined @click="incStartDate(-1)" />
+            <Button
+              icon="pi pi-minus"
+              outlined
+              severity="secondary"
+              @click="incStartDate(-1)"
+            />
             <InputMask
               v-model="selection.startDate"
               id="start-input"
@@ -392,12 +468,16 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button icon="pi pi-plus" outlined @click="incStartDate()" />
+            <Button
+              icon="pi pi-plus"
+              outlined
+              severity="secondary"
+              @click="incStartDate()"
+            />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
               v-model="selection.startHour"
-              id="starth-input"
               style="height: 4rem"
               mask="99:99"
               placeholder="00:00"
@@ -406,6 +486,7 @@
             <Button
               icon="pi pi-times"
               outlined
+              severity="secondary"
               @click="
                 selection.startDate = '';
                 selection.startHour = '';
@@ -422,7 +503,12 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">event</span>
             </InputGroupAddon>
-            <Button icon="pi pi-minus" outlined @click="incEndDate(-1)" />
+            <Button
+              icon="pi pi-minus"
+              outlined
+              severity="secondary"
+              @click="incEndDate(-1)"
+            />
             <InputMask
               v-model="selection.endDate"
               id="end-input"
@@ -431,12 +517,16 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button icon="pi pi-plus" outlined @click="incEndDate()" />
+            <Button
+              icon="pi pi-plus"
+              outlined
+              severity="secondary"
+              @click="incEndDate()"
+            />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
               v-model="selection.endHour"
-              id="endh-input"
               style="height: 4rem"
               mask="99:99"
               placeholder="00:00"
@@ -445,6 +535,7 @@
             <Button
               icon="pi pi-times"
               outlined
+              severity="secondary"
               @click="
                 selection.endDate = '';
                 selection.endHour = '';
@@ -574,15 +665,10 @@ import DiffDialog from "./components/DiffDialog.vue";
 import CaLink from "./components/CaLink.vue";
 import Toast from "primevue/toast";
 import Dropdown from "primevue/dropdown";
-import {
-  computed,
-  inject,
-  nextTick,
-  onMounted,
-  reactive,
-  ref,
-  watch,
-} from "vue";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
   debounce,
   decimalHourToString,
@@ -590,12 +676,15 @@ import {
   localStorageGetObject,
   addTagsToHashes,
   sumObjectProperty,
+  prettifyDate,
+  prettifyMc,
 } from "./lib";
-import { type CallDiff, type CallArchive, type Call } from "./types/Call";
+import { type CallArchive, type Call } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
 import type { HashInfo } from "./types/HashInfo";
+import { FilterMatchMode } from "primevue/api";
 
 const error = ref("");
 const loading = ref(false);
@@ -612,8 +701,10 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   worker.postMessage({ type: "XLSX", xlsx });
 };
 
-const logs = ref<Log[]>([]);
 const showDiff = ref(false);
+const logs = ref<Log[]>([]);
+const logTable = ref<InstanceType<typeof DataTable>>();
+const exportLogs = () => logTable.value?.exportCSV();
 
 const TAGS_STORAGE_KEY = "tags";
 const localTags = ref<Record<string, string[]>>(
@@ -863,6 +954,10 @@ onMounted(() => {
   initialized.value = true;
 });
 
+const logFilters = ref({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+});
+
 const addTarget = () => {
   const lastTarget = state.takeProfits[state.takeProfits.length - 1];
   const remainingPct =
@@ -955,12 +1050,12 @@ worker.onerror = ({ message }) => {
 const ptNumberInput = {
   decrementButton: {
     root: {
-      class: "p-button-outlined",
+      class: "p-button-outlined p-button-secondary",
     },
   },
   incrementButton: {
     root: {
-      class: "p-button-outlined",
+      class: "p-button-outlined p-button-secondary",
     },
   },
 };

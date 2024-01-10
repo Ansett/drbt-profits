@@ -11,8 +11,8 @@
       :globalFilterFields="['id', 'tags']"
       v-model:filters="filters"
       v-model:selection="selection"
-      :paginator="lines.length > rowPagination"
-      :rows="rowPagination"
+      :paginator="lines.length > 20"
+      :rows="20"
       @value-change="onDataChange"
     >
       <template #empty>
@@ -48,7 +48,7 @@
               <i class="pi pi-search"></i>
             </InputGroupAddon>
             <InputText
-              v-model="filters['global'].value"
+              v-model="filters.global.value"
               placeholder="Tag or ID search"
               class="narrowInput"
             />
@@ -56,7 +56,7 @@
               icon="pi pi-times"
               outlined
               class="narrowInput text-color-secondary"
-              @click="filters['global'].value = null"
+              @click="filters.global.value = null"
             />
           </InputGroup>
         </div>
@@ -163,11 +163,19 @@
           :key="call.ca"
           class="text-sm mb-3"
         >
-          <CaLink :ca="call.ca" gray />
+          <CaLink :name="call.name" :ca="call.ca" />:
           <br />
-          {{ call.name }}:&nbsp; {{ call.xs }}x
-          <span class="text-color-secondary"> {{ prettifyMc(call.ath) }}</span>
-          <span v-if="call.rug"> [RUG] </span>
+          {{ call.xs }}x
+          <span class="text-color-secondary"
+            >to {{ prettifyMc(call.ath) }}</span
+          >
+          <Tag
+            v-if="call.rug"
+            value="rug"
+            severity="warning"
+            class="ml-3"
+            style="height: 1.25rem"
+          />
         </li>
       </ul>
     </Sidebar>
@@ -206,12 +214,12 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import SplitButton from "primevue/splitbutton";
 import MultiSelect from "primevue/multiselect";
+import Tag from "primevue/tag";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "primevue/api";
 import { prettifyMc } from "../lib";
 import CaLink from "./CaLink.vue";
 
-const rowPagination = 20;
 const TAG_SEPARATOR = ", ";
 
 const selectedColumns = defineModel<string[]>("selectedColumns", {

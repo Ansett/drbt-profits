@@ -55,12 +55,12 @@
             <InputGroupAddon>
               <i class="pi pi-search"></i>
             </InputGroupAddon>
-            <InputText v-model="filters['global'].value" placeholder="Search" />
+            <InputText v-model="filters.global.value" placeholder="Search" />
             <Button
               icon="pi pi-times"
               outlined
               class="text-color-secondary"
-              @click="filters['global'].value = null"
+              @click="filters.global.value = null"
             />
           </InputGroup>
         </div>
@@ -71,25 +71,19 @@
           {{ prettifyDate(data.call.date) }}</template
         ></Column
       >
-      <Column
-        sortable
-        field="call.ca"
-        header="CA"
-        style="word-break: break-all; word-wrap: break-word"
-      >
+      <Column sortable field="call.name" header="CA">
         <template #body="{ data }">
-          <CaLink :ca="data.call.ca" gray />
+          <CaLink :name="data.call.name" :ca="data.call.ca" />
         </template>
       </Column>
-      <Column sortable field="call.name" header="Name"></Column>
       <Column sortable field="status" header="Status">
         <template #body="{ data }">
           <Tag
             v-if="data.status === 'added'"
             severity="success"
-            value="Added"
+            value="added"
           />
-          <Tag v-else severity="warning" value="Removed" />
+          <Tag v-else value="removed" severity="primary" />
         </template>
       </Column>
       <Column
@@ -98,13 +92,7 @@
         header="Perf"
       >
         <template #body="{ data }">
-          <Tag
-            v-if="data.call.rug"
-            value="rug"
-            :pt="{
-              root: { style: { background: 'var(--surface-400)' } },
-            }"
-          />
+          <Tag v-if="data.call.rug" value="rug" severity="warning" />
           <span v-else>{{ data.call.xs }}x</span>
         </template>
       </Column>

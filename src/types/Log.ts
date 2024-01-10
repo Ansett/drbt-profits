@@ -4,7 +4,8 @@ export type Log = {
   name: string;
   invested: number;
   xs: number;
-  mc: string;
+  ath: number;
+  rug: boolean;
   gain: number;
   info: string;
   hitTp: string[];
