@@ -217,6 +217,7 @@
             <HashTable
               :lines="hashesWithTags"
               filter-template="HashF not in [{}]"
+              v-model:selectedColumns="state.hashColumns"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -230,6 +231,7 @@
             <HashTable
               :lines="signaturesWithTags"
               filter-template="~FList.str.contains('{}', na=False)"
+              v-model:selectedColumns="state.hashColumns"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -782,11 +784,13 @@ const INIT_TP = {
 } as TakeProfit;
 const INIT_GAS = 0.01;
 const INIT_MIN_CALLS = 5;
+const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
   gasPrice: INIT_GAS,
   minCallsForHash: INIT_MIN_CALLS,
+  hashColumns: INIT_HASH_COLUMNS,
 });
 
 const selection = reactive({
@@ -852,6 +856,7 @@ function loadForm() {
   state.takeProfits = savedState.takeProfits ?? [INIT_TP];
   state.gasPrice = savedState.gasPrice ?? INIT_GAS;
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
+  state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
 }
 onMounted(() => {
   loadForm();

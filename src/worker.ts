@@ -116,40 +116,26 @@ function compute({
 
     // Regrouping hashes
     if (call.hashF) {
-      if (!hashes[call.hashF])
-        hashes[call.hashF] = {
-          id: call.hashF,
-          tags: [],
-          x10Calls: [],
-          x50Calls: [],
-          rugs: 0,
-          xSum: 0,
-          allCalls: [],
-        };
+      if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF);
       hashes[call.hashF].allCalls.push(call);
       if (call.rug) hashes[call.hashF].rugs++;
-      if (call.xs >= 10 && !call.rug) hashes[call.hashF].x10Calls.push(call);
-      if (call.xs >= 50 && !call.rug) hashes[call.hashF].x50Calls.push(call);
+      if (call.xs >= 5 && !call.rug) hashes[call.hashF].perf.x5++;
+      if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++;
+      if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++;
+      if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++;
       hashes[call.hashF].xSum += call.rug ? 0 : call.xs;
     }
 
     // Regrouping function 4bytes signatures
     if (call.fList) {
       for (const id of call.fList.split(",")) {
-        if (!signatures[id])
-          signatures[id] = {
-            id,
-            tags: [],
-            x10Calls: [],
-            x50Calls: [],
-            rugs: 0,
-            xSum: 0,
-            allCalls: [],
-          };
+        if (!signatures[id]) signatures[id] = initHash(id);
         signatures[id].allCalls.push(call);
         if (call.rug) signatures[id].rugs++;
-        if (call.xs >= 10 && !call.rug) signatures[id].x10Calls.push(call);
-        if (call.xs >= 50 && !call.rug) signatures[id].x50Calls.push(call);
+        if (call.xs >= 5 && !call.rug) signatures[id].perf.x5++;
+        if (call.xs >= 10 && !call.rug) signatures[id].perf.x10++;
+        if (call.xs >= 50 && !call.rug) signatures[id].perf.x50++;
+        if (call.xs >= 100 && !call.rug) signatures[id].perf.x100++;
         signatures[id].xSum += call.rug ? 0 : call.xs;
       }
     }
@@ -201,4 +187,20 @@ function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {
   }
 
   return diff;
+}
+
+function initHash(id: string) {
+  return {
+    id,
+    tags: [],
+    perf: {
+      x5: 0,
+      x10: 0,
+      x50: 0,
+      x100: 0,
+    },
+    rugs: 0,
+    xSum: 0,
+    allCalls: [],
+  };
 }

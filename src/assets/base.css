@@ -55,3 +55,8 @@ body {
 .p-panel {
   max-width: 94vw;
 }
+
+.narrowInput {
+  height: 2.5rem;
+  line-height: 1;
+}

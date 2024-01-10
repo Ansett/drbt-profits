@@ -5,7 +5,11 @@ export type HashInfo = {
   tags: string[];
   rugs: number;
   xSum: number;
-  x10Calls: Call[];
-  x50Calls: Call[];
+  perf: {
+    x5: number;
+    x10: number;
+    x50: number;
+    x100: number;
+  };
   allCalls: Call[];
 };

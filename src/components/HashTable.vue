@@ -27,19 +27,35 @@
             :model="exportOptions"
           />
           <InputGroup class="w-auto">
-            <InputGroupAddon style="height: 2.5rem">
+            <InputGroupAddon class="narrowInput">
+              <i class="pi pi-sliders-v"></i>
+            </InputGroupAddon>
+            <MultiSelect
+              v-model="selectedColumns"
+              :options="optionalColumns"
+              placeholder="Columns"
+              selectedItemsLabel="{0} cols"
+              :maxSelectedLabels="0"
+              class="narrowInput"
+              :pt="{
+                root: { class: 'narrowInput' },
+                label: { class: 'narrowInput' },
+              }"
+            />
+          </InputGroup>
+          <InputGroup class="w-auto">
+            <InputGroupAddon class="narrowInput">
               <i class="pi pi-search"></i>
             </InputGroupAddon>
             <InputText
               v-model="filters['global'].value"
               placeholder="Tag or ID search"
-              style="height: 2.5rem"
+              class="narrowInput"
             />
             <Button
               icon="pi pi-times"
               outlined
-              class="text-color-secondary"
-              style="height: 2.5rem"
+              class="narrowInput text-color-secondary"
               @click="filters['global'].value = null"
             />
           </InputGroup>
@@ -52,7 +68,9 @@
         header="ID"
         :pt="{ headerTitle: { class: 'text-sm' } }"
       ></Column>
+      <!-- Calls count -->
       <Column
+        v-if="selectedColumns.includes('Count')"
         field="allCalls.length"
         header="Nb calls"
         sortable
@@ -64,7 +82,9 @@
           </span>
         </template>
       </Column>
+      <!-- Average -->
       <Column
+        v-if="selectedColumns.includes('Average')"
         :field="(d) => '' + Math.round(d.xSum / d.allCalls.length)"
         header="Xs average"
         sortable
@@ -74,33 +94,24 @@
           {{ Math.round(data.xSum / data.allCalls.length) }}
         </template>
       </Column>
+      <!-- Xs -->
       <Column
-        :field="(d) => getSortablePct(d.x10Calls.length / d.allCalls.length)"
-        header="10x"
+        v-for="cat in shownPerf"
+        :key="cat"
+        :field="(d) => getSortablePct(d.perf[cat] / d.allCalls.length)"
+        :header="cat"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.x10Calls.length }} ({{
-            Math.round((data.x10Calls.length / data.allCalls.length) * 100) +
-            "%"
+          {{ data.perf[cat] }} ({{
+            Math.round((data.perf[cat] / data.allCalls.length) * 100) + "%"
           }})
         </template>
       </Column>
+      <!-- Rug -->
       <Column
-        :field="(d) => getSortablePct(d.x50Calls.length / d.allCalls.length)"
-        header="50x"
-        sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
-      >
-        <template #body="{ data }">
-          {{ data.x50Calls.length }} ({{
-            Math.round((data.x50Calls.length / data.allCalls.length) * 100) +
-            "%"
-          }})
-        </template>
-      </Column>
-      <Column
+        v-if="selectedColumns.includes('Rug')"
         :field="(d) => getSortablePct(d.rugs / d.allCalls.length)"
         header="Rugs"
         sortable
@@ -112,7 +123,9 @@
           }})
         </template>
       </Column>
+      <!-- Tags -->
       <Column
+        v-if="selectedColumns.includes('Tags')"
         :field="(d) => (d.tags ? d.tags.join(', ') : '')"
         header="Tags"
         sortable
@@ -180,7 +193,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import type { HashInfo } from "../types/HashInfo";
 import Sidebar from "primevue/sidebar";
 import OverlayPanel from "primevue/overlaypanel";
@@ -192,14 +205,18 @@ import Button from "primevue/button";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import SplitButton from "primevue/splitbutton";
+import MultiSelect from "primevue/multiselect";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "primevue/api";
 import { prettifyMc } from "../lib";
 import CaLink from "./CaLink.vue";
 
-const rowPagination = 25;
+const rowPagination = 20;
 const TAG_SEPARATOR = ", ";
 
+const selectedColumns = defineModel<string[]>("selectedColumns", {
+  required: true,
+});
 const props = defineProps<{
   lines: HashInfo[];
   filterTemplate: string;
@@ -217,6 +234,21 @@ const editingForHash = ref("");
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
 });
+
+const optionalColumns = [
+  "Count",
+  "Average",
+  "x5",
+  "x10",
+  "x50",
+  "x100",
+  "Rug",
+  "Tags",
+];
+const perfCats = ["x5", "x10", "x50", "x100"];
+const shownPerf = computed(() =>
+  perfCats.filter((cat) => selectedColumns.value.includes(cat))
+);
 
 const removeTag = (hash: string, index: number) =>
   emit("removeTag", hash, index);
