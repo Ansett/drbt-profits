@@ -13,6 +13,8 @@
       v-model:selection="selection"
       :paginator="lines.length > 20"
       :rows="20"
+      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+      :rowsPerPageOptions="[20, 50, 100]"
       @value-change="onDataChange"
     >
       <template #empty>
@@ -150,34 +152,60 @@
 
     <!-- Hash calls popup -->
     <Sidebar
+      ref="sidebar"
       :visible="!!inspectedHash"
       position="right"
+      :modal="false"
       :header="`Calls with hash or sig ${inspectedHash?.id}`"
-      class="w-full md:w-30rem"
+      :dismissable="false"
+      :pt="{
+        root: {
+          class: 'w-screen md:w-auto',
+        },
+      }"
       @update:visible="inspectedHash = null"
       @hide="inspectedHash = null"
     >
-      <ul v-if="inspectedHash" class="px-2">
-        <li
-          v-for="call in inspectedHash.allCalls"
-          :key="call.ca"
-          class="text-sm mb-3"
-        >
-          <CaLink :name="call.name" :ca="call.ca" />:
-          <br />
-          {{ call.xs }}x
-          <span class="text-color-secondary"
-            >to {{ prettifyMc(call.ath) }}</span
-          >
-          <Tag
-            v-if="call.rug"
-            value="rug"
-            severity="warning"
-            class="ml-3"
-            style="height: 1.25rem"
-          />
-        </li>
-      </ul>
+      <DataTable
+        v-if="inspectedHash"
+        :value="inspectedHash.allCalls"
+        dataKey="ca"
+        sortField="date"
+        size="small"
+        :sortOrder="-1"
+        sortMode="single"
+        :paginator="inspectedHash.allCalls.length > 50"
+        :rows="50"
+        scrollable
+        scrollHeight="calc(100vh - 165px)"
+        :pt="{
+          wrapper: {
+            style: 'overscroll-behavior: none',
+          },
+        }"
+      >
+        <Column sortable field="date" header="Date">
+          <template #body="{ data }">
+            <span class="flex flex-wrap column-gap-2">
+              <span class="nowrap">{{ prettifyDate(data.date, "date") }}</span>
+              <span class="nowrap text-color-secondary">{{
+                prettifyDate(data.date, "hour")
+              }}</span>
+            </span>
+          </template>
+        </Column>
+        <Column sortable field="name" header="CA">
+          <template #body="{ data }">
+            <CaLink :name="data.name" :ca="data.ca" />
+          </template>
+        </Column>
+        <Column sortable :field="(d) => (d.rug ? -1 : d.xs)" header="Perf">
+          <template #body="{ data }">
+            <Tag v-if="data.rug" value="rug" severity="warning" />
+            <span v-else>{{ data.xs }}x</span>
+          </template>
+        </Column>
+      </DataTable>
     </Sidebar>
 
     <!-- Tag input -->
@@ -201,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import type { HashInfo } from "../types/HashInfo";
 import Sidebar from "primevue/sidebar";
 import OverlayPanel from "primevue/overlaypanel";
@@ -217,7 +245,7 @@ import MultiSelect from "primevue/multiselect";
 import Tag from "primevue/tag";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "primevue/api";
-import { prettifyMc } from "../lib";
+import { prettifyDate } from "../lib";
 import CaLink from "./CaLink.vue";
 
 const TAG_SEPARATOR = ", ";
@@ -343,6 +371,19 @@ const exportOptions = [
 ];
 
 const exporting = () => exportOptions[0].command();
+
+const sidebar = ref<InstanceType<typeof Sidebar>>();
+const onKeyDown = (event: KeyboardEvent) => {
+  if (event.code === "Escape") {
+    inspectedHash.value = null;
+  }
+};
+window.document.addEventListener("keydown", onKeyDown);
+onBeforeUnmount(() => {
+  window.document.removeEventListener("keydown", onKeyDown);
+});
+
+onMounted(() => {});
 </script>
 
 <style scoped>

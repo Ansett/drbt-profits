@@ -10,7 +10,10 @@
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div class="w-full xl:w-6 m-1 xl:m-4" style="max-width: min(95vw, 75rem)">
+      <div
+        class="w-screen xl:w-6 m-1 xl:m-4"
+        style="max-width: min(95vw, 75rem)"
+      >
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -184,8 +187,10 @@
               sortField="date"
               :sortOrder="1"
               sortMode="single"
-              :paginator="logs.length > 25"
-              :rows="25"
+              :paginator="logs.length > 20"
+              :rows="20"
+              paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+              :rowsPerPageOptions="[20, 50, 100]"
               :globalFilterFields="['ca', 'name', 'date']"
               v-model:filters="logFilters"
             >
@@ -257,15 +262,14 @@
               </Column>
               <Column
                 :field="(d) => (d.rug ? 0 : d.xs)"
-                header="Xs"
+                header="Perf"
                 sortable
                 :pt="{ headerTitle: { class: 'text-sm' } }"
               >
                 <template #body="{ data }">
                   <Tag v-if="data.rug" value="rug" severity="warning" />
                   <span v-else class="nowrap"
-                    >{{ data.xs
-                    }}<Tag
+                    >{{ data.xs }}x<Tag
                       v-if="data.info"
                       :value="data.info"
                       class="ml-2 nowrap"
