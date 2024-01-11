@@ -63,8 +63,13 @@ export function round2Dec(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-export function prettifyDate(date: string) {
-  return date.replace("T", " ").replace(".000Z", "");
+export function prettifyDate(
+  rawDate: string,
+  chunk: "date" | "hour" | "all" = "all"
+) {
+  let [date, hour] = rawDate.split(/[T ]/);
+  hour = hour.replace(".000Z", "");
+  return chunk === "date" ? date : chunk === "hour" ? hour : date + " " + hour;
 }
 
 export function decimalHourToString(num: number) {

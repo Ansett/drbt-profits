@@ -4,16 +4,16 @@
     modal
     dismissableMask
     :style="{
-      minWidth: '35rem',
       maxWidth: '80%',
       width: '150rem',
       maxHeight: '80%',
     }"
+    :pt="{ content: { class: 'p-0' } }"
     @hide="onClose"
   >
     <template #header
       ><div
-        class="flex flex-row justify-content-start align-items-center gap-4"
+        class="flex flex-row flex-wrap justify-content-start align-items-center column-gap-4 row-gap-2"
       >
         Diff
         <Dropdown
@@ -68,9 +68,16 @@
 
       <Column sortable field="call.date" header="Date">
         <template #body="{ data }">
-          {{ prettifyDate(data.call.date) }}</template
-        ></Column
-      >
+          <span class="flex flex-wrap column-gap-2">
+            <span class="nowrap">{{
+              prettifyDate(data.call.date, "date")
+            }}</span>
+            <span class="nowrap text-color-secondary">{{
+              prettifyDate(data.call.date, "hour")
+            }}</span>
+          </span>
+        </template>
+      </Column>
       <Column sortable field="call.name" header="CA">
         <template #body="{ data }">
           <CaLink :name="data.call.name" :ca="data.call.ca" />

@@ -1,6 +1,6 @@
 <template>
   <header
-    class="text-2xl xl:text-6xl font-light text-color-secondary text-center mb-4"
+    class="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-light text-color-secondary text-center xl:text-left my-2 ml-0 xl:ml-6"
   >
     Backtesting profits from DRBT
   </header>
@@ -10,7 +10,7 @@
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div class="w-full xl:w-6 m-1 xl:m-5" style="max-width: min(90vw, 75rem)">
+      <div class="w-full xl:w-6 m-1 xl:m-4" style="max-width: min(95vw, 75rem)">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -18,6 +18,9 @@
           :showUploadButton="false"
           :showCancelButton="false"
           chooseLabel="&nbsp;Import"
+          :pt="{
+            content: 'p-3 xl:p-5',
+          }"
           @select="onUpload($event)"
         >
           <template #empty>
@@ -172,7 +175,7 @@
           </AccordionTab>
 
           <!-- LOGS -->
-          <AccordionTab header="LOGS">
+          <AccordionTab header="LOGS" :pt="{ content: { class: 'p-0' } }">
             <DataTable
               ref="logTable"
               :value="logs"
@@ -219,22 +222,45 @@
                 :field="(d) => prettifyDate(d.date)"
                 header="Date"
                 sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
               >
                 <template #body="{ data }">
-                  {{ prettifyDate(data.date) }}</template
-                ></Column
+                  <span class="flex flex-wrap column-gap-2">
+                    <span class="nowrap">{{
+                      prettifyDate(data.date, "date")
+                    }}</span>
+                    <span class="nowrap text-color-secondary">{{
+                      prettifyDate(data.date, "hour")
+                    }}</span>
+                  </span>
+                </template>
+              </Column>
+              <Column
+                field="name"
+                header="CA"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
               >
-              <Column field="name" header="CA" sortable>
                 <template #body="{ data }">
                   <CaLink :name="data.name" :ca="data.ca" />
                 </template>
               </Column>
-              <Column field="invested" header="Invested" sortable>
+              <Column
+                field="invested"
+                header="Invested"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
                 <template #body="{ data }">
                   {{ data.invested }}
                 </template>
               </Column>
-              <Column :field="(d) => (d.rug ? 0 : d.xs)" header="Xs" sortable>
+              <Column
+                :field="(d) => (d.rug ? 0 : d.xs)"
+                header="Xs"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
                 <template #body="{ data }">
                   <Tag v-if="data.rug" value="rug" severity="warning" />
                   <span v-else class="nowrap"
@@ -253,7 +279,12 @@
                   /></span>
                 </template>
               </Column>
-              <Column field="ath" header="ATH" sortable>
+              <Column
+                field="ath"
+                header="ATH"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
                 <template #body="{ data }">
                   <span
                     :class="{ 'text-color-secondary font-italic': data.rug }"
@@ -261,16 +292,24 @@
                   >
                 </template></Column
               >
-              <Column field="gain" header="Gain" sortable>
+              <Column
+                field="gain"
+                header="Gain"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
                 <template #body="{ data }">
                   <span v-if="data.gain <= 0">{{ data.gain }}</span>
-                  <span v-else class="nowrap">
+                  <span
+                    v-else
+                    class="flex flex-wrap column-gap-2 align-items-center"
+                  >
                     <span class="font-bold text-cyan-300">{{
                       "+" + data.gain
                     }}</span>
                     <span
                       v-if="data.hitTp.length"
-                      class="text-sm ml-2 text-color-secondary"
+                      class="text-sm text-color-secondary nowrap"
                     >
                       ({{ data.hitTp.join(" & ") }})
                     </span>
@@ -311,11 +350,11 @@
       </div>
 
       <div
-        class="flex flex-column mx-1 xl:mx-5 my-2"
-        style="max-width: min(90vw, 50rem)"
+        class="flex flex-column mx-1 xl:mx-4 my-2"
+        style="max-width: min(95vw, 50rem)"
       >
         <!-- POSITION -->
-        <div class="flex flex-column gap-2 p-3">
+        <div class="flex flex-column gap-2 p-2">
           <label for="position-input">Max bought</label>
           <InputGroup>
             <InputGroupAddon>
@@ -339,7 +378,7 @@
           </InputGroup>
         </div>
         <!-- GAP PRICE -->
-        <div class="flex flex-column gap-2 p-3">
+        <div class="flex flex-column gap-2 p-2">
           <label for="gas-input">Gas price</label>
           <InputGroup>
             <InputGroupAddon>
@@ -366,7 +405,7 @@
         <div
           v-for="(takeProfit, index) in state.takeProfits"
           :key="index"
-          class="flex flex-row flex-wrap gap-2 p-3"
+          class="flex flex-row flex-wrap gap-2 p-2"
         >
           <label :for="'tp-input' + index" class="min-w-full"
             >Take profit target {{ index + 1 }}
@@ -442,10 +481,8 @@
           >Add a target</Button
         >
 
-        <hr class="m-3 border-1 border-solid border-indigo-900" />
-
         <!-- START -->
-        <div class="flex flex-row flex-wrap gap-2 p-3">
+        <div class="flex flex-row flex-wrap gap-2 p-2">
           <label for="start-input" class="min-w-full"
             >Start date <span class="text-xs">(no limit if empty)</span></label
           >
@@ -495,7 +532,7 @@
           </InputGroup>
         </div>
         <!-- END DATE -->
-        <div class="flex flex-row flex-wrap gap-2 p-3">
+        <div class="flex flex-row flex-wrap gap-2 p-2">
           <label for="end-input" class="min-w-full"
             >End date <span class="text-xs">(no limit if empty)</span></label
           >
@@ -544,7 +581,7 @@
           </InputGroup>
         </div>
         <!-- RANGE -->
-        <div class="flex flex-column gap-2 p-3">
+        <div class="flex flex-column gap-2 p-2">
           <label for="end-input"
             >Trading hours each day <span class="text-xs">(UTC)</span></label
           >
@@ -592,9 +629,9 @@
           </div>
         </div>
         <!-- DAYS -->
-        <div class="flex flex-column gap-2 p-3">
+        <div class="flex flex-column gap-2 p-2">
           <label>Trading days <span class="text-xs">(UTC)</span></label>
-          <div class="card flex flex-wrap justify-content-start gap-5">
+          <div class="card flex flex-wrap justify-content-start gap-3">
             <div
               v-for="(day, index) of allDays"
               :key="index"
@@ -607,7 +644,7 @@
         </div>
 
         <!-- MIN CALLS -->
-        <div class="flex flex-column gap-2 p-3">
+        <div class="flex flex-column gap-2 p-2">
           <label for="gas-input"
             >Minimum calls count to show hashes and signatures</label
           >
