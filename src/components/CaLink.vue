@@ -1,21 +1,24 @@
 <template>
   <span>
     {{ name }}
-    <i
-      class="pi pi-copy text-primary cursor-pointer ml-1 mr-1"
-      aria-label="Copy to clipboard"
-      v-tooltip="'Copy CA to clipboard'"
-      @click="copyCA"
-    ></i>
 
-    <a
-      :class="['text-color-secondary', 'hoverlink']"
-      target="_blank"
-      rel="noopener"
-      :href="'https://dexscreener.com/ethereum/' + ca"
-    >
-      {{ truncatedCa }}</a
-    >
+    <span class="nowrap">
+      <i
+        class="pi pi-copy text-primary cursor-pointer ml-1 mr-1"
+        aria-label="Copy to clipboard"
+        v-tooltip="'Copy CA to clipboard'"
+        @click="copyCA"
+      ></i>
+
+      <a
+        :class="['text-color-secondary', 'hoverlink']"
+        target="_blank"
+        rel="noopener"
+        :href="'https://dexscreener.com/ethereum/' + ca"
+      >
+        {{ truncatedCa }}</a
+      >
+    </span>
   </span>
 </template>
 
