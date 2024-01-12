@@ -330,7 +330,7 @@
           >
             <HashTable
               :lines="hashesWithTags"
-              filter-template="HashF not in [{}]"
+              filter-template="~HashF.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
               @removeTag="removeTag"
               @addTag="addTag"
