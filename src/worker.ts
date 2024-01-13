@@ -22,7 +22,7 @@ onmessage = function ({ data }) {
 };
 
 const SELL_TAX = 5 / 100;
-const ETH_PRICE = 2000;
+const ETH_PRICE = 2500;
 const REALISTIC_MAX_XS = 10000;
 
 const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
@@ -173,12 +173,14 @@ function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {
   const diff = [] as CallDiff[];
 
   for (const call of newCalls) {
-    if (previousCalls.every((c) => c.ca !== call.ca))
-      diff.push({ call, status: "added" });
+    diff.push({
+      call,
+      status: previousCalls.some((c) => c.ca === call.ca) ? "IN-BOTH" : "ADDED",
+    });
   }
   for (const call of previousCalls) {
     if (newCalls.every((c) => c.ca !== call.ca))
-      diff.push({ call, status: "removed" });
+      diff.push({ call, status: "REMOVED" });
   }
 
   return diff;

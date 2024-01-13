@@ -429,11 +429,11 @@
       </div>
 
       <div
-        class="flex flex-column mx-1 xl:mx-4 my-2"
+        class="flex flex-column mx-1 xl:mx-4 my-2 gap-3 lg:gap-4"
         style="max-width: min(95vw, 50rem)"
       >
         <!-- POSITION -->
-        <div class="flex flex-column gap-2 p-2">
+        <div class="flex flex-column gap-2">
           <label for="position-input">Max bought</label>
           <InputGroup>
             <InputGroupAddon>
@@ -457,7 +457,7 @@
           </InputGroup>
         </div>
         <!-- GAP PRICE -->
-        <div class="flex flex-column gap-2 p-2">
+        <div class="flex flex-column gap-2">
           <label for="gas-input">Gas price</label>
           <InputGroup>
             <InputGroupAddon>
@@ -484,7 +484,7 @@
         <div
           v-for="(takeProfit, index) in state.takeProfits"
           :key="index"
-          class="flex flex-row flex-wrap gap-2 p-2"
+          class="flex flex-row flex-wrap gap-2"
         >
           <label :for="'tp-input' + index" class="min-w-full"
             >Take profit target {{ index + 1 }}
@@ -561,7 +561,7 @@
         >
 
         <!-- START -->
-        <div class="flex flex-row flex-wrap gap-2 p-2">
+        <div class="flex flex-row flex-wrap gap-2">
           <label for="start-input" class="min-w-full"
             >Start date <span class="text-xs">(no limit if empty)</span></label
           >
@@ -611,7 +611,7 @@
           </InputGroup>
         </div>
         <!-- END DATE -->
-        <div class="flex flex-row flex-wrap gap-2 p-2">
+        <div class="flex flex-row flex-wrap gap-2">
           <label for="end-input" class="min-w-full"
             >End date <span class="text-xs">(no limit if empty)</span></label
           >
@@ -660,7 +660,7 @@
           </InputGroup>
         </div>
         <!-- RANGE -->
-        <div class="flex flex-column gap-2 p-2">
+        <div class="flex flex-column gap-2">
           <label for="end-input"
             >Trading hours each day <span class="text-xs">(UTC)</span></label
           >
@@ -708,7 +708,7 @@
           </div>
         </div>
         <!-- DAYS -->
-        <div class="flex flex-column gap-2 p-2">
+        <div class="flex flex-column gap-2">
           <label>Trading days <span class="text-xs">(UTC)</span></label>
           <div class="card flex flex-wrap justify-content-start gap-3">
             <div
@@ -723,7 +723,7 @@
         </div>
 
         <!-- MIN CALLS -->
-        <div class="flex flex-column gap-2 p-2">
+        <div class="flex flex-column gap-2">
           <label for="gas-input"
             >Minimum calls count to show hashes and signatures</label
           >
@@ -751,6 +751,7 @@
 
     <DiffDialog
       v-if="current && showDiff"
+      v-model:diffTypes="state.diffTypes"
       :archives="archives"
       :current="current"
       @closed="showDiff = false"
@@ -797,7 +798,7 @@ import {
   prettifyDate,
   prettifyMc,
 } from "./lib";
-import { type CallArchive, type Call } from "./types/Call";
+import { type CallArchive, type Call, type DiffType } from "./types/Call";
 import type { Log } from "./types/Log";
 import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
@@ -958,6 +959,7 @@ async function storeData(rows: (string | number)[][], fileName: string) {
     newCalls.push({
       name: row[nameIndex] as string,
       ca: row[caIndex] as string,
+      nameAndCa: ((row[nameIndex] as string) + row[caIndex]) as string,
       xs: Number(row[xsIndex] as number) || 0,
       ath: row[athIndex] as number,
       callTimeAth: row[callAthIndex] as number,
@@ -997,6 +999,7 @@ const INIT_GAS = 0.01;
 const INIT_MIN_CALLS = 5;
 const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
 const INIT_TEXT_LOGS = false;
+const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
@@ -1004,6 +1007,7 @@ const state = reactive({
   minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
+  diffTypes: INIT_DIFF_TYPES,
 });
 
 const selection = reactive({
@@ -1071,6 +1075,7 @@ function loadForm() {
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
+  state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
 }
 onMounted(() => {
   loadForm();

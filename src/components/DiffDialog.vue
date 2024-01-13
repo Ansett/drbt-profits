@@ -42,31 +42,20 @@
       sortField="call.date"
       :sortOrder="-1"
       sortMode="single"
-      :globalFilterFields="['call.ca', 'call.name']"
       v-model:filters="filters"
+      filterDisplay="row"
       :paginator="diff.length > 20"
       :rows="20"
     >
       <template #empty> No difference... </template>
 
-      <template #header v-if="diff.length">
-        <div class="flex flex-wrap justify-content-end">
-          <InputGroup class="w-auto">
-            <InputGroupAddon>
-              <i class="pi pi-search"></i>
-            </InputGroupAddon>
-            <InputText v-model="filters.global.value" placeholder="Search" />
-            <Button
-              icon="pi pi-times"
-              outlined
-              class="text-color-secondary"
-              @click="filters.global.value = null"
-            />
-          </InputGroup>
-        </div>
-      </template>
-
-      <Column sortable field="call.date" header="Date">
+      <Column
+        sortable
+        sortField="call.date"
+        filterField="call.date"
+        :showFilterMenu="false"
+        header="Date"
+      >
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2">
             <span class="nowrap">{{
@@ -77,25 +66,71 @@
             }}</span>
           </span>
         </template>
-      </Column>
-      <Column sortable field="call.name" header="CA">
-        <template #body="{ data }">
-          <CaLink :name="data.call.name" :ca="data.call.ca" />
-        </template>
-      </Column>
-      <Column sortable field="status" header="Status">
-        <template #body="{ data }">
-          <Tag
-            v-if="data.status === 'added'"
-            severity="success"
-            value="added"
+        <template #filter="{ filterModel, filterCallback }">
+          <InputText
+            v-model="filterModel.value"
+            type="text"
+            placeholder="Search"
+            class="p-column-filter max-w-20rem"
+            @input="filterCallback()"
           />
-          <Tag v-else value="removed" severity="primary" />
         </template>
       </Column>
       <Column
         sortable
-        :field="(d) => (d.call.rug ? -1 : d.call.xs)"
+        sortField="call.name"
+        filterField="call.nameAndCa"
+        :showFilterMenu="false"
+        header="Name & CA"
+      >
+        <template #body="{ data }">
+          <CaLink :name="data.call.name" :ca="data.call.ca" />
+        </template>
+        <template #filter="{ filterModel, filterCallback }">
+          <InputText
+            v-model="filterModel.value"
+            type="text"
+            @input="filterCallback()"
+            class="p-column-filter max-w-20rem"
+            placeholder="Search"
+          />
+        </template>
+      </Column>
+      <Column
+        sortable
+        field="status"
+        sortField="status"
+        :showFilterMenu="false"
+        header="Status"
+      >
+        <template #body="{ data }">
+          <Tag
+            :value="data.status.toLowerCase()"
+            :severity="
+              data.status === 'ADDED'
+                ? 'success'
+                : data.status === 'REMOVED'
+                ? 'danger'
+                : 'primary'
+            "
+          />
+        </template>
+        <template #filter="{ filterModel, filterCallback }">
+          <MultiSelect
+            v-model="filterModel.value"
+            @change="filterCallback()"
+            :options="allTypes"
+            placeholder="Any"
+            optionLabel="description"
+            optionValue="id"
+            :showClear="true"
+            class="p-column-filter max-w-20rem"
+          />
+        </template>
+      </Column>
+      <Column
+        sortable
+        :sortField="(d) => (d.call.rug ? -1 : d.call.xs)"
         header="Perf"
       >
         <template #body="{ data }">
@@ -117,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, ref, watch, watchEffect } from "vue";
 import Dialog from "primevue/dialog";
 import Dropdown from "primevue/dropdown";
 import DataTable from "primevue/datatable";
@@ -128,7 +163,9 @@ import InputText from "primevue/inputtext";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import Button from "primevue/button";
-import { type CallDiff, type CallArchive, type Call } from "@/types/Call";
+import MultiSelect from "primevue/multiselect";
+import InputMask from "primevue/inputmask";
+import { type CallDiff, type CallArchive, type DiffType } from "@/types/Call";
 import { FilterMatchMode } from "primevue/api";
 import { prettifyDate, sleep } from "@/lib";
 import Worker from "@/worker?worker";
@@ -137,22 +174,46 @@ import CaLink from "./CaLink.vue";
 const props = defineProps<{
   archives: CallArchive[];
   current: CallArchive;
+  diffTypes: DiffType[];
 }>();
-const emit = defineEmits(["closed"]);
+const emit = defineEmits<{
+  (e: "closed"): void;
+  (e: "update:diffTypes", selection: DiffType[]): void;
+}>();
 
 const left = ref<CallArchive>(props.archives[0]);
 const right = ref<CallArchive>(props.current);
 const diff = ref<CallDiff[]>([]);
 const loading = ref(true);
 const visible = ref(true);
+
+const allTypes = [
+  { id: "ADDED", description: "added" },
+  { id: "REMOVED", description: "removed" },
+  { id: "IN-BOTH", description: "in-both" },
+];
+
 const onClose = async () => {
   await sleep(500);
   emit("closed");
 };
 
 const filters = ref({
-  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  "call.date": {
+    value: null,
+    matchMode: FilterMatchMode.CONTAINS,
+  },
+  "call.nameAndCa": {
+    value: null,
+    matchMode: FilterMatchMode.CONTAINS,
+  },
+  status: {
+    value: props.diffTypes || [],
+    matchMode: FilterMatchMode.IN,
+  },
 });
+
+watchEffect(() => emit("update:diffTypes", filters.value.status.value));
 
 const worker = new Worker();
 worker.onmessage = ({ data }) => {

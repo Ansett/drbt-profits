@@ -1,6 +1,7 @@
 export type Call = {
   name: string;
   ca: string;
+  nameAndCa: string; // for filtering
   date: string;
   xs: number;
   ath: number;
@@ -16,9 +17,10 @@ export type Call = {
   hashF: string;
 };
 
+export type DiffType = "ADDED" | "REMOVED" | "IN-BOTH";
 export type CallDiff = {
   call: Call;
-  status: "added" | "removed";
+  status: DiffType;
 };
 
 export type CallArchive = {
