@@ -178,8 +178,83 @@
           </AccordionTab>
 
           <!-- LOGS -->
-          <AccordionTab header="LOGS" :pt="{ content: { class: 'p-0' } }">
+          <AccordionTab
+            header="LOGS"
+            :pt="{
+              root: { class: 'relative' },
+              content: { class: 'p-0' },
+            }"
+          >
+            <Button
+              :icon="'pi ' + (state.textLogs ? 'pi-list' : 'pi-table')"
+              size="small"
+              text
+              raised
+              class="accordion-button"
+              aria-label="Logs view"
+              v-tooltip.left="
+                state.textLogs ? 'Switch to table view' : 'Swith to text view'
+              "
+              @click.stop="state.textLogs = !state.textLogs"
+            />
+
+            <template v-if="state.textLogs">
+              <ul class="p-3 m-0">
+                <li v-if="!logs.length">No calls yet</li>
+                <li
+                  v-else
+                  v-for="log in logs.slice(logsPage, logsPage + logsRowCount)"
+                  :key="log.ca"
+                  class="text-sm mb-3"
+                >
+                  <span class="">[{{ log.date }}]</span><br /><span
+                    class="text-color-secondary"
+                  >
+                    bought </span
+                  ><span class="font-bold">{{ log.invested }}</span>
+                  <span class="text-color-secondary"> of </span>
+                  <CaLink :name="log.name + ''" :ca="log.ca" />
+                  <br />
+                  <span class="text-color-secondary"> did </span>
+                  <span v-if="log.rug" class="text-orange-400">RUG</span>
+                  <template v-else>
+                    <span class="font-bold">{{ log.xs }}x</span>
+                    <span class="text-color-secondary"> to </span>
+                    <span class="font-bold">{{ prettifyMc(log.ath) }}</span>
+                  </template>
+                  <span v-if="log.info" class="font-bold">
+                    ({{ log.info }})</span
+                  >
+                  <span class="text-color-secondary"> resulting in </span>
+                  <span
+                    :class="[
+                      'font-bold',
+                      log.gain > 0
+                        ? 'text-cyan-300 underline'
+                        : 'text-purple-600	',
+                    ]"
+                    >{{ (log.gain > 0 ? "+" : "") + log.gain }}</span
+                  >
+                  <span class="text-color-secondary"> ETH</span>
+                  <span v-if="log.hitTp.length">
+                    (
+                    {{ log.hitTp.join(" & ") + " hit" }}
+                    )
+                  </span>
+                </li>
+              </ul>
+              <Paginator
+                v-if="logs.length"
+                v-model:first="logsPage"
+                v-model:rows="logsRowCount"
+                :totalRecords="logs.length"
+                paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+                :rowsPerPageOptions="[20, 50, 100]"
+              />
+            </template>
+
             <DataTable
+              v-else
               ref="logTable"
               :value="logs"
               dataKey="ca"
@@ -709,6 +784,8 @@ import Dropdown from "primevue/dropdown";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Tag from "primevue/tag";
+import VirtualScroller from "primevue/virtualscroller";
+import Paginator from "primevue/paginator";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
   debounce,
@@ -744,6 +821,8 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 
 const showDiff = ref(false);
 const logs = ref<Log[]>([]);
+const logsPage = ref(0);
+const logsRowCount = ref(20);
 const logTable = ref<InstanceType<typeof DataTable>>();
 const exportLogs = () => logTable.value?.exportCSV();
 
@@ -917,12 +996,14 @@ const INIT_TP = {
 const INIT_GAS = 0.01;
 const INIT_MIN_CALLS = 5;
 const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
+const INIT_TEXT_LOGS = false;
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
   gasPrice: INIT_GAS,
   minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
+  textLogs: INIT_TEXT_LOGS,
 });
 
 const selection = reactive({
@@ -989,6 +1070,7 @@ function loadForm() {
   state.gasPrice = savedState.gasPrice ?? INIT_GAS;
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
+  state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
 }
 onMounted(() => {
   loadForm();
@@ -1132,5 +1214,11 @@ const ptNumberInput = {
 }
 .target-parent:hover .target-remove {
   opacity: 1;
+}
+.accordion-button {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
 }
 </style>
