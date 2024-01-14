@@ -146,6 +146,7 @@ function compute({
       name: call.name,
       xs: round(bestXs, 1),
       ath: call.ath,
+      currentMC: call.currentMC,
       rug: call.rug,
       info: unrealistic ? "unrealistic" : postAth ? "post-ath" : "",
       invested: round(invested, 3),

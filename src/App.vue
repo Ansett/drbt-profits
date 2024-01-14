@@ -336,6 +336,29 @@
                 </template>
               </Column>
               <Column
+                field="currentMC"
+                header="MC"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
+                <template #body="{ data }">
+                  {{ prettifyMc(data.currentMC) }}
+                </template></Column
+              >
+              <Column
+                field="ath"
+                header="ATH"
+                sortable
+                :pt="{ headerTitle: { class: 'text-sm' } }"
+              >
+                <template #body="{ data }">
+                  <span
+                    :class="{ 'text-color-secondary font-italic': data.rug }"
+                    >{{ prettifyMc(data.ath) }}</span
+                  >
+                </template></Column
+              >
+              <Column
                 :field="(d) => (d.rug ? 0 : d.xs)"
                 header="Perf"
                 sortable
@@ -358,19 +381,6 @@
                   /></span>
                 </template>
               </Column>
-              <Column
-                field="ath"
-                header="ATH"
-                sortable
-                :pt="{ headerTitle: { class: 'text-sm' } }"
-              >
-                <template #body="{ data }">
-                  <span
-                    :class="{ 'text-color-secondary font-italic': data.rug }"
-                    >{{ prettifyMc(data.ath) }}</span
-                  >
-                </template></Column
-              >
               <Column
                 field="gain"
                 header="Gain"
