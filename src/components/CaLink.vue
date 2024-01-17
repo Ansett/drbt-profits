@@ -1,5 +1,5 @@
 <template>
-  <span>
+  <span style="word-break: break-word">
     {{ name }}
 
     <span class="nowrap">
