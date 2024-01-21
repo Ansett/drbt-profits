@@ -751,8 +751,6 @@ async function storeData(rows: (string | number)[][], fileName: string) {
   const supplyIndex = header.indexOf("TSupply");
   if (supplyIndex < 0) return fail("TSupply header not found");
   const maxIndex = header.indexOf("MaxBuyPRCT"); // MaxBuy is not realiable, using percentage instead
-  const xsIndex = header.indexOf("CalltoATH_Xs");
-  if (xsIndex < 0) return fail("CalltoATH_Xs header not found");
   if (maxIndex < 0) return fail("MaxBuyPRCT header not found");
   const mcIndex = header.lastIndexOf("CRT_MC"); // taking the second column with same name, the first one is MC at present time, not call-time
   if (mcIndex < 0) return fail("CRT_MC header not found");
@@ -773,7 +771,11 @@ async function storeData(rows: (string | number)[][], fileName: string) {
   for (const row of rows) {
     let date = row[dateIndex] as string;
     if (!date) continue;
-    date = new Date(Date.parse(date)).toISOString();
+    try {
+      date = new Date(Date.parse(date)).toISOString();
+    } catch (e) {
+      continue;
+    }
 
     const price = row[priceIndex] as number;
     const supply = row[supplyIndex] as number;
