@@ -35,11 +35,13 @@ function compute({
   position,
   gasPrice,
   takeProfits,
+  buyTaxInXs,
 }: {
   calls: Call[];
   position: number;
   gasPrice: number;
   takeProfits: TakeProfit[];
+  buyTaxInXs: boolean;
 }) {
   let finalETH = 0;
   let drawdown = 0;
@@ -71,7 +73,11 @@ function compute({
     if (postAth) counters.postAth++;
 
     let gain = -gasPrice - invested;
-    const bestXs = unrealistic ? REALISTIC_MAX_XS : call.xs;
+    // remove buy tax either directly on Xs, or later when calculating profit
+    const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
+    const effectiveXs = call.xs * (buyTaxInXs ? 1 - call.buyTax : 1);
+
+    const bestXs = unrealistic ? REALISTIC_MAX_XS : effectiveXs;
     const hitTp = [];
 
     if (!call.rug && !postAth) {
@@ -79,7 +85,7 @@ function compute({
       let tpIndex = 0;
       for (const tp of takeProfits) {
         const targetXsDirect = tp.withXs ? tp.xs : 0;
-        const targetXsFromMc = tp.withMc ? (call.xs / call.ath) * tp.mc : 0;
+        const targetXsFromMc = tp.withMc ? (effectiveXs / call.ath) * tp.mc : 0;
         const firstTargetMet = !targetXsDirect
           ? targetXsFromMc
           : !targetXsFromMc
@@ -88,7 +94,10 @@ function compute({
 
         if (bestXs >= firstTargetMet && tp.size) {
           gain +=
-            ((invested * tp.size) / 100) * firstTargetMet * (1 - SELL_TAX) -
+            ((invested * tp.size) / 100) *
+              firstTargetMet *
+              buyTax *
+              (1 - SELL_TAX) -
             gasPrice;
           remainingPosition -= tp.size;
           hitTp.push("TP" + (tpIndex + 1));

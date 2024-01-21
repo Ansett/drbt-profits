@@ -3,11 +3,12 @@ export type Call = {
   ca: string;
   nameAndCa: string; // for filtering
   date: string;
+  price: number;
+  callMc: number;
   xs: number;
   ath: number;
   callTimeAth: number;
   delay: number; // s
-  // athDelay: number; // s
   fList: string;
   supply: number;
   maxBuy: number;

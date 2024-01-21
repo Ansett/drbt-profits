@@ -566,9 +566,26 @@
             </InputGroupAddon>
           </InputGroup>
         </div>
-        <Button class="m-3 align-self-start" @click="addTarget"
-          >Add a target</Button
+
+        <div
+          class="flex flex-column md:flex-row flex-wrap align-items-start md:align-items-center gap-2"
         >
+          <Button class="m-3 align-self-start" @click="addTarget"
+            >Add a target</Button
+          >
+          <div class="flex flex-row gap-3 align-items-center pl-3">
+            <InputSwitch
+              v-model="state.buyTaxInXs"
+              inputId="taxOption"
+              class="flex-shrink-0"
+            />
+            <label for="taxOption">{{
+              state.buyTaxInXs
+                ? "Buy tax lowers Xs and thus impacts targets"
+                : "Buy tax only impacts profit and not targets"
+            }}</label>
+          </div>
+        </div>
 
         <!-- START -->
         <div class="flex flex-row flex-wrap gap-2">
@@ -795,6 +812,7 @@ import Dropdown from "primevue/dropdown";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Tag from "primevue/tag";
+import InputSwitch from "primevue/inputswitch";
 import VirtualScroller from "primevue/virtualscroller";
 import Paginator from "primevue/paginator";
 import { computed, onMounted, reactive, ref, watch } from "vue";
@@ -935,8 +953,8 @@ async function storeData(rows: (string | number)[][], fileName: string) {
   if (caIndex < 0) return fail("CA header not found");
   const rugIndex = header.indexOf("Rug");
   if (rugIndex < 0) return fail("Rug header not found");
-  const xsIndex = header.indexOf("CalltoATH_Xs"); // storing this from sheet only to remove suspicious Xs, but when computing profits we recalculate Xs from scratch
-  if (xsIndex < 0) return fail("CalltoATH_Xs header not found");
+  const priceIndex = header.indexOf("BlockPrice");
+  if (priceIndex < 0) return fail("BlockPrice header not found");
   const athIndex = header.indexOf("CRT_ATH_MC");
   if (athIndex < 0) return fail("CRT_ATH_MC header not found");
   const callAthIndex = header.indexOf("ATH_MC");
@@ -944,6 +962,8 @@ async function storeData(rows: (string | number)[][], fileName: string) {
   const supplyIndex = header.indexOf("TSupply");
   if (supplyIndex < 0) return fail("TSupply header not found");
   const maxIndex = header.indexOf("MaxBuyPRCT"); // MaxBuy is not realiable, using percentage instead
+  const xsIndex = header.indexOf("CalltoATH_Xs");
+  if (xsIndex < 0) return fail("CalltoATH_Xs header not found");
   if (maxIndex < 0) return fail("MaxBuyPRCT header not found");
   const mcIndex = header.lastIndexOf("CRT_MC"); // taking the second column with same name, the first one is MC at present time, not call-time
   if (mcIndex < 0) return fail("CRT_MC header not found");
@@ -966,19 +986,28 @@ async function storeData(rows: (string | number)[][], fileName: string) {
     if (!date) continue;
     date = new Date(Date.parse(date)).toISOString();
 
+    const price = row[priceIndex] as number;
+    const supply = row[supplyIndex] as number;
+    const callMc = price * supply;
+    const buyTax = (row[taxIndex] as number) / 100;
+    const ath = row[athIndex] as number;
+    const xs = ath / callMc;
+
     newCalls.push({
       name: row[nameIndex] as string,
       ca: row[caIndex] as string,
       nameAndCa: ((row[nameIndex] as string) + row[caIndex]) as string,
-      xs: Number(row[xsIndex] as number) || 0,
-      ath: row[athIndex] as number,
+      price,
+      supply,
+      callMc,
+      buyTax,
+      ath,
+      xs,
       callTimeAth: row[callAthIndex] as number,
       date,
       delay: row[delayIndex] as number,
       // athDelay: row[athDelayIndex] as number,
       fList: row[fListIndex] as string,
-      buyTax: (row[taxIndex] as number) / 100,
-      supply: row[supplyIndex] as number,
       maxBuy: ((row[maxIndex] as number) || 100) / 100,
       currentMC: row[mcIndex] as number,
       rug: !!row[rugIndex],
@@ -1010,6 +1039,7 @@ const INIT_MIN_CALLS = 5;
 const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
 const INIT_TEXT_LOGS = false;
 const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
+const INIT_BUY_TAX_IN_XS = true;
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
@@ -1018,6 +1048,7 @@ const state = reactive({
   hashColumns: INIT_HASH_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
   diffTypes: INIT_DIFF_TYPES,
+  buyTaxInXs: INIT_BUY_TAX_IN_XS,
 });
 
 const selection = reactive({
@@ -1086,6 +1117,7 @@ function loadForm() {
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
   state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
+  state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
 }
 onMounted(() => {
   loadForm();
@@ -1142,6 +1174,7 @@ const runCompute = () =>
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     gasPrice: state.gasPrice,
+    buyTaxInXs: state.buyTaxInXs,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
 const debouncedCompute = debounce(runCompute, 1000);
@@ -1151,8 +1184,14 @@ watch(filteredCalls, () => {
   loading.value = true;
   debouncedCompute();
 });
+// reload when an input related to profit changes
 watch(
-  () => state,
+  [
+    () => state.position,
+    () => state.takeProfits,
+    () => state.gasPrice,
+    () => state.buyTaxInXs,
+  ],
   () => {
     loading.value = true;
     debouncedCompute();
