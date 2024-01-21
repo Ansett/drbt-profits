@@ -4,6 +4,11 @@ import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
 import { prettifyDate, prettifyMc, round } from "./lib";
 import type { HashInfo } from "./types/HashInfo";
+import type {
+  ComputationForTarget,
+  ComputationResult,
+  ComputationShortResult,
+} from "./types/CpmputationResult";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -14,6 +19,8 @@ onmessage = function ({ data }) {
     });
   if (data.type === "COMPUTE")
     return postMessage({ type: "COMPUTE", ...compute(data) });
+  if (data.type === "TARGETING")
+    return postMessage({ type: "TARGETING", result: findTarget(data) });
   if (data.type === "DIFF")
     return postMessage({
       type: "DIFF",
@@ -42,7 +49,7 @@ function compute({
   gasPrice: number;
   takeProfits: TakeProfit[];
   buyTaxInXs: boolean;
-}) {
+}): ComputationResult {
   let finalETH = 0;
   let drawdown = 0;
   let profitByDate: [string, number][] = [];
@@ -210,4 +217,52 @@ function initHash(id: string) {
     xSum: 0,
     allCalls: [],
   };
+}
+
+function findTarget({
+  calls,
+  position,
+  gasPrice,
+  targetStart,
+  buyTaxInXs,
+  end,
+  increment,
+}: {
+  calls: Call[];
+  position: number;
+  gasPrice: number;
+  targetStart: TakeProfit;
+  buyTaxInXs: boolean;
+  end: number;
+  increment: number;
+}): ComputationForTarget[] {
+  const withMc = targetStart.withMc;
+  let currentTP = { ...targetStart };
+  const inc = (): boolean => {
+    const prop = withMc ? "mc" : "xs";
+    currentTP[prop] += increment;
+    return currentTP[prop] > end;
+  };
+
+  let ended = false;
+  const results = [] as ComputationForTarget[];
+  do {
+    const { finalETH, drawdown, worstDrawdown } = compute({
+      calls,
+      position,
+      gasPrice,
+      buyTaxInXs,
+      takeProfits: [currentTP],
+    });
+    results.push({
+      finalETH,
+      drawdown,
+      worstDrawdown,
+      target: withMc ? `$${currentTP.mc}` : `${currentTP.xs}x`,
+    });
+
+    ended = inc();
+  } while (!ended);
+
+  return results;
 }

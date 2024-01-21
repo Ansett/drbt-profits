@@ -177,6 +177,27 @@
             </div>
           </AccordionTab>
 
+          <!-- CHARTS -->
+          <AccordionTab
+            header="TARGET FINDER"
+            :pt="{ content: { class: 'p-0' } }"
+          >
+            <template #header
+              ><i
+                class="pi pi-star-fill text-cyan-300 ml-2"
+                style="font-size: 0.75rem"
+              ></i>
+            </template>
+            <TargetFinder
+              :data="{
+                calls: filteredCalls,
+                position: state.position,
+                gasPrice: state.gasPrice,
+                buyTaxInXs: state.buyTaxInXs,
+              }"
+            />
+          </AccordionTab>
+
           <!-- LOGS -->
           <AccordionTab
             header="LOGS"
@@ -603,6 +624,8 @@ import Worker from "./worker?worker";
 import type { TakeProfit } from "./types/TakeProfit";
 import type { HashInfo } from "./types/HashInfo";
 import LogsTable from "./components/LogsTable.vue";
+import TargetFinder from "./components/TargetFinder.vue";
+import { ptNumberInput } from "@/constants";
 
 const error = ref("");
 const loading = ref(false);
@@ -984,19 +1007,6 @@ worker.onmessage = ({ data }) => {
 };
 worker.onerror = ({ message }) => {
   error.value = message;
-};
-
-const ptNumberInput = {
-  decrementButton: {
-    root: {
-      class: "p-button-outlined p-button-secondary",
-    },
-  },
-  incrementButton: {
-    root: {
-      class: "p-button-outlined p-button-secondary",
-    },
-  },
 };
 </script>
 
