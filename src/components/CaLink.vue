@@ -6,11 +6,13 @@
       <i
         class="pi pi-copy text-primary cursor-pointer ml-1 mr-1"
         aria-label="Copy to clipboard"
-        v-tooltip="'Copy CA to clipboard'"
+        v-tooltip="'Copy address to clipboard'"
         @click="copyCA"
       ></i>
 
+      <code v-if="full" class="text-color-secondary">{{ ca }}</code>
       <a
+        v-else
         :class="['text-color-secondary', 'hoverlink']"
         target="_blank"
         rel="noopener"
@@ -29,7 +31,8 @@ import vTooltip from "primevue/tooltip";
 
 const props = defineProps<{
   ca: string;
-  name: string;
+  name?: string;
+  full?: boolean;
 }>();
 
 const truncatedCa = computed(
@@ -41,7 +44,9 @@ const copyCA = () => {
   navigator.clipboard.writeText(props.ca);
   toast.add({
     severity: "success",
-    summary: "Copied CA to clipboard: " + props.ca,
+    summary:
+      `Copied ${props.name ? props.name + " " : ""}address to clipboard: ` +
+      props.ca,
     life: 3000,
   });
 };

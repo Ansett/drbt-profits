@@ -1,8 +1,17 @@
 <template>
   <header
-    class="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-light text-color-secondary text-center xl:text-left my-2 ml-0 xl:ml-6"
+    class="text-xl md:text-3xl lg:text-4xl xl:text-5xl font-light text-color-secondary text-center xl:text-left my-2 ml-0 xl:ml-6 flex flex-row align-items-center"
   >
-    Backtesting profits from DRBT
+    <span class="flex-auto">Backtesting profits from DRBT</span>
+
+    <Button
+      icon="pi pi-heart-fill"
+      aria-label="Donate"
+      outlined
+      rounded
+      class="w-2rem h-2rem md:w-3rem md:h-3rem mx-1 md:mx-2 xl:mx-4"
+      @click="showDonation = true"
+    />
   </header>
 
   <main>
@@ -583,6 +592,28 @@
       :current="current"
       @closed="showDiff = false"
     />
+
+    <Dialog
+      v-model:visible="showDonation"
+      modal
+      dismissableMask
+      :style="{
+        maxWidth: '80%',
+        width: '30rem',
+      }"
+    >
+      <template #header>&nbsp;</template>
+      <p>
+        If you want to donate anything so I can invest more time to improve the
+        tool, I'll gladly accept transfers<sup>*</sup> to:
+        <br />
+        <CaLink ca="0xbb717878ba44f2200af6b0d95199252c6522ea53" full />
+      </p>
+      <p class="mt-3">Thanks wholeheartedly :D</p>
+      <p class="mt-5 text-color-secondary text-xs">
+        * any coin on Ethereum, Arbitrum, Optimism, Polygon, Avalanche or BSC
+      </p>
+    </Dialog>
   </main>
 </template>
 
@@ -606,6 +637,7 @@ import Checkbox from "primevue/checkbox";
 import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
 import DiffDialog from "./components/DiffDialog.vue";
+import Dialog from "primevue/dialog";
 import Toast from "primevue/toast";
 import Dropdown from "primevue/dropdown";
 import InputSwitch from "primevue/inputswitch";
@@ -625,11 +657,13 @@ import type { TakeProfit } from "./types/TakeProfit";
 import type { HashInfo } from "./types/HashInfo";
 import LogsTable from "./components/LogsTable.vue";
 import TargetFinder from "./components/TargetFinder.vue";
+import CaLink from "./components/CaLink.vue";
 import { ptNumberInput } from "@/constants";
 
 const error = ref("");
 const loading = ref(false);
 const uploader = ref<InstanceType<typeof FileUpload>>();
+const showDonation = ref(false);
 
 const onUpload = async (event: FileUploadSelectEvent) => {
   const { files } = event;
