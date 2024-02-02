@@ -186,7 +186,17 @@
             </div>
           </AccordionTab>
 
-          <!-- CHARTS -->
+          <!-- LOGS -->
+          <AccordionTab
+            header="LOGS"
+            :pt="{
+              root: { class: 'relative' },
+              content: { class: 'p-0' },
+            }"
+            ><LogsTable :logs="logs" v-model:textual="state.textLogs" />
+          </AccordionTab>
+
+          <!-- TARGETS -->
           <AccordionTab
             header="TARGET FINDER"
             :pt="{ content: { class: 'p-0' } }"
@@ -207,14 +217,15 @@
             />
           </AccordionTab>
 
-          <!-- LOGS -->
-          <AccordionTab
-            header="LOGS"
-            :pt="{
-              root: { class: 'relative' },
-              content: { class: 'p-0' },
-            }"
-            ><LogsTable :logs="logs" v-model:textual="state.textLogs" />
+          <!-- TIMING -->
+          <AccordionTab header="TIMING" :pt="{ content: { class: 'p-0' } }">
+            <template #header
+              ><i
+                class="pi pi-star-fill text-cyan-300 ml-2"
+                style="font-size: 0.75rem"
+              ></i>
+            </template>
+            <TimingFinder :logs="logs" />
           </AccordionTab>
 
           <!-- HASHES -->
@@ -659,6 +670,7 @@ import LogsTable from "./components/LogsTable.vue";
 import TargetFinder from "./components/TargetFinder.vue";
 import CaLink from "./components/CaLink.vue";
 import { ptNumberInput } from "@/constants";
+import TimingFinder from "./components/TimingFinder.vue";
 
 const error = ref("");
 const loading = ref(false);
