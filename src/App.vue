@@ -610,15 +610,14 @@
       dismissableMask
       :style="{
         maxWidth: '80%',
-        width: '30rem',
+        width: '36rem',
       }"
     >
       <template #header>&nbsp;</template>
       <p>
         If you want to donate anything so I can invest more time to improve the
         tool, I'll gladly accept transfers<sup>*</sup> to:
-        <br />
-        <CaLink ca="0xbb717878ba44f2200af6b0d95199252c6522ea53" full />
+        <CaLink ca="0xbb717878ba44f2200af6b0d95199252c6522ea53" wallet />
       </p>
       <p class="mt-3">Thanks wholeheartedly :D</p>
       <p class="mt-5 text-color-secondary text-xs">

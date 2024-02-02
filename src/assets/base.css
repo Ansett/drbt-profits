@@ -47,6 +47,7 @@ body {
 
 .hoverlink {
   text-decoration: none;
+  cursor: pointer;
 }
 .hoverlink:hover,
 .hoverlink:focus {

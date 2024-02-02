@@ -4,21 +4,20 @@
 
     <span class="nowrap">
       <i
-        class="pi pi-copy text-primary cursor-pointer ml-1 mr-1"
-        aria-label="Copy to clipboard"
-        v-tooltip="'Copy address to clipboard'"
-        @click="copyCA"
+        v-if="!wallet"
+        class="pi pi-external-link text-primary cursor-pointer ml-1 mr-1"
+        aria-label="Open chart"
+        v-tooltip.bottom="'Open chart'"
+        @click="openChart(ca)"
       ></i>
 
-      <code v-if="full" class="text-color-secondary">{{ ca }}</code>
-      <a
-        v-else
-        :class="['text-color-secondary', 'hoverlink']"
-        target="_blank"
-        rel="noopener"
-        :href="'https://dexscreener.com/ethereum/' + ca"
+      <code
+        :class="['text-color-secondary', 'hoverlink', { 'px-1': !wallet }]"
+        aria-label="Copy to clipboard"
+        v-tooltip.bottom="'Copy address to clipboard'"
+        @click="copyCA"
       >
-        {{ truncatedCa }}</a
+        {{ truncatedCa }}</code
       >
     </span>
   </span>
@@ -32,7 +31,7 @@ import vTooltip from "primevue/tooltip";
 const props = defineProps<{
   ca: string;
   name?: string;
-  full?: boolean;
+  wallet?: boolean;
 }>();
 
 const truncatedCa = computed(
@@ -49,5 +48,14 @@ const copyCA = () => {
       props.ca,
     life: 3000,
   });
+};
+
+const openChart = (ca: string) => {
+  const win = window.open(
+    "https://dexscreener.com/ethereum/" + ca,
+    "_blank",
+    ""
+  );
+  if (win) win.opener = null;
 };
 </script>
