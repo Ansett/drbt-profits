@@ -776,7 +776,7 @@ const filteredCalls = computed<Call[]>(() =>
   })
 );
 
-async function storeData(rows: (string | number)[][], fileName: string) {
+async function storeData(rows: (string | number | Date)[][], fileName: string) {
   const header = rows[0];
   rows.splice(0, 1);
   if (!rows.length) return;
@@ -814,14 +814,14 @@ async function storeData(rows: (string | number)[][], fileName: string) {
 
   let newCalls: Call[] = [];
   for (const row of rows) {
-    let date = row[dateIndex] as string;
-    if (!date) continue;
+    const parsedDate = row[dateIndex] as Date;
+    if (!parsedDate) continue;
     try {
-      date = new Date(Date.parse(date)).toISOString();
+      parsedDate.setHours(parsedDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
     } catch (e) {
       continue;
     }
-
+    const date = parsedDate.toISOString();
     const price = row[priceIndex] as number;
     const supply = row[supplyIndex] as number;
     const callMc = price * supply;
