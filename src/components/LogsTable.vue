@@ -1,7 +1,7 @@
 <template>
   <section>
     <Button
-      :icon="'pi ' + (textual ? 'pi-list' : 'pi-table')"
+      :icon="'pi ' + (textual ? 'pi-table' : 'pi-list')"
       size="small"
       text
       raised
@@ -69,7 +69,7 @@
       dataKey="ca"
       size="small"
       sortField="date"
-      :sortOrder="1"
+      :sortOrder="-1"
       sortMode="single"
       :paginator="logs.length > 20"
       :rows="20"
@@ -108,7 +108,7 @@
       ></template>
 
       <Column
-        :field="(d) => prettifyDate(d.date)"
+        field="date"
         header="Date"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"

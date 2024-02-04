@@ -175,6 +175,9 @@ function compute({
     });
   });
 
+  // most recent first
+  logs.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
   return {
     finalETH: round(finalETH),
     drawdown: round(drawdown),

@@ -197,7 +197,7 @@
 
           <!-- TARGETS -->
           <AccordionTab
-            header="TARGET FINDER"
+            header="TARGET SIMULATOR"
             :pt="{ content: { class: 'p-0' } }"
           >
             <template #header
@@ -217,7 +217,10 @@
           </AccordionTab>
 
           <!-- TIMING -->
-          <AccordionTab header="TIMING" :pt="{ content: { class: 'p-0' } }">
+          <AccordionTab
+            header="WEEK DAYS AND HOURS"
+            :pt="{ content: { class: 'p-0' } }"
+          >
             <template #header
               ><i
                 class="pi pi-star-fill text-cyan-300 ml-2"
