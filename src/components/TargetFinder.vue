@@ -186,7 +186,7 @@ const props = defineProps<{
   data: {
     calls: Call[];
     position: number;
-    gasPrice: number;
+    gweiDelta: number;
     buyTaxInXs: boolean;
   };
 }>();
@@ -206,7 +206,7 @@ const compute = () => {
     type: "TARGETING",
     calls: JSON.parse(JSON.stringify(props.data.calls)),
     position: props.data.position,
-    gasPrice: props.data.gasPrice,
+    gweiDelta: props.data.gweiDelta,
     buyTaxInXs: props.data.buyTaxInXs,
     increment: withXs.value ? xIncrement.value : mcIncrement.value,
     end: withXs.value ? xTargetEnd.value : mcTargetEnd.value,
@@ -252,7 +252,7 @@ watch(
   [
     () => props.data.calls,
     () => props.data.position,
-    () => props.data.gasPrice,
+    () => props.data.gweiDelta,
     () => props.data.buyTaxInXs,
     () => props.data.buyTaxInXs,
     withXs,

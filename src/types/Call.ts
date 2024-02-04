@@ -16,6 +16,8 @@ export type Call = {
   buyTax: number;
   rug: boolean;
   hashF: string;
+  gwei: number
+  buyGas: number
 };
 
 export type DiffType = "ADDED" | "REMOVED" | "IN-BOTH";

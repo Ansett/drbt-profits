@@ -143,6 +143,16 @@
         </template>
       </Column>
       <Column
+        field="gasPrice"
+        header="Gas price"
+        sortable
+        :pt="{ headerTitle: { class: 'text-sm' } }"
+      >
+        <template #body="{ data }">
+          {{ data.gasPrice }}
+        </template>
+      </Column>
+      <Column
         field="currentMC"
         header="MC"
         sortable

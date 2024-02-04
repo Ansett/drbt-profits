@@ -3,6 +3,7 @@ export type Log = {
   ca: string;
   name: string;
   invested: number;
+  gasPrice: number;
   xs: number;
   currentMC: number;
   ath: number;

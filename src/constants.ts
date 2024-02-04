@@ -10,3 +10,7 @@ export const ptNumberInput = {
     },
   },
 };
+
+export const SELL_TAX = 4;
+export const ETH_PRICE = 2300;
+export const SELL_GAS_PRICE = 0.01;

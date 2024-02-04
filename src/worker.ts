@@ -9,6 +9,7 @@ import type {
   ComputationResult,
   ComputationShortResult,
 } from "./types/CpmputationResult";
+import { ETH_PRICE, SELL_TAX, SELL_GAS_PRICE } from "./constants";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -28,8 +29,6 @@ onmessage = function ({ data }) {
     });
 };
 
-const SELL_TAX = 5 / 100;
-const ETH_PRICE = 2500;
 const REALISTIC_MAX_XS = 10000;
 
 const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
@@ -37,16 +36,19 @@ const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
   return ((currentMC / supply) * supplyBought) / ETH_PRICE;
 };
 
+const getGasPrice = (call: Call, gweiDelta: number): number =>
+  ((call.gwei + gweiDelta) / 1000000000) * call.buyGas;
+
 function compute({
   calls,
   position,
-  gasPrice,
+  gweiDelta,
   takeProfits,
   buyTaxInXs,
 }: {
   calls: Call[];
   position: number;
-  gasPrice: number;
+  gweiDelta: number;
   takeProfits: TakeProfit[];
   buyTaxInXs: boolean;
 }): ComputationResult {
@@ -79,6 +81,7 @@ function compute({
     const postAth = !call.rug && call.ath <= call.callTimeAth;
     if (postAth) counters.postAth++;
 
+    const gasPrice = getGasPrice(call, gweiDelta);
     let gain = -gasPrice - invested;
     // remove buy tax either directly on Xs, or later when calculating profit
     const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
@@ -104,8 +107,8 @@ function compute({
             ((invested * tp.size) / 100) *
               firstTargetMet *
               buyTax *
-              (1 - SELL_TAX) -
-            gasPrice;
+              (1 - SELL_TAX / 100) -
+            SELL_GAS_PRICE;
           remainingPosition -= tp.size;
           hitTp.push("TP" + (tpIndex + 1));
         }
@@ -166,6 +169,7 @@ function compute({
       rug: call.rug,
       info: unrealistic ? "unrealistic" : postAth ? "post-ath" : "",
       invested: round(invested, 3),
+      gasPrice: round(gasPrice, 3),
       gain: round(gain, 3),
       hitTp,
     });
@@ -222,7 +226,7 @@ function initHash(id: string) {
 function findTarget({
   calls,
   position,
-  gasPrice,
+  gweiDelta,
   targetStart,
   buyTaxInXs,
   end,
@@ -230,7 +234,7 @@ function findTarget({
 }: {
   calls: Call[];
   position: number;
-  gasPrice: number;
+  gweiDelta: number;
   targetStart: TakeProfit;
   buyTaxInXs: boolean;
   end: number;
@@ -250,7 +254,7 @@ function findTarget({
     const { finalETH, drawdown, worstDrawdown } = compute({
       calls,
       position,
-      gasPrice,
+      gweiDelta,
       buyTaxInXs,
       takeProfits: [currentTP],
     });

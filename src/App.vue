@@ -118,8 +118,7 @@
               <div
                 class="text-2xl"
                 v-tooltip="{
-                  value:
-                    'Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $2000 ETH value, minus gas cost and tax.</li><li>Sell calculations: Gas and 5% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>',
+                  value: `Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`,
                   autoHide: false,
                   escape: false,
                 }"
@@ -211,7 +210,7 @@
               :data="{
                 calls: filteredCalls,
                 position: state.position,
-                gasPrice: state.gasPrice,
+                gweiDelta: state.gweiDelta,
                 buyTaxInXs: state.buyTaxInXs,
               }"
             />
@@ -288,22 +287,24 @@
         </div>
         <!-- GAP PRICE -->
         <div class="flex flex-column gap-2">
-          <label for="gas-input">Gas price</label>
+          <label for="gwei-input"
+            >Buy GWEI delta
+            <i
+              class="pi pi-star-fill text-cyan-300 ml-2"
+              style="font-size: 0.75rem"
+            ></i
+          ></label>
           <InputGroup>
             <InputGroupAddon>
               <span class="material-symbols-outlined">local_gas_station</span>
             </InputGroupAddon>
             <InputNumber
-              v-model="state.gasPrice"
-              id="gas-input"
+              v-model="state.gweiDelta"
+              id="gwei-input"
               showButtons
               buttonLayout="stacked"
-              suffix=" ETH"
-              :min="0.005"
-              :minFractionDigits="1"
-              :maxFractionDigits="3"
-              mode="decimal"
-              :step="0.005"
+              :min="1"
+              :step="1"
               :pt="ptNumberInput"
               class="settingInput"
               style="height: 4rem"
@@ -508,7 +509,7 @@
         </div>
         <!-- RANGE -->
         <div class="flex flex-column gap-2">
-          <label for="end-input"
+          <label
             >Trading hours each day <span class="text-xs">(UTC)</span></label
           >
           <div class="flex flex-row gap-2">
@@ -571,7 +572,7 @@
 
         <!-- MIN CALLS -->
         <div class="flex flex-column gap-2">
-          <label for="gas-input"
+          <label for="mincalls-input"
             >Minimum calls count to show hashes and signatures</label
           >
           <InputGroup>
@@ -580,7 +581,7 @@
             </InputGroupAddon>
             <InputNumber
               v-model="state.minCallsForHash"
-              id="gas-input"
+              id="mincalls-input"
               showButtons
               buttonLayout="stacked"
               style="height: 4rem"
@@ -668,8 +669,13 @@ import type { HashInfo } from "./types/HashInfo";
 import LogsTable from "./components/LogsTable.vue";
 import TargetFinder from "./components/TargetFinder.vue";
 import CaLink from "./components/CaLink.vue";
-import { ptNumberInput } from "@/constants";
 import TimingFinder from "./components/TimingFinder.vue";
+import {
+  ptNumberInput,
+  ETH_PRICE,
+  SELL_TAX,
+  SELL_GAS_PRICE,
+} from "./constants";
 
 const error = ref("");
 const loading = ref(false);
@@ -809,6 +815,10 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (delayIndex < 0) return fail("LaunchedDelay header not found");
   const fListIndex = header.indexOf("FList");
   if (fListIndex < 0) return fail("FList header not found");
+  const gweiIndex = header.indexOf("GWEI");
+  if (gweiIndex < 0) return fail("GWEI header not found");
+  const buyGasIndex = header.indexOf("Gas");
+  if (buyGasIndex < 0) return fail("Gas header not found");
   // const athDelayIndex = header.indexOf("ATHDelay"); // many seconds before current call we had the last ATH
   // if (athDelayIndex < 0) return fail("ATHDelay header not found");
 
@@ -848,6 +858,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       currentMC: row[mcIndex] as number,
       rug: !!row[rugIndex],
       hashF: row[hashIndex] as string,
+      gwei: row[gweiIndex] as number,
+      buyGas: (row[buyGasIndex] as number) || 200000,
     });
   }
 
@@ -870,7 +882,7 @@ const INIT_TP = {
   mc: 1000000,
   withMc: true,
 } as TakeProfit;
-const INIT_GAS = 0.01;
+const INIT_GWEI = 5;
 const INIT_MIN_CALLS = 5;
 const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
 const INIT_TEXT_LOGS = false;
@@ -879,7 +891,7 @@ const INIT_BUY_TAX_IN_XS = true;
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
-  gasPrice: INIT_GAS,
+  gweiDelta: INIT_GWEI,
   minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
@@ -948,7 +960,7 @@ function loadForm() {
 
   state.position = savedState.position ?? INIT_POSITION;
   state.takeProfits = savedState.takeProfits ?? [INIT_TP];
-  state.gasPrice = savedState.gasPrice ?? INIT_GAS;
+  state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI;
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
@@ -1005,7 +1017,7 @@ const runCompute = () =>
     type: "COMPUTE",
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
-    gasPrice: state.gasPrice,
+    gweiDelta: state.gweiDelta,
     buyTaxInXs: state.buyTaxInXs,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
@@ -1021,7 +1033,7 @@ watch(
   [
     () => state.position,
     () => state.takeProfits,
-    () => state.gasPrice,
+    () => state.gweiDelta,
     () => state.buyTaxInXs,
   ],
   () => {
