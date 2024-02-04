@@ -785,49 +785,53 @@ const filteredCalls = computed<Call[]>(() =>
   })
 );
 
+const getHeaderIndexes = <T extends string>(
+  header: (string | number | Date)[],
+  names: T[]
+): Record<T, number> | null => {
+  const indexes = {} as Record<T, number>;
+
+  for (const name of names) {
+    const allIndexes = header.flatMap((h, i) => (h === name ? i : []));
+    if (!allIndexes.length) return fail(`${name} header not found`);
+
+    // if the same header is present multiple time in sheet (ie. CRT_MC), take the last one
+    indexes[name] =
+      allIndexes.length > 1 ? allIndexes[allIndexes.length - 1] : allIndexes[0];
+    header.indexOf(name);
+  }
+
+  return indexes;
+};
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
   const header = rows[0];
   rows.splice(0, 1);
   if (!rows.length) return;
 
-  const nameIndex = header.indexOf("Name");
-  if (nameIndex < 0) return fail("Name header not found");
-  const caIndex = header.indexOf("CA");
-  if (caIndex < 0) return fail("CA header not found");
-  const rugIndex = header.indexOf("Rug");
-  if (rugIndex < 0) return fail("Rug header not found");
-  const priceIndex = header.indexOf("BlockPrice");
-  if (priceIndex < 0) return fail("BlockPrice header not found");
-  const athIndex = header.indexOf("CRT_ATH_MC");
-  if (athIndex < 0) return fail("CRT_ATH_MC header not found");
-  const callAthIndex = header.indexOf("ATH_MC");
-  if (callAthIndex < 0) return fail("ATH_MC header not found");
-  const supplyIndex = header.indexOf("TSupply");
-  if (supplyIndex < 0) return fail("TSupply header not found");
-  const maxIndex = header.indexOf("MaxBuyPRCT"); // MaxBuy is not realiable, using percentage instead
-  if (maxIndex < 0) return fail("MaxBuyPRCT header not found");
-  const mcIndex = header.lastIndexOf("CRT_MC"); // taking the second column with same name, the first one is MC at present time, not call-time
-  if (mcIndex < 0) return fail("CRT_MC header not found");
-  const hashIndex = header.indexOf("HashF");
-  if (hashIndex < 0) return fail("HashF header not found");
-  const taxIndex = header.indexOf("BuyTax");
-  if (taxIndex < 0) return fail("BuyTax header not found");
-  const dateIndex = header.indexOf("Logged");
-  if (dateIndex < 0) return fail("Logged header not found");
-  const delayIndex = header.indexOf("LaunchedDelay");
-  if (delayIndex < 0) return fail("LaunchedDelay header not found");
-  const fListIndex = header.indexOf("FList");
-  if (fListIndex < 0) return fail("FList header not found");
-  const gweiIndex = header.indexOf("GWEI");
-  if (gweiIndex < 0) return fail("GWEI header not found");
-  const buyGasIndex = header.indexOf("Gas");
-  if (buyGasIndex < 0) return fail("Gas header not found");
-  // const athDelayIndex = header.indexOf("ATHDelay"); // many seconds before current call we had the last ATH
-  // if (athDelayIndex < 0) return fail("ATHDelay header not found");
+  const indexes = getHeaderIndexes(header, [
+    "Name",
+    "CA",
+    "Rug",
+    "BlockPrice",
+    "CRT_ATH_MC",
+    "ATH_MC",
+    "TSupply",
+    "MaxBuyPRCT", // MaxBuy is not realiable, using percentage instead
+    "CRT_MC", // taking the second column with same name, the first one is MC at present time, not call-time
+    "HashF",
+    "BuyTax",
+    "Logged",
+    "LaunchedDelay",
+    "FList",
+    "GWEI",
+    "Gas",
+  ]);
+
+  if (!indexes) return;
 
   let newCalls: Call[] = [];
   for (const row of rows) {
-    const parsedDate = row[dateIndex] as Date;
+    const parsedDate = row[indexes.Logged] as Date;
     if (!parsedDate) continue;
     try {
       parsedDate.setHours(parsedDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
@@ -835,34 +839,33 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       continue;
     }
     const date = parsedDate.toISOString();
-    const price = row[priceIndex] as number;
-    const supply = row[supplyIndex] as number;
+    const price = row[indexes.BlockPrice] as number;
+    const supply = row[indexes.TSupply] as number;
     const callMc = price * supply;
-    const buyTax = (row[taxIndex] as number) / 100;
-    const ath = row[athIndex] as number;
+    const buyTax = (row[indexes.BuyTax] as number) / 100;
+    const ath = row[indexes.CRT_ATH_MC] as number;
     const xs = ath / callMc;
 
     newCalls.push({
-      name: row[nameIndex] as string,
-      ca: row[caIndex] as string,
-      nameAndCa: ((row[nameIndex] as string) + row[caIndex]) as string,
+      name: row[indexes.Name] as string,
+      ca: row[indexes.CA] as string,
+      nameAndCa: ((row[indexes.Name] as string) + row[indexes.CA]) as string,
       price,
       supply,
       callMc,
       buyTax,
       ath,
       xs,
-      callTimeAth: row[callAthIndex] as number,
+      callTimeAth: row[indexes.ATH_MC] as number,
       date,
-      delay: row[delayIndex] as number,
-      // athDelay: row[athDelayIndex] as number,
-      fList: row[fListIndex] as string,
-      maxBuy: ((row[maxIndex] as number) || 100) / 100,
-      currentMC: row[mcIndex] as number,
-      rug: !!row[rugIndex],
-      hashF: row[hashIndex] as string,
-      gwei: row[gweiIndex] as number,
-      buyGas: (row[buyGasIndex] as number) || 200000,
+      delay: row[indexes.LaunchedDelay] as number,
+      fList: row[indexes.FList] as string,
+      maxBuy: ((row[indexes.MaxBuyPRCT] as number) || 100) / 100,
+      currentMC: row[indexes.CRT_MC] as number,
+      rug: !!row[indexes.Rug],
+      hashF: row[indexes.HashF] as string,
+      gwei: row[indexes.GWEI] as number,
+      buyGas: (row[indexes.Gas] as number) || 200000,
     });
   }
 
@@ -1048,6 +1051,7 @@ watch(
 
 function fail(message: string) {
   error.value = message;
+  return null;
 }
 
 const worker = new Worker();
