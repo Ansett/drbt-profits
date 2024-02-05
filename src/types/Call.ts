@@ -16,8 +16,17 @@ export type Call = {
   buyTax: number;
   rug: boolean;
   hashF: string;
-  gwei: number
-  buyGas: number
+  gwei: number;
+  buyGas: number;
+  nbSnipes: number;
+  snipesMinGwei: number;
+  snipesMaxGwei: number;
+  snipesAvgGwei: number;
+  nbBribes: number;
+  bribesMinEth: number;
+  bribesMaxEth: number;
+  bribesAvgEth: number;
+  lp: number;
 };
 
 export type DiffType = "ADDED" | "REMOVED" | "IN-BOTH";

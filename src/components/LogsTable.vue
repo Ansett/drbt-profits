@@ -163,6 +163,16 @@
         </template></Column
       >
       <Column
+        field="slippage"
+        header="Slippage"
+        sortable
+        :pt="{ headerTitle: { class: 'text-sm' } }"
+      >
+        <template #body="{ data }">
+          {{ data.slippage ? data.slippage + "%" : "" }}
+        </template></Column
+      >
+      <Column
         field="ath"
         header="ATH"
         sortable

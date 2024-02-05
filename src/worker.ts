@@ -2,14 +2,21 @@ import readXlsxFile from "read-excel-file/web-worker";
 import type { Call, CallDiff } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
-import { prettifyDate, prettifyMc, round } from "./lib";
+import { guessValues, prettifyDate, prettifyMc, round } from "./lib";
 import type { HashInfo } from "./types/HashInfo";
 import type {
   ComputationForTarget,
   ComputationResult,
   ComputationShortResult,
 } from "./types/CpmputationResult";
-import { ETH_PRICE, SELL_TAX, SELL_GAS_PRICE } from "./constants";
+import {
+  ETH_PRICE,
+  SELL_TAX,
+  SELL_GAS_PRICE,
+  DEFAULT_SLIPPAGE,
+  DEFAULT_LAUNCH_SLIPPAGE,
+} from "./constants";
+// import realBuys from "../buys.json";
 
 onmessage = function ({ data }) {
   if (!data?.type) return;
@@ -38,6 +45,59 @@ const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
 
 const getGasPrice = (call: Call, gweiDelta: number): number =>
   ((call.gwei + gweiDelta) / 1000000000) * call.buyGas;
+const ethToGwei = (eth: number, buyGas: number, baseGwei: number) =>
+  Math.max(0, (eth / buyGas) * 1000000000 - baseGwei);
+
+const getPriceImpact = (
+  lpBase: number,
+  price: number,
+  amount: number
+): number => {
+  const lpToken = (lpBase ^ 2) / price;
+  const constant = lpBase * lpToken;
+  const newLpBase = lpBase + amount;
+  const newLpToken = constant / newLpBase;
+  const tokenReceived = lpToken - newLpToken;
+  const paid = amount / tokenReceived;
+  const impact = (paid / price - 1) * 100;
+  return impact;
+};
+
+const getSlippage = (call: Call, gweiDelta: number): number => {
+  const otherGweis = [
+    ...(call.nbSnipes > 5
+      ? guessValues(
+          call.snipesMinGwei,
+          call.snipesMaxGwei,
+          call.snipesAvgGwei,
+          call.nbSnipes
+        )
+      : []),
+    ...(call.nbBribes > 5
+      ? guessValues(
+          ethToGwei(call.bribesMinEth, call.buyGas, call.gwei),
+          ethToGwei(call.bribesMaxEth, call.buyGas, call.gwei),
+          ethToGwei(call.bribesAvgEth, call.buyGas, call.gwei),
+          call.nbBribes
+        )
+      : []),
+  ];
+
+  const previousBuysCount = otherGweis.filter((g) => g >= gweiDelta).length;
+  const impact = previousBuysCount
+    ? getPriceImpact(
+        call.lp * ETH_PRICE,
+        call.price,
+        previousBuysCount *
+          Math.min(
+            Math.min(call.maxBuy, 0.02) * call.supply * call.price,
+            0.05 * ETH_PRICE
+          )
+      )
+    : 0;
+
+  return impact;
+};
 
 function compute({
   calls,
@@ -65,6 +125,7 @@ function compute({
     x10: 0,
   };
   const logs: Log[] = [];
+  const accuracy: any[] = [];
   const hashes: Record<string, HashInfo> = {};
   const signatures: Record<string, HashInfo> = {};
 
@@ -85,10 +146,15 @@ function compute({
     let gain = -gasPrice - invested;
     // remove buy tax either directly on Xs, or later when calculating profit
     const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
-    const effectiveXs = call.xs * (buyTaxInXs ? 1 - call.buyTax : 1);
+    const slippage =
+      call.delay < 15
+        ? getSlippage(call, gweiDelta) || DEFAULT_SLIPPAGE
+        : DEFAULT_LAUNCH_SLIPPAGE;
+    let effectiveXs = call.xs / (1 + slippage / 100);
+    if (buyTaxInXs) effectiveXs = effectiveXs * (1 - call.buyTax);
 
     const bestXs = unrealistic ? REALISTIC_MAX_XS : effectiveXs;
-    const hitTp = [];
+    const hitTp: string[] = [];
 
     if (!call.rug && !postAth) {
       let remainingPosition = 100;
@@ -159,7 +225,22 @@ function compute({
       }
     }
 
-    logs.push({
+    // if (realBuys) {
+    //   const realBuy = realBuys.find((b) => b.ca === call.ca.toLowerCase());
+    //   if (realBuy) {
+    //     const price =
+    //       (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - call.buyTax));
+    //     const realBuyMc = call.supply * price;
+    //     const theoricBuyMc = call.currentMC * (1 + slippage / 100);
+    //     accuracy.push({
+    //       slippage: round(slippage, 2),
+    //       snipes: call.nbSnipes + call.nbBribes,
+    //       theoricDiff: (theoricBuyMc / realBuyMc - 1) * 100,
+    //     });
+    //   }
+    // }
+
+    logs.unshift({
       date: prettifyDate(call.date),
       ca: call.ca,
       name: call.name,
@@ -172,11 +253,13 @@ function compute({
       gasPrice: round(gasPrice, 3),
       gain: round(gain, 3),
       hitTp,
+      slippage: round(slippage, 2),
     });
   });
 
-  // most recent first
-  logs.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  // console.log(accuracy.map((v) => v.slippage));
+  // console.log(accuracy.map((v) => v.snipes));
+  // console.log(accuracy.map((v) => v.theoricDiff));
 
   return {
     finalETH: round(finalETH),

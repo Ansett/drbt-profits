@@ -164,3 +164,33 @@ export function sumObjectProperty<T extends Record<string, any>>(
 ) {
   return arr.reduce((sum, obj) => sum + numGetter(obj), 0);
 }
+
+export function guessValues(
+  MIN: number,
+  MAX: number,
+  AVG: number,
+  N: number
+): number[] {
+  // Initialize the values with a linear distribution
+  var values = Array.from(
+    { length: N },
+    (_, i) => MIN + (i * (MAX - MIN)) / (N - 1)
+  );
+
+  // Calculate the current average
+  var currentAvg = values.reduce((a, b) => a + b, 0) / N;
+
+  // Calculate the difference between the current and target averages
+  var diff = AVG - currentAvg;
+
+  // Calculate the total of all values, excluding the first and last
+  var total = values.slice(1, N - 1).reduce((a, b) => a + b, 0);
+
+  // Distribute the difference proportionally among all values, except the first and last
+  for (var i = 1; i < N - 1; i++) {
+    var proportion = values[i] / total;
+    values[i] += diff * proportion;
+  }
+
+  return values;
+}

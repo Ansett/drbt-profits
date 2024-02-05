@@ -825,6 +825,15 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     "FList",
     "GWEI",
     "Gas",
+    "Snipes",
+    "PriorityMin",
+    "PriorityMax",
+    "PriorityAVG",
+    "Bribes",
+    "BribeMin",
+    "BribeMax",
+    "BribeAVG",
+    "LP_CRT",
   ]);
 
   if (!indexes) return;
@@ -845,6 +854,12 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const buyTax = (row[indexes.BuyTax] as number) / 100;
     const ath = row[indexes.CRT_ATH_MC] as number;
     const xs = ath / callMc;
+    const nbBribes = row[indexes.Bribes] as number;
+    const nbSnipes = ((row[indexes.Snipes] as number) || 0) - (nbBribes || 0);
+    const snipesMinGwei = row[indexes.PriorityMin] as number;
+    const snipesMaxGwei = row[indexes.PriorityMax] as number;
+    const bribesMinEth = row[indexes.BribeMin] as number;
+    const bribesMaxEth = row[indexes.BribeMax] as number;
 
     newCalls.push({
       name: row[indexes.Name] as string,
@@ -866,6 +881,18 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
       buyGas: (row[indexes.Gas] as number) || 200000,
+      nbSnipes,
+      snipesMinGwei,
+      snipesMaxGwei,
+      snipesAvgGwei:
+        (row[indexes.PriorityAVG] as number) ||
+        (snipesMinGwei + snipesMaxGwei) / 2,
+      nbBribes,
+      bribesMinEth,
+      bribesMaxEth,
+      bribesAvgEth:
+        (row[indexes.BribeAVG] as number) || (bribesMinEth + bribesMaxEth) / 2,
+      lp: row[indexes.LP_CRT] as number,
     });
   }
 

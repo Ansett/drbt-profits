@@ -14,8 +14,8 @@ coverage
 dist/
 dist-ssr/
 
-/cypress/videos/
-/cypress/screenshots/
+.env
+buys.json
 
 # Editor directories and files
 .vscode/*

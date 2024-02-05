@@ -11,4 +11,5 @@ export type Log = {
   gain: number;
   info: string;
   hitTp: string[];
+  slippage: number;
 };

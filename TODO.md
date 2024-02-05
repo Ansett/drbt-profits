@@ -1,1 +1,1 @@
-Add entry slippage ?
+Days/hours checkboxes
