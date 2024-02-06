@@ -10,6 +10,12 @@
         z-index: 2;
       "
     />
+
+    <div v-if="limited" class="text-red-400 p-3">
+      It's better to deactivate "Trading days and hours" switch so this
+      simulation evaluates all hours of the week
+    </div>
+
     <DataTable
       :value="data"
       dataKey="id"
@@ -93,6 +99,7 @@ const INIT_WEEK = [
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
   logs: Log[];
+  limited?: boolean;
 }>();
 
 const loading = ref(false);

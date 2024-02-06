@@ -115,7 +115,7 @@
                 "
               />
               <!-- FUNDS -->
-              <div class="text-2xl">
+              <div class="text-2xl flex gap-2 align-items-center">
                 <InfoButton
                   :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`"
                   direction="right"
@@ -125,17 +125,16 @@
                 <span class="text-color-secondary text-lg"> ETH</span>
               </div>
               <!-- DRAWDOWN -->
-              <div class="text-lg">
+              <div class="text-lg flex gap-2 align-items-center">
                 <InfoButton
                   text="The lowest the wallet has fallen to, starting from 0 ETH, during the whole period"
                   direction="right"
-                  class="mr-2"
                 />
                 Overall drawdown:
                 <span class="font-bold text-primary">{{ drawdown }}</span>
                 <span class="text-color-secondary text-xs"> ETH</span>
               </div>
-              <div class="text-lg">
+              <div class="text-lg flex gap-2 align-items-center">
                 <InfoButton
                   :text="`The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
                     worstDrawdown[0]
@@ -151,7 +150,7 @@
                 <span class="text-color-secondary text-xs"> ETH </span>
               </div>
               <!-- NB CALLS -->
-              <div class="text-lg">
+              <div class="text-lg flex gap-2 align-items-center">
                 <InfoButton
                   :text="`Including<ul>${
                     counters.unrealistic
@@ -167,7 +166,6 @@
                     counters.x10
                   } calls that made 10x</li></ul>`"
                   direction="right"
-                  class="mr-2"
                 />
                 <span class="">Number of calls: </span>
                 <span class="text-primary">{{ filteredCalls.length }}</span>
@@ -218,7 +216,7 @@
                 style="font-size: 0.75rem"
               ></i>
             </template>
-            <TimingFinder :logs="logs" />
+            <TimingFinder :logs="logs" :limited="state.withHours" />
           </AccordionTab>
 
           <!-- HASHES -->
@@ -397,6 +395,7 @@
             <label for="taxOption">Buy tax impacts targets </label>
             <InfoButton
               text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts profit and not targets"
+              class="align-self-start"
             />
           </div>
           <div class="flex flex-row gap-2 align-items-center pl-3">
@@ -410,6 +409,7 @@
             <InfoButton
               accent
               :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, it tries to guess a more realistic, but still imperfect, slippage from block 0 snipes data`"
+              class="align-self-start"
             />
           </div>
         </div>
@@ -513,65 +513,67 @@
             />
           </InputGroup>
         </div>
-        <!-- RANGE -->
-        <div class="flex flex-column gap-2">
-          <label
-            >Trading hours each day <span class="text-xs">(UTC)</span></label
-          >
-          <div class="flex flex-row gap-2">
-            <div class="flex flex-column" style="width: 50%">
-              <InputText
-                v-model="rangeStartIso"
-                disabled
-                style="height: 4rem"
-                class="settingInputSmall"
-              />
-              <Slider
-                v-model="selection.range[0]"
-                :step="0.25"
-                :min="0"
-                :max="23.75"
-                :pt="{
-                  root: { class: 'bg-primary' },
-                  range: { class: 'bg-gray-600' },
-                }"
-              />
-            </div>
-            <div class="flex flex-column" style="width: 50%">
-              <InputGroup>
-                <InputGroupAddon
-                  style="height: 4rem"
-                  v-show="selection.range[1] < selection.range[0]"
-                  ><i class="pi pi-arrow-right"></i
-                ></InputGroupAddon>
-                <InputText
-                  v-model="rangeEndIso"
-                  disabled
-                  style="height: 4rem"
-                  class="settingInputSmall"
-                />
-              </InputGroup>
-
-              <Slider
-                v-model="selection.range[1]"
-                :step="0.25"
-                :min="0.25"
-                :max="24"
-              />
-            </div>
+        <!-- DAYS & HOURS -->
+        <div class="flex flex-column gap-4">
+          <div class="flex gap-2">
+            <InputSwitch v-model="state.withHours" inputId="hours-global" />
+            <label for="hours-global"
+              >Trading days and hours<span class="text-xs"> (UTC)</span></label
+            >
           </div>
-        </div>
-        <!-- DAYS -->
-        <div class="flex flex-column gap-2">
-          <label>Trading days <span class="text-xs">(UTC)</span></label>
-          <div class="card flex flex-wrap justify-content-start gap-3">
+          <div
+            v-if="state.withHours"
+            class="card flex flex-wrap justify-content-start gap-3"
+          >
             <div
               v-for="(day, index) of allDays"
               :key="index"
-              class="flex align-items-center"
+              class="flex gap-2 flex-wrap align-items-center"
             >
-              <Checkbox v-model="selection.week[index]" binary :inputId="day" />
-              <label :for="day" class="ml-2"> {{ day }} </label>
+              <Checkbox v-model="state.week[index]" binary :inputId="day" />
+              <label :for="day" class=""> {{ day }} </label>
+
+              <template
+                v-if="!state.week[index]"
+                v-for="hour in allHours"
+                :key="`${day}-${hour}`"
+              >
+                <Checkbox
+                  v-model="state.hours[index][hour]"
+                  binary
+                  :inputId="`${day}-${hour}`"
+                />
+                <label
+                  :for="`${day}-${hour}`"
+                  :class="[
+                    'mr-1',
+                    { 'text-color-secondary': !state.hours[index][hour] },
+                  ]"
+                >
+                  {{ hour }}
+                </label>
+              </template>
+              <span
+                v-if="!state.week[index]"
+                class="ml-1 iconButton text-lg material-symbols-outlined"
+                v-tooltip.bottom="
+                  state.hours[index][0]
+                    ? 'Uncheck all hours'
+                    : 'Check all hours'
+                "
+                @click="toggleHours(index)"
+                >{{ state.hours[index][0] ? "remove_done" : "done_all" }}</span
+              >
+              <!-- <Button
+                v-if="!state.week[index]"
+                icon="pi pi-check"
+                text
+                aria-label="Toggle all"
+                size="small"
+               
+                
+                
+              /> -->
             </div>
           </div>
         </div>
@@ -646,10 +648,9 @@ import Accordion from "primevue/accordion";
 import AccordionTab from "primevue/accordiontab";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
-import InputText from "primevue/inputtext";
+import InputSwitch from "primevue/inputswitch";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
-import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
 import HashTable from "./components/HashTable.vue";
 import DiffDialog from "./components/DiffDialog.vue";
@@ -657,7 +658,7 @@ import InfoButton from "./components/InfoButton.vue";
 import Dialog from "primevue/dialog";
 import Toast from "primevue/toast";
 import Dropdown from "primevue/dropdown";
-import InputSwitch from "primevue/inputswitch";
+import vTooltip from "primevue/tooltip";
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
   debounce,
@@ -759,30 +760,13 @@ const filteredCalls = computed<Call[]>(() =>
       if (call.date > fullEnd) return false;
     }
 
-    // filtering trading hours
-    if (
-      adjustedRange.value.start !== RANGE_FULL_TIME_START ||
-      adjustedRange.value.end !== RANGE_FULL_TIME_END
-    ) {
-      const hourChunk = call.date.match(/T(\d\d:\d\d:\d\d)/)![1];
-      if (
-        adjustedRange.value.start <= adjustedRange.value.end &&
-        (hourChunk < adjustedRange.value.start ||
-          hourChunk > adjustedRange.value.end)
-      )
-        return false;
-      if (
-        adjustedRange.value.start > adjustedRange.value.end &&
-        hourChunk < adjustedRange.value.start &&
-        hourChunk > adjustedRange.value.end
-      )
-        return false;
-    }
-
-    // filtering days
-    if (selection.week.some((active) => !active)) {
-      const callDay = new Date(call.date).getUTCDay();
-      if (!selection.week[callDay]) return false;
+    // filtering trading hours and days
+    if (state.withHours && state.week.some((active) => !active)) {
+      const date = new Date(call.date);
+      const callDay = date.getUTCDay();
+      if (state.week[callDay]) return true;
+      const callHour = date.getUTCHours();
+      return state.hours[callDay][callHour];
     }
 
     return true;
@@ -926,6 +910,18 @@ const INIT_TEXT_LOGS = false;
 const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const INIT_BUY_TAX_IN_XS = true;
 const INIT_SLIPPAGE_GUESSING = true;
+const INIT_WITH_HOURS = false;
+const INIT_WEEK = [true, true, true, true, true, true, true];
+// prettier-ignore
+const INIT_HOURS = [
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+];
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
@@ -936,6 +932,9 @@ const state = reactive({
   diffTypes: INIT_DIFF_TYPES,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
   slippageGuessing: INIT_SLIPPAGE_GUESSING,
+  withHours: INIT_WITH_HOURS,
+  week: INIT_WEEK,
+  hours: INIT_HOURS,
 });
 
 const selection = reactive({
@@ -943,27 +942,7 @@ const selection = reactive({
   startHour: "",
   endDate: "",
   endHour: "",
-  range: [0, 24],
-  week: [true, true, true, true, true, true, true], // starting sunday
 });
-
-const RANGE_FULL_TIME_START = "00:00:00";
-const RANGE_FULL_TIME_END = "23:59:50";
-const rangeStartIso = computed(() => decimalHourToString(selection.range[0]));
-const rangeEndIso = computed(() => decimalHourToString(selection.range[1]));
-const adjustedRange = ref({
-  start: RANGE_FULL_TIME_START,
-  end: RANGE_FULL_TIME_END,
-});
-const rangeUpdate = () => {
-  adjustedRange.value.start = rangeStartIso.value + ":00";
-  adjustedRange.value.end =
-    rangeEndIso.value === "24:00"
-      ? RANGE_FULL_TIME_END
-      : rangeEndIso.value + ":59 ";
-};
-const debouncedRangeUpdate = debounce(rangeUpdate, 500);
-watch([rangeStartIso, rangeEndIso], () => debouncedRangeUpdate());
 
 const allDays = [
   "Sunday",
@@ -974,6 +953,7 @@ const allDays = [
   "Friday",
   "Saturday",
 ];
+const allHours = Array.from({ length: 24 }, (_, index) => index);
 
 const initialized = ref(false);
 const finalETH = ref(0);
@@ -1007,11 +987,21 @@ function loadForm() {
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
   state.slippageGuessing =
     savedState.slippageGuessing ?? INIT_SLIPPAGE_GUESSING;
+  state.withHours = savedState.withHours ?? INIT_WITH_HOURS;
+  state.week = savedState.week ?? INIT_WEEK;
+  state.hours = savedState.hours ?? INIT_HOURS;
 }
 onMounted(() => {
   loadForm();
   initialized.value = true;
 });
+
+const toggleHours = (dayIndex: number) => {
+  const previous = state.hours[dayIndex][0];
+  for (let h = 0; h <= 23; h++) {
+    state.hours[dayIndex][h] = !previous;
+  }
+};
 
 const addTarget = () => {
   const lastTarget = state.takeProfits[state.takeProfits.length - 1];
@@ -1066,7 +1056,6 @@ const runCompute = () =>
 const debouncedCompute = debounce(runCompute, 1000);
 watch(filteredCalls, () => {
   if (!initialized.value) return;
-
   loading.value = true;
   debouncedCompute();
 });

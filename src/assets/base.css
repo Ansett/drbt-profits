@@ -55,6 +55,11 @@ body {
   color: var(--primary-color) !important;
 }
 
+.iconButton {
+  cursor: pointer;
+  color: var(--primary-color);
+}
+
 .p-panel {
   max-width: 94vw;
 }
