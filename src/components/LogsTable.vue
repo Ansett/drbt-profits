@@ -88,7 +88,24 @@
             v-tooltip.top="'Export CSV'"
             @click="exportLogs()"
           />
-
+          <InputGroup class="w-auto">
+            <InputGroupAddon class="narrowInput">
+              <i class="pi pi-sliders-v"></i>
+            </InputGroupAddon>
+            <MultiSelect
+              v-model="selectedColumns"
+              :options="optionalColumns"
+              placeholder="Columns"
+              selectedItemsLabel="{0} cols"
+              :maxSelectedLabels="0"
+              class="narrowInput"
+              :pt="{
+                root: { class: 'narrowInput' },
+                label: { class: 'narrowInput' },
+                item: { class: 'pr-5' },
+              }"
+            />
+          </InputGroup>
           <InputGroup class="w-auto">
             <InputGroupAddon class="narrowInput">
               <i class="pi pi-search"></i>
@@ -133,6 +150,7 @@
         </template>
       </Column>
       <Column
+        v-if="selectedColumns.includes('Invested')"
         field="invested"
         header="Invested"
         sortable
@@ -143,6 +161,7 @@
         </template>
       </Column>
       <Column
+        v-if="selectedColumns.includes('Gas price')"
         field="gasPrice"
         header="Gas price"
         sortable
@@ -153,6 +172,7 @@
         </template>
       </Column>
       <Column
+        v-if="selectedColumns.includes('Entry MC')"
         field="currentMC"
         header="MC"
         sortable
@@ -163,6 +183,7 @@
         </template></Column
       >
       <Column
+        v-if="selectedColumns.includes('Slippage')"
         field="slippage"
         header="Slippage"
         sortable
@@ -173,6 +194,7 @@
         </template></Column
       >
       <Column
+        v-if="selectedColumns.includes('ATH MC')"
         field="ath"
         header="ATH"
         sortable
@@ -193,18 +215,14 @@
         <template #body="{ data }">
           <Tag v-if="data.rug" value="rug" severity="warning" />
           <span v-else class="nowrap"
-            >{{ data.xs }}x<Tag
+            >{{ data.xs }}x
+            <InfoButton
               v-if="data.info"
-              :value="data.info"
-              class="ml-2 nowrap"
-              :pt="{
-                root: {
-                  style: {
-                    background: 'var(--cyan-300)',
-                  },
-                },
-              }"
-          /></span>
+              :text="data.info"
+              direction="top"
+              class="inlineIcon"
+            />
+          </span>
         </template>
       </Column>
       <Column
@@ -243,7 +261,9 @@ import Column from "primevue/column";
 import Button from "primevue/button";
 import Tag from "primevue/tag";
 import Paginator from "primevue/paginator";
+import MultiSelect from "primevue/multiselect";
 import vTooltip from "primevue/tooltip";
+import InfoButton from "./InfoButton.vue";
 import CaLink from "./CaLink.vue";
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
@@ -261,6 +281,12 @@ const textual = defineModel<boolean>("textual", {
 });
 const logsPage = ref(0);
 const logsRowCount = ref(20);
+
+// prettier-ignore
+const optionalColumns = ["Invested","Gas price","Entry MC","Slippage","ATH MC"];
+const selectedColumns = defineModel<string[]>("selectedColumns", {
+  required: true,
+});
 
 const logTable = ref<InstanceType<typeof DataTable>>();
 const exportLogs = () => logTable.value?.exportCSV();

@@ -249,7 +249,11 @@ function compute({
       ath: call.ath,
       currentMC: call.currentMC,
       rug: call.rug,
-      info: unrealistic ? "unrealistic" : postAth ? "post-ath" : "",
+      info: unrealistic
+        ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
+        : postAth
+        ? "Post-ath: Entry occured after the current ATH"
+        : "",
       invested: round(invested, 3),
       gasPrice: round(gasPrice, 3),
       gain: round(gain, 3),

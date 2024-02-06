@@ -42,6 +42,7 @@
               :pt="{
                 root: { class: 'narrowInput' },
                 label: { class: 'narrowInput' },
+                item: { class: 'pr-5' },
               }"
             />
           </InputGroup>
@@ -250,9 +251,6 @@ import CaLink from "./CaLink.vue";
 
 const TAG_SEPARATOR = ", ";
 
-const selectedColumns = defineModel<string[]>("selectedColumns", {
-  required: true,
-});
 const props = defineProps<{
   lines: HashInfo[];
   filterTemplate: string;
@@ -271,16 +269,12 @@ const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
 });
 
-const optionalColumns = [
-  "Count",
-  "Average",
-  "x5",
-  "x10",
-  "x50",
-  "x100",
-  "Rug",
-  "Tags",
-];
+// prettier-ignore
+const optionalColumns = ["Count","Average","x5","x10","x50","x100","Rug","Tags"];
+const selectedColumns = defineModel<string[]>("selectedColumns", {
+  required: true,
+});
+
 const perfCats = ["x5", "x10", "x50", "x100"];
 const shownPerf = computed(() =>
   perfCats.filter((cat) => selectedColumns.value.includes(cat))

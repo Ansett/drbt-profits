@@ -180,7 +180,11 @@
               root: { class: 'relative' },
               content: { class: 'p-0' },
             }"
-            ><LogsTable :logs="logs" v-model:textual="state.textLogs" />
+            ><LogsTable
+              :logs="logs"
+              v-model:textual="state.textLogs"
+              v-model:selectedColumns="state.logColumns"
+            />
           </AccordionTab>
 
           <!-- TARGETS -->
@@ -899,6 +903,7 @@ const INIT_TP = {
 const INIT_GWEI = 5;
 const INIT_MIN_CALLS = 5;
 const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
+const INIT_LOG_COLUMNS = ["Invested", "Entry MC", "Slippage", "ATH MC"];
 const INIT_TEXT_LOGS = false;
 const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const INIT_BUY_TAX_IN_XS = true;
@@ -924,6 +929,7 @@ const state = reactive({
   gweiDelta: INIT_GWEI,
   minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
+  logColumns: INIT_LOG_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
   diffTypes: INIT_DIFF_TYPES,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
@@ -978,6 +984,7 @@ function loadForm() {
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI;
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
+  state.logColumns = savedState.logColumns ?? INIT_LOG_COLUMNS;
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
   state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;

@@ -60,6 +60,11 @@ body {
   color: var(--primary-color);
 }
 
+.inlineIcon {
+  vertical-align: middle;
+  height: 20px;
+}
+
 .p-panel {
   max-width: 94vw;
 }
