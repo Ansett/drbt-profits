@@ -311,7 +311,7 @@
         >
           <label :for="'tp-input' + index" class="min-w-full"
             >Take profit target {{ index + 1 }}
-            <span class="text-xs">(size % and first encountered MC or Xs)</span>
+            <span class="text-xs">(size % and first encountered X or MC)</span>
           </label>
 
           <!-- TP size -->
@@ -408,7 +408,7 @@
             <label for="slippageOption">Slippage guessing </label>
             <InfoButton
               accent
-              :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, it tries to guess a more realistic, but still imperfect, slippage from block 0 snipes data`"
+              :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, the algorithm tries to guess a more realistic, but still imperfect, slippage with the help of block 0 snipes data`"
               class="align-self-start"
             />
           </div>
@@ -518,7 +518,7 @@
           <div class="flex gap-2">
             <InputSwitch v-model="state.withHours" inputId="hours-global" />
             <label for="hours-global"
-              >Trading days and hours<span class="text-xs"> (UTC)</span></label
+              >Custom trading periods<span class="text-xs"> (UTC)</span></label
             >
           </div>
           <div
@@ -530,11 +530,11 @@
               :key="index"
               class="flex gap-2 flex-wrap align-items-center"
             >
-              <Checkbox v-model="state.week[index]" binary :inputId="day" />
+              <TriStateCheckbox v-model="state.week[index]" :inputId="day" />
               <label :for="day" class=""> {{ day }} </label>
 
               <template
-                v-if="!state.week[index]"
+                v-if="state.week[index] === null"
                 v-for="hour in allHours"
                 :key="`${day}-${hour}`"
               >
@@ -554,7 +554,7 @@
                 </label>
               </template>
               <span
-                v-if="!state.week[index]"
+                v-if="state.week[index] === null"
                 class="ml-1 iconButton text-lg material-symbols-outlined"
                 v-tooltip.bottom="
                   state.hours[index][0]
@@ -564,16 +564,6 @@
                 @click="toggleHours(index)"
                 >{{ state.hours[index][0] ? "remove_done" : "done_all" }}</span
               >
-              <!-- <Button
-                v-if="!state.week[index]"
-                icon="pi pi-check"
-                text
-                aria-label="Toggle all"
-                size="small"
-               
-                
-                
-              /> -->
             </div>
           </div>
         </div>
@@ -652,6 +642,7 @@ import InputSwitch from "primevue/inputswitch";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
+import TriStateCheckbox from "primevue/tristatecheckbox";
 import HashTable from "./components/HashTable.vue";
 import DiffDialog from "./components/DiffDialog.vue";
 import InfoButton from "./components/InfoButton.vue";
@@ -765,6 +756,8 @@ const filteredCalls = computed<Call[]>(() =>
       const date = new Date(call.date);
       const callDay = date.getUTCDay();
       if (state.week[callDay]) return true;
+      else if (state.week[callDay] === false) return false;
+      // when null: costom hours
       const callHour = date.getUTCHours();
       return state.hours[callDay][callHour];
     }
@@ -911,16 +904,19 @@ const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const INIT_BUY_TAX_IN_XS = true;
 const INIT_SLIPPAGE_GUESSING = true;
 const INIT_WITH_HOURS = false;
-const INIT_WEEK = [true, true, true, true, true, true, true];
+const INIT_WEEK = [true, true, true, true, true, true, true] as (
+  | boolean
+  | null
+)[];
 // prettier-ignore
 const INIT_HOURS = [
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
-  [ false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
 const state = reactive({
   position: INIT_POSITION,

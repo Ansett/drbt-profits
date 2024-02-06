@@ -12,7 +12,7 @@
     />
 
     <div v-if="limited" class="text-red-400 p-3">
-      It's better to deactivate "Trading days and hours" switch so this
+      It's better to deactivate "Custom trading periods" switch so this
       simulation evaluates all hours of the week
     </div>
 
