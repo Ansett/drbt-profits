@@ -181,7 +181,12 @@ const emit = defineEmits<{
   (e: "update:diffTypes", selection: DiffType[]): void;
 }>();
 
-const left = ref<CallArchive>(props.archives[0]);
+// select first one or last one, depeding if selected archives is already the first or not
+const left = ref<CallArchive>(
+  props.archives[
+    props.current === props.archives[0] ? props.archives.length - 1 : 0
+  ]
+);
 const right = ref<CallArchive>(props.current);
 const diff = ref<CallDiff[]>([]);
 const loading = ref(true);

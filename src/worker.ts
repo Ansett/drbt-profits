@@ -14,7 +14,6 @@ import {
   SELL_TAX,
   SELL_GAS_PRICE,
   DEFAULT_SLIPPAGE,
-  DEFAULT_LAUNCH_SLIPPAGE,
 } from "./constants";
 // import realBuys from "../buys.json";
 
@@ -105,12 +104,14 @@ function compute({
   gweiDelta,
   takeProfits,
   buyTaxInXs,
+  slippageGuessing,
 }: {
   calls: Call[];
   position: number;
   gweiDelta: number;
   takeProfits: TakeProfit[];
   buyTaxInXs: boolean;
+  slippageGuessing: boolean;
 }): ComputationResult {
   let finalETH = 0;
   let drawdown = 0;
@@ -147,9 +148,9 @@ function compute({
     // remove buy tax either directly on Xs, or later when calculating profit
     const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
     const slippage =
-      call.delay < 15
+      slippageGuessing && call.delay < 15
         ? getSlippage(call, gweiDelta) || DEFAULT_SLIPPAGE
-        : DEFAULT_LAUNCH_SLIPPAGE;
+        : DEFAULT_SLIPPAGE;
     let effectiveXs = call.xs / (1 + slippage / 100);
     if (buyTaxInXs) effectiveXs = effectiveXs * (1 - call.buyTax);
 
@@ -315,6 +316,7 @@ function findTarget({
   gweiDelta,
   targetStart,
   buyTaxInXs,
+  slippageGuessing,
   end,
   increment,
 }: {
@@ -323,6 +325,7 @@ function findTarget({
   gweiDelta: number;
   targetStart: TakeProfit;
   buyTaxInXs: boolean;
+  slippageGuessing: boolean;
   end: number;
   increment: number;
 }): ComputationForTarget[] {
@@ -342,6 +345,7 @@ function findTarget({
       position,
       gweiDelta,
       buyTaxInXs,
+      slippageGuessing,
       takeProfits: [currentTP],
     });
     results.push({

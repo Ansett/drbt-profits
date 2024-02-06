@@ -115,43 +115,35 @@
                 "
               />
               <!-- FUNDS -->
-              <div
-                class="text-2xl"
-                v-tooltip="{
-                  value: `Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`,
-                  autoHide: false,
-                  escape: false,
-                }"
-              >
+              <div class="text-2xl">
+                <InfoButton
+                  :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`"
+                  direction="right"
+                />
                 Realized profits:
                 <span class="font-bold text-primary">{{ finalETH }}</span>
                 <span class="text-color-secondary text-lg"> ETH</span>
               </div>
               <!-- DRAWDOWN -->
-              <div
-                class="text-lg"
-                v-tooltip="{
-                  value:
-                    'The lowest the wallet has fallen to, starting from 0 ETH, during the whole period.',
-                  autoHide: false,
-                }"
-              >
+              <div class="text-lg">
+                <InfoButton
+                  text="The lowest the wallet has fallen to, starting from 0 ETH, during the whole period"
+                  direction="right"
+                  class="mr-2"
+                />
                 Overall drawdown:
                 <span class="font-bold text-primary">{{ drawdown }}</span>
                 <span class="text-color-secondary text-xs"> ETH</span>
               </div>
-              <div
-                class="text-lg"
-                v-tooltip="{
-                  value: `The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
+              <div class="text-lg">
+                <InfoButton
+                  :text="`The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
                     worstDrawdown[0]
                       ? ` (${worstDrawdown[0]} in this case)`
                       : ''
-                  }.<br>You need at least this absolute value in your wallet to sustain the strategy.`,
-                  autoHide: false,
-                  escape: false,
-                }"
-              >
+                  }.<br>You need at least this absolute value in your wallet to sustain the strategy.`"
+                  direction="right"
+                />
                 Worst drawdown:
                 <span class="font-bold text-primary">{{
                   worstDrawdown[1]
@@ -159,10 +151,9 @@
                 <span class="text-color-secondary text-xs"> ETH </span>
               </div>
               <!-- NB CALLS -->
-              <div
-                class="text-lg"
-                v-tooltip="{
-                  value: `Including<ul>${
+              <div class="text-lg">
+                <InfoButton
+                  :text="`Including<ul>${
                     counters.unrealistic
                       ? `<li>${counters.unrealistic} unrealistic trades where we had to cap Xs</li>`
                       : ''
@@ -174,11 +165,10 @@
                     counters.x50
                   } calls that made 50x</li><li>${
                     counters.x10
-                  } calls that made 10x</li></ul>`,
-                  autoHide: false,
-                  escape: false,
-                }"
-              >
+                  } calls that made 10x</li></ul>`"
+                  direction="right"
+                  class="mr-2"
+                />
                 <span class="">Number of calls: </span>
                 <span class="text-primary">{{ filteredCalls.length }}</span>
               </div>
@@ -212,6 +202,7 @@
                 position: state.position,
                 gweiDelta: state.gweiDelta,
                 buyTaxInXs: state.buyTaxInXs,
+                slippageGuessing: state.slippageGuessing,
               }"
             />
           </AccordionTab>
@@ -327,17 +318,8 @@
 
           <!-- TP size -->
           <InputGroup class="flex-1">
-            <InputGroupAddon :class="{ 'target-parent': index > 0 }">
+            <InputGroupAddon>
               <i class="pi pi-send target-icon"></i>
-              <Button
-                v-if="index > 0"
-                icon="pi pi-times"
-                severity="danger"
-                text
-                aria-label="Remove"
-                class="target-remove"
-                @click="removeTarget(index)"
-              />
             </InputGroupAddon>
             <InputNumber
               v-model="takeProfit.size"
@@ -389,6 +371,14 @@
               <Checkbox v-model="takeProfit.withMc" binary />
             </InputGroupAddon>
           </InputGroup>
+          <Button
+            v-if="index > 0"
+            icon="pi pi-times"
+            severity="secondary"
+            text
+            aria-label="Remove"
+            @click="removeTarget(index)"
+          />
         </div>
 
         <div
@@ -397,17 +387,30 @@
           <Button class="m-3 align-self-start" @click="addTarget"
             >Add a target</Button
           >
-          <div class="flex flex-row gap-3 align-items-center pl-3">
-            <InputSwitch
-              v-model="state.buyTaxInXs"
+          <div class="flex flex-row gap-2 align-items-center pl-3">
+            <Checkbox
               inputId="taxOption"
+              v-model="state.buyTaxInXs"
+              binary
               class="flex-shrink-0"
             />
-            <label for="taxOption">{{
-              state.buyTaxInXs
-                ? "Buy tax lowers Xs and thus impacts targets"
-                : "Buy tax only impacts profit and not targets"
-            }}</label>
+            <label for="taxOption">Buy tax impacts targets </label>
+            <InfoButton
+              text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts profit and not targets"
+            />
+          </div>
+          <div class="flex flex-row gap-2 align-items-center pl-3">
+            <Checkbox
+              inputId="slippageOption"
+              v-model="state.slippageGuessing"
+              binary
+              class="flex-shrink-0"
+            />
+            <label for="slippageOption">Slippage guessing </label>
+            <InfoButton
+              accent
+              :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, it tries to guess a more realistic, but still imperfect, slippage from block 0 snipes data`"
+            />
           </div>
         </div>
 
@@ -648,9 +651,9 @@ import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Slider from "primevue/slider";
 import Checkbox from "primevue/checkbox";
-import vTooltip from "primevue/tooltip";
 import HashTable from "./components/HashTable.vue";
 import DiffDialog from "./components/DiffDialog.vue";
+import InfoButton from "./components/InfoButton.vue";
 import Dialog from "primevue/dialog";
 import Toast from "primevue/toast";
 import Dropdown from "primevue/dropdown";
@@ -678,6 +681,7 @@ import {
   ETH_PRICE,
   SELL_TAX,
   SELL_GAS_PRICE,
+  DEFAULT_SLIPPAGE,
 } from "./constants";
 
 const error = ref("");
@@ -921,6 +925,7 @@ const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
 const INIT_TEXT_LOGS = false;
 const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const INIT_BUY_TAX_IN_XS = true;
+const INIT_SLIPPAGE_GUESSING = true;
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
@@ -930,6 +935,7 @@ const state = reactive({
   textLogs: INIT_TEXT_LOGS,
   diffTypes: INIT_DIFF_TYPES,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
+  slippageGuessing: INIT_SLIPPAGE_GUESSING,
 });
 
 const selection = reactive({
@@ -999,6 +1005,8 @@ function loadForm() {
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
   state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
+  state.slippageGuessing =
+    savedState.slippageGuessing ?? INIT_SLIPPAGE_GUESSING;
 }
 onMounted(() => {
   loadForm();
@@ -1052,6 +1060,7 @@ const runCompute = () =>
     position: state.position,
     gweiDelta: state.gweiDelta,
     buyTaxInXs: state.buyTaxInXs,
+    slippageGuessing: state.slippageGuessing,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
 const debouncedCompute = debounce(runCompute, 1000);
@@ -1068,6 +1077,7 @@ watch(
     () => state.takeProfits,
     () => state.gweiDelta,
     () => state.buyTaxInXs,
+    () => state.slippageGuessing,
   ],
   () => {
     loading.value = true;
@@ -1128,10 +1138,14 @@ worker.onerror = ({ message }) => {
   opacity: 0;
   height: 4rem;
 }
-.target-parent:hover .target-icon {
+.target-parent:hover .target-icon,
+.target-parent:focus .target-icon,
+.target-parent:active .target-icon {
   opacity: 0;
 }
-.target-parent:hover .target-remove {
+.target-parent:hover .target-remove,
+.target-parent:focus .target-remove,
+.target-parent:active .target-remove {
   opacity: 1;
 }
 </style>
