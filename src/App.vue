@@ -534,8 +534,28 @@
               :key="index"
               class="flex gap-2 flex-wrap align-items-center"
             >
-              <TriStateCheckbox v-model="state.week[index]" :inputId="day" />
-              <label :for="day" class=""> {{ day }} </label>
+              <TriStateCheckbox
+                v-model="state.week[index]"
+                :inputId="day"
+                :pt="{
+                  checkbox: {
+                    class:
+                      state.week[index] === null ? 'border-primary' : undefined,
+                  },
+                }"
+              >
+                <template #nullableicon="scope"
+                  ><i
+                    :class="[
+                      'pi pi-question text-primary font-bold text-xs border-primary',
+                      scope.class,
+                    ]"
+                  ></i
+                ></template>
+              </TriStateCheckbox>
+              <label :for="day" class="">
+                {{ day + (state.week[index] === null ? ":" : "") }}
+              </label>
 
               <template
                 v-if="state.week[index] === null"
@@ -546,6 +566,15 @@
                   v-model="state.hours[index][hour]"
                   binary
                   :inputId="`${day}-${hour}`"
+                  :pt="{
+                    input: {
+                      style:
+                        'border: 2px solid #424b57; background: #111827; color: var(--primary-color)',
+                    },
+                    icon: {
+                      class: 'text-primary',
+                    },
+                  }"
                 />
                 <label
                   :for="`${day}-${hour}`"
