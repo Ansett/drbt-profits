@@ -530,17 +530,19 @@
             class="card flex flex-wrap justify-content-start gap-3"
           >
             <div
-              v-for="(day, index) of allDays"
-              :key="index"
+              v-for="day in allDays"
+              :key="day.index"
               class="flex gap-2 flex-wrap align-items-center"
             >
               <TriStateCheckbox
-                v-model="state.week[index]"
-                :inputId="day"
+                v-model="state.week[day.index]"
+                :inputId="day.name"
                 :pt="{
                   checkbox: {
                     class:
-                      state.week[index] === null ? 'border-primary' : undefined,
+                      state.week[day.index] === null
+                        ? 'border-primary'
+                        : undefined,
                   },
                 }"
               >
@@ -553,19 +555,19 @@
                   ></i
                 ></template>
               </TriStateCheckbox>
-              <label :for="day" class="">
-                {{ day + (state.week[index] === null ? ":" : "") }}
+              <label :for="day.name" class="">
+                {{ day.name + (state.week[day.index] === null ? ":" : "") }}
               </label>
 
               <template
-                v-if="state.week[index] === null"
+                v-if="state.week[day.index] === null"
                 v-for="hour in allHours"
-                :key="`${day}-${hour}`"
+                :key="`${day.name}-${hour}`"
               >
                 <Checkbox
-                  v-model="state.hours[index][hour]"
+                  v-model="state.hours[day.index][hour]"
                   binary
-                  :inputId="`${day}-${hour}`"
+                  :inputId="`${day.name}-${hour}`"
                   :pt="{
                     input: {
                       style:
@@ -577,25 +579,27 @@
                   }"
                 />
                 <label
-                  :for="`${day}-${hour}`"
+                  :for="`${day.name}-${hour}`"
                   :class="[
                     'mr-1',
-                    { 'text-color-secondary': !state.hours[index][hour] },
+                    { 'text-color-secondary': !state.hours[day.index][hour] },
                   ]"
                 >
                   {{ hour }}
                 </label>
               </template>
               <span
-                v-if="state.week[index] === null"
+                v-if="state.week[day.index] === null"
                 class="ml-1 iconButton text-lg material-symbols-outlined"
                 v-tooltip.bottom="
-                  state.hours[index][0]
+                  state.hours[day.index][0]
                     ? 'Uncheck all hours'
                     : 'Check all hours'
                 "
-                @click="toggleHours(index)"
-                >{{ state.hours[index][0] ? "remove_done" : "done_all" }}</span
+                @click="toggleHours(day.index)"
+                >{{
+                  state.hours[day.index][0] ? "remove_done" : "done_all"
+                }}</span
               >
             </div>
           </div>
@@ -976,13 +980,13 @@ const selection = reactive({
 });
 
 const allDays = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
+  { index: 1, name: "Monday" },
+  { index: 2, name: "Tuesday" },
+  { index: 3, name: "Wednesday" },
+  { index: 4, name: "Thursday" },
+  { index: 5, name: "Friday" },
+  { index: 6, name: "Saturday" },
+  { index: 0, name: "Sunday" },
 ];
 const allHours = Array.from({ length: 24 }, (_, index) => index);
 
