@@ -519,7 +519,7 @@
         </div>
         <!-- DAYS & HOURS -->
         <div class="flex flex-column gap-4">
-          <div class="flex gap-2">
+          <div class="flex gap-2 pt-1">
             <InputSwitch v-model="state.withHours" inputId="hours-global" />
             <label for="hours-global"
               >Custom trading periods<span class="text-xs"> (UTC)</span></label
@@ -540,33 +540,25 @@
                 :pt="{
                   checkbox: {
                     class:
-                      state.week[day.index] === null
-                        ? 'border-primary'
+                      state.week[day.index] === false
+                        ? 'bg-orange-300 border-orange-300'
+                        : state.week[day.index] === null
+                        ? 'bg-primary border-primary'
                         : undefined,
                   },
                 }"
               >
-                <template #nullableicon="scope"
-                  ><i
-                    :class="[
-                      'pi pi-question text-primary font-bold text-xs border-primary',
-                      scope.class,
-                    ]"
-                  ></i
-                ></template>
+                <template #nullableicon="scope"></template>
               </TriStateCheckbox>
               <label :for="day.name" class="">
                 {{ day.name + (state.week[day.index] === null ? ":" : "") }}
               </label>
 
-              <template
-                v-if="state.week[day.index] === null"
-                v-for="hour in allHours"
-                :key="`${day.name}-${hour}`"
-              >
+              <template v-for="hour in allHours" :key="`${day.name}-${hour}`">
                 <Checkbox
                   v-model="state.hours[day.index][hour]"
                   binary
+                  :disabled="state.week[day.index] !== null"
                   :inputId="`${day.name}-${hour}`"
                   :pt="{
                     input: {
@@ -577,16 +569,31 @@
                       class: 'text-primary',
                     },
                   }"
-                />
+                >
+                  <template #icon="scope">
+                    <i
+                      :class="[
+                        'pi font-bold text-xs border-primary',
+                        scope.checked
+                          ? 'pi-check text-primary'
+                          : 'pi-times text-orange-300',
+                        scope.class,
+                      ]"
+                    ></i>
+                  </template>
+                </Checkbox>
                 <label
                   :for="`${day.name}-${hour}`"
                   :class="[
                     'mr-1',
-                    { 'text-color-secondary': !state.hours[day.index][hour] },
+                    state.week[day.index] === null
+                      ? 'text-color-secondary'
+                      : 'text-200',
                   ]"
                 >
                   {{ hour }}
                 </label>
+                <span v-if="hour === 11" class="flex-br" />
               </template>
               <span
                 v-if="state.week[day.index] === null"
@@ -695,6 +702,7 @@ import {
   localStorageGetObject,
   addTagsToHashes,
   sumObjectProperty,
+  sleep,
 } from "./lib";
 import { type CallArchive, type Call, type DiffType } from "./types/Call";
 import type { Log } from "./types/Log";
@@ -1079,8 +1087,10 @@ const incEndDate = (inc = 1) => {
   selection.endDate = current.toISOString().split("T")[0];
 };
 
-const runCompute = () =>
-  worker.postMessage({
+const runCompute = async () => {
+  await sleep(0.2); // waiting for color transition on inputs
+
+  return worker.postMessage({
     type: "COMPUTE",
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
@@ -1089,6 +1099,7 @@ const runCompute = () =>
     slippageGuessing: state.slippageGuessing,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
+};
 const debouncedCompute = debounce(runCompute, 1000);
 watch(filteredCalls, () => {
   if (!initialized.value) return;

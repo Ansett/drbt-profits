@@ -77,3 +77,9 @@ body {
 .nowrap {
   white-space: nowrap;
 }
+
+.flex-br {
+  flex-basis: 100%;
+  height: 0;
+  display: block;
+}
