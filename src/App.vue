@@ -211,7 +211,7 @@
 
           <!-- TIMING -->
           <AccordionTab
-            header="WEEK DAYS AND HOURS"
+            header="DAILY BREAKDOWN"
             :pt="{ content: { class: 'p-0' } }"
           >
             <template #header
