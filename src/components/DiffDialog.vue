@@ -181,13 +181,17 @@ const emit = defineEmits<{
   (e: "update:diffTypes", selection: DiffType[]): void;
 }>();
 
-// select first one or last one, depeding if selected archives is already the first or not
-const left = ref<CallArchive>(
-  props.archives[
-    props.current === props.archives[0] ? props.archives.length - 1 : 0
-  ]
+const currentIndex = props.archives.findIndex(
+  (a) => a.fileName === props.current.fileName
 );
-const right = ref<CallArchive>(props.current);
+// previous file, or first one
+const left = ref<CallArchive>(props.archives[Math.max(0, currentIndex - 1)]);
+// current file, or last one
+const right = ref<CallArchive>(
+  props.current.fileName === left.value.fileName && props.archives.length > 1
+    ? props.archives[props.archives.length - 1]
+    : props.current
+);
 const diff = ref<CallDiff[]>([]);
 const loading = ref(true);
 const visible = ref(true);
