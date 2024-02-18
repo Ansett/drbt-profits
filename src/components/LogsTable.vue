@@ -189,6 +189,13 @@
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
+        <template #header
+          ><InfoButton
+            text="Really approximative slippage..."
+            direction="top"
+            hover
+            style="margin-top: 2px; margin-right: 6px"
+        /></template>
         <template #body="{ data }">
           {{ data.slippage ? data.slippage + "%" : "" }}
         </template></Column

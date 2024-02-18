@@ -18,10 +18,11 @@ const props = defineProps<{
   text: string;
   accent?: boolean;
   direction?: "left" | "right" | "top" | "bottom";
+  hover?: boolean;
 }>();
 
 const options = computed(() => ({
   position: props.direction || "bottom",
-  event: "focus",
+  event: props.hover ? "hover" : "focus",
 }));
 </script>
