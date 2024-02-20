@@ -7,6 +7,7 @@ export type Call = {
   callMc: number;
   xs: number;
   ath: number;
+  athDate: string;
   callTimeAth: number;
   delay: number; // s
   fList: string;

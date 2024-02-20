@@ -839,8 +839,9 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     "CA",
     "Rug",
     "BlockPrice",
-    "CRT_ATH_MC",
-    "ATH_MC",
+    "CRT_ATH_MC", // ATH at the time of export
+    "CRT_ATH_Date",
+    "ATH_MC", // ATH at the time of call
     "TSupply",
     "MaxBuyPRCT", // MaxBuy is not realiable, using percentage instead
     "CRT_MC", // taking the second column with same name, the first one is MC at present time, not call-time
@@ -867,9 +868,11 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   let newCalls: Call[] = [];
   for (const row of rows) {
     const parsedDate = row[indexes.Logged] as Date;
-    if (!parsedDate) continue;
+    const parsedAthDate = row[indexes.CRT_ATH_Date] as Date;
+    if (!parsedDate || !parsedAthDate) continue;
     try {
       parsedDate.setHours(parsedDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
+      parsedAthDate.setHours(parsedAthDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
     } catch (e) {
       continue;
     }
@@ -879,6 +882,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const callMc = price * supply;
     const buyTax = (row[indexes.BuyTax] as number) / 100;
     const ath = row[indexes.CRT_ATH_MC] as number;
+    const athDate = parsedAthDate.toISOString();
     const xs = ath / callMc;
     const nbBribes = row[indexes.Bribes] as number;
     const nbSnipes = ((row[indexes.Snipes] as number) || 0) - (nbBribes || 0);
@@ -896,6 +900,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       callMc,
       buyTax,
       ath,
+      athDate,
       xs,
       callTimeAth: row[indexes.ATH_MC] as number,
       date,

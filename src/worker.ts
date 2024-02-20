@@ -140,7 +140,7 @@ function compute({
     if (call.rug) counters.rug++;
     const unrealistic = !call.rug && call.xs > REALISTIC_MAX_XS;
     if (unrealistic) counters.unrealistic++;
-    const postAth = !call.rug && call.ath <= call.callTimeAth;
+    const postAth = !call.rug && call.date > call.athDate;
     if (postAth) counters.postAth++;
 
     const gasPrice = getGasPrice(call, gweiDelta);
