@@ -16,12 +16,27 @@
       simulation evaluates all hours of the week
     </div>
 
+    <DataTable :value="daysData" dataKey="id" size="small" class="pt-4">
+      <Column field="dayName" header="Day (from 9am to next day 9am UTC)" />
+      <Column field="count" header="Gain" style="width: 38%">
+        <template #body="{ data }">
+          <span
+            :class="{
+              'text-green-400': data.count > 0,
+            }"
+            >{{ round2Dec(data.count) }}</span
+          >
+        </template>
+      </Column>
+    </DataTable>
+
     <DataTable
-      :value="data"
+      :value="hoursData"
       dataKey="id"
       size="small"
       rowGroupMode="rowspan"
       groupRowsBy="dayName"
+      class="mt-6"
     >
       <Column field="dayName" header="Day" />
       <Column field="sliceName" header="Hour slice (UTC)" />
@@ -46,6 +61,7 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import type { Log } from "@/types/Log";
 import { round2Dec } from "@/lib";
+import { DAY_DELIMITATION } from "@/constants";
 
 const createWeekSlices = () => {
   return Array.from({ length: 24 }, (_, index) => ({
@@ -105,7 +121,8 @@ const props = defineProps<{
 const loading = ref(false);
 const week = ref(structuredClone(INIT_WEEK));
 
-const data = computed(() =>
+// table with 1 hour each row
+const hoursData = computed(() =>
   week.value.reduce((arr, day) => {
     for (const slice of day.slices) {
       arr.push({
@@ -117,6 +134,30 @@ const data = computed(() =>
     }
     return arr;
   }, [] as { id: string; dayName: string; sliceName: string; count: number }[])
+);
+
+// table with day each row
+const daysData = computed(() =>
+  week.value.slice(0, 7).reduce((arr, day, dayIndex) => {
+    for (const slice of day.slices) {
+      const adjustedDayIndex =
+        Number(slice.name) >= DAY_DELIMITATION
+          ? dayIndex
+          : dayIndex === 0
+          ? 6
+          : dayIndex - 1;
+
+      if (!arr[adjustedDayIndex])
+        arr[adjustedDayIndex] = {
+          id: week.value[adjustedDayIndex].name,
+          dayName: week.value[adjustedDayIndex].name,
+          count: 0,
+        };
+
+      arr[adjustedDayIndex].count += slice.count;
+    }
+    return arr;
+  }, [] as { id: string; dayName: string; count: number }[])
 );
 
 const compute = () => {
