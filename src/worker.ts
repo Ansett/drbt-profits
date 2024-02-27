@@ -126,7 +126,7 @@ function compute({
     x10: 0,
   };
   const logs: Log[] = [];
-  const accuracy: any[] = [];
+  // const accuracy: any[] = [];
   const hashes: Record<string, HashInfo> = {};
   const signatures: Record<string, HashInfo> = {};
 

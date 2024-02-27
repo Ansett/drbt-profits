@@ -140,7 +140,7 @@
                     worstDrawdown[0]
                       ? ` (${worstDrawdown[0]} in this case)`
                       : ''
-                  }.<br>You need at least this absolute value in your wallet to sustain the strategy.`"
+                  }.<br>You need at least double this value in your wallet to sustain the strategy.<br>Position sale is counted the same day than buy, because we don't know better, but in really it can happen weeks later, thus increasing your drawdown even more.</li>`"
                   direction="right"
                 />
                 Worst drawdown:
