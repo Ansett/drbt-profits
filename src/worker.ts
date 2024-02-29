@@ -63,23 +63,10 @@ const getPriceImpact = (
 };
 
 const getSlippage = (call: Call, gweiDelta: number): number => {
+  const approxSnipers =
+    call.nbSnipes < 40 ? (call.nbSnipes + 1) * 2 : call.nbSnipes; // boosting the low snipers counts
   const otherGweis = [
-    ...(call.nbSnipes > 5
-      ? guessValues(
-          call.snipesMinGwei,
-          call.snipesMaxGwei,
-          call.snipesAvgGwei,
-          call.nbSnipes
-        )
-      : []),
-    ...(call.nbBribes > 5
-      ? guessValues(
-          ethToGwei(call.bribesMinEth, call.buyGas, call.gwei),
-          ethToGwei(call.bribesMaxEth, call.buyGas, call.gwei),
-          ethToGwei(call.bribesAvgEth, call.buyGas, call.gwei),
-          call.nbBribes
-        )
-      : []),
+    ...(approxSnipers > 2 ? guessValues(5, 100, 50, approxSnipers) : []),
   ];
 
   const previousBuysCount = otherGweis.filter((g) => g >= gweiDelta).length;
@@ -149,7 +136,7 @@ function compute({
     const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
     const slippage =
       slippageGuessing && call.delay < 15
-        ? getSlippage(call, gweiDelta) || DEFAULT_SLIPPAGE
+        ? getSlippage(call, gweiDelta) + DEFAULT_SLIPPAGE
         : DEFAULT_SLIPPAGE;
     let effectiveXs = call.xs / (1 + slippage / 100);
     if (buyTaxInXs) effectiveXs = effectiveXs * (1 - call.buyTax);

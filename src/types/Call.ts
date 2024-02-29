@@ -20,13 +20,6 @@ export type Call = {
   gwei: number;
   buyGas: number;
   nbSnipes: number;
-  snipesMinGwei: number;
-  snipesMaxGwei: number;
-  snipesAvgGwei: number;
-  nbBribes: number;
-  bribesMinEth: number;
-  bribesMaxEth: number;
-  bribesAvgEth: number;
   lp: number;
 };
 

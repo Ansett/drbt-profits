@@ -6,7 +6,7 @@ dotenv.config();
 
 const MY_ADDR = process.env.ETHER_ADDR;
 const BANANA = "0x3328F7f4A1D1C57c35df56bBf0c9dCAFCA309C49";
-const STARTING_BLOCK = 18721864; // 2023-12-05 19:15:26
+const STARTING_BLOCK = 18892610;
 const EXPORT_FILE = "buys.json";
 
 const alchemy = new Alchemy({
@@ -45,6 +45,7 @@ const buys = tokens.transfers.reduce((arr, token) => {
 
   arr.push({
     symbol: token.asset,
+    block: parseInt(tx.blockNum, 16),
     ca: token.rawContract.address,
     amount: token.value,
     eth: tx.value - (reimbursement?.value || 0),
