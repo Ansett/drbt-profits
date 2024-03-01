@@ -170,6 +170,19 @@
                 <span class="">Number of calls: </span>
                 <span class="text-primary">{{ filteredCalls.length }}</span>
               </div>
+              <!-- RATIO -->
+              <div class="text-lg flex gap-2 align-items-center">
+                <InfoButton
+                  :text="`Might help you to see if drawdown increases more than profits and it becomes to not worth it to go that way`"
+                  direction="right"
+                />
+                <span class="">Profit/drawdown ratio: </span>
+                <span class="text-primary">{{
+                  worstDrawdown[1]
+                    ? round(finalETH / Math.abs(worstDrawdown[1]), 2)
+                    : 0
+                }}</span>
+              </div>
             </div>
           </AccordionTab>
 
@@ -192,18 +205,13 @@
             header="TARGET SIMULATOR"
             :pt="{ content: { class: 'p-0' } }"
           >
-            <template #header
-              ><i
-                class="pi pi-star-fill text-cyan-300 ml-2"
-                style="font-size: 0.75rem"
-              ></i>
-            </template>
             <TargetFinder
               :data="{
                 calls: filteredCalls,
                 position: state.position,
                 gweiDelta: state.gweiDelta,
                 buyTaxInXs: state.buyTaxInXs,
+                feeInXs: state.feeInXs,
                 slippageGuessing: state.slippageGuessing,
               }"
             />
@@ -214,12 +222,6 @@
             header="DAILY BREAKDOWN"
             :pt="{ content: { class: 'p-0' } }"
           >
-            <template #header
-              ><i
-                class="pi pi-star-fill text-cyan-300 ml-2"
-                style="font-size: 0.75rem"
-              ></i>
-            </template>
             <TimingFinder :logs="logs" :limited="state.withHours" />
           </AccordionTab>
 
@@ -259,7 +261,7 @@
       >
         <!-- POSITION -->
         <div class="flex flex-column gap-2">
-          <label for="position-input">Max bought</label>
+          <label for="position-input">Max bag</label>
           <InputGroup>
             <InputGroupAddon>
               <i class="pi pi-wallet"></i>
@@ -283,13 +285,7 @@
         </div>
         <!-- GAP PRICE -->
         <div class="flex flex-column gap-2">
-          <label for="gwei-input"
-            >Buy GWEI delta
-            <i
-              class="pi pi-star-fill text-cyan-300 ml-2"
-              style="font-size: 0.75rem"
-            ></i
-          ></label>
+          <label for="gwei-input">Buy GWEI delta</label>
           <InputGroup>
             <InputGroupAddon>
               <span class="material-symbols-outlined">local_gas_station</span>
@@ -396,9 +392,22 @@
               binary
               class="flex-shrink-0"
             />
-            <label for="taxOption">Buy tax impacts targets </label>
+            <label for="taxOption">Tax lowers target </label>
             <InfoButton
               text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts profit and not targets"
+              class="align-self-start"
+            />
+          </div>
+          <div class="flex flex-row gap-2 align-items-center pl-3">
+            <Checkbox
+              inputId="feeOption"
+              v-model="state.feeInXs"
+              binary
+              class="flex-shrink-0"
+            />
+            <label for="feeOption">Gas lowers target </label>
+            <InfoButton
+              text="If activated, Xs targeting is using the same calculation than sniper bots [profit% = worth/(initial+gas)). If not activated, Xs target are just targetPrice/entryPrice. Whichever you choose, gas cost is just a flat value deduced from profit."
               class="align-self-start"
             />
           </div>
@@ -409,9 +418,8 @@
               binary
               class="flex-shrink-0"
             />
-            <label for="slippageOption">Slippage guessing </label>
+            <label for="slippageOption">Slippage guess </label>
             <InfoButton
-              accent
               :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, the algorithm tries to guess a more realistic, but still imperfect, slippage with the help of block 0 snipes data`"
               class="align-self-start"
             />
@@ -703,6 +711,7 @@ import {
   addTagsToHashes,
   sumObjectProperty,
   sleep,
+  round,
 } from "./lib";
 import { type CallArchive, type Call, type DiffType } from "./types/Call";
 import type { Log } from "./types/Log";
@@ -934,6 +943,7 @@ const INIT_LOG_COLUMNS = ["Invested", "Entry MC", "Slippage", "ATH MC"];
 const INIT_TEXT_LOGS = false;
 const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
 const INIT_BUY_TAX_IN_XS = true;
+const INIT_FEE_IN_XS = true;
 const INIT_SLIPPAGE_GUESSING = true;
 const INIT_WITH_HOURS = false;
 const INIT_WEEK = [true, true, true, true, true, true, true] as (
@@ -960,6 +970,7 @@ const state = reactive({
   textLogs: INIT_TEXT_LOGS,
   diffTypes: INIT_DIFF_TYPES,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
+  feeInXs: INIT_FEE_IN_XS,
   slippageGuessing: INIT_SLIPPAGE_GUESSING,
   withHours: INIT_WITH_HOURS,
   week: INIT_WEEK,
@@ -987,7 +998,7 @@ const allHours = Array.from({ length: 24 }, (_, index) => index);
 const initialized = ref(false);
 const finalETH = ref(0);
 const drawdown = ref(0);
-const worstDrawdown = ref(["", 0]);
+const worstDrawdown = ref<[string, number]>(["", 0]);
 const counters = ref({
   rug: 0,
   unrealistic: 0,
@@ -1015,6 +1026,7 @@ function loadForm() {
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
   state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
+  state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS;
   state.slippageGuessing =
     savedState.slippageGuessing ?? INIT_SLIPPAGE_GUESSING;
   state.withHours = savedState.withHours ?? INIT_WITH_HOURS;
@@ -1082,6 +1094,7 @@ const runCompute = async () => {
     position: state.position,
     gweiDelta: state.gweiDelta,
     buyTaxInXs: state.buyTaxInXs,
+    feeInXs: state.feeInXs,
     slippageGuessing: state.slippageGuessing,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
   });
@@ -1099,6 +1112,7 @@ watch(
     () => state.takeProfits,
     () => state.gweiDelta,
     () => state.buyTaxInXs,
+    () => state.feeInXs,
     () => state.slippageGuessing,
   ],
   () => {

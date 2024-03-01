@@ -188,6 +188,7 @@ const props = defineProps<{
     position: number;
     gweiDelta: number;
     buyTaxInXs: boolean;
+    feeInXs: boolean;
     slippageGuessing: boolean;
   };
 }>();
@@ -209,6 +210,7 @@ const compute = () => {
     position: props.data.position,
     gweiDelta: props.data.gweiDelta,
     buyTaxInXs: props.data.buyTaxInXs,
+    feeInXs: props.data.feeInXs,
     slippageGuessing: props.data.slippageGuessing,
     increment: withXs.value ? xIncrement.value : mcIncrement.value,
     end: withXs.value ? xTargetEnd.value : mcTargetEnd.value,
@@ -256,6 +258,7 @@ watch(
     () => props.data.position,
     () => props.data.gweiDelta,
     () => props.data.buyTaxInXs,
+    () => props.data.feeInXs,
     () => props.data.slippageGuessing,
     withXs,
     xTargetStart,

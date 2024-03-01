@@ -91,6 +91,7 @@ function compute({
   gweiDelta,
   takeProfits,
   buyTaxInXs,
+  feeInXs,
   slippageGuessing,
 }: {
   calls: Call[];
@@ -98,6 +99,7 @@ function compute({
   gweiDelta: number;
   takeProfits: TakeProfit[];
   buyTaxInXs: boolean;
+  feeInXs: boolean;
   slippageGuessing: boolean;
 }): ComputationResult {
   let finalETH = 0;
@@ -131,9 +133,9 @@ function compute({
     if (postAth) counters.postAth++;
 
     const gasPrice = getGasPrice(call, gweiDelta);
-    let gain = -gasPrice - invested;
+    let gain = -invested - gasPrice;
     // remove buy tax either directly on Xs, or later when calculating profit
-    const buyTax = buyTaxInXs ? 1 : 1 - call.buyTax;
+    const buyTaxForGain = buyTaxInXs ? 1 : 1 - call.buyTax;
     const slippage =
       slippageGuessing && call.delay < 15
         ? getSlippage(call, gweiDelta) + DEFAULT_SLIPPAGE
@@ -142,6 +144,12 @@ function compute({
     if (buyTaxInXs) effectiveXs = effectiveXs * (1 - call.buyTax);
 
     const bestXs = unrealistic ? REALISTIC_MAX_XS : effectiveXs;
+    // we reduce Xs used for targeting with gas fee, but we later need to revert that when using the Xs to actually calculate the final profit
+    const getXsWithFee = (rawXs: number) =>
+      feeInXs ? rawXs * (invested / (invested + gasPrice)) : rawXs;
+    const getXsWouthFee = (XsWithFee: number) =>
+      feeInXs ? XsWithFee / (invested / (invested + gasPrice)) : XsWithFee;
+
     const hitTp: string[] = [];
 
     if (!call.rug && !postAth) {
@@ -149,18 +157,18 @@ function compute({
       let tpIndex = 0;
       for (const tp of takeProfits) {
         const targetXsDirect = tp.withXs ? tp.xs : 0;
-        const targetXsFromMc = tp.withMc ? (effectiveXs / call.ath) * tp.mc : 0;
+        const targetXsFromMc = tp.withMc ? (bestXs / call.ath) * tp.mc : 0;
         const firstTargetMet = !targetXsDirect
           ? targetXsFromMc
           : !targetXsFromMc
           ? targetXsDirect
           : Math.min(targetXsDirect, targetXsFromMc);
 
-        if (bestXs >= firstTargetMet && tp.size) {
+        if (getXsWithFee(bestXs) >= firstTargetMet && tp.size) {
           gain +=
             ((invested * tp.size) / 100) *
-              firstTargetMet *
-              buyTax *
+              getXsWouthFee(firstTargetMet) *
+              buyTaxForGain *
               (1 - SELL_TAX / 100) -
             SELL_GAS_PRICE;
           remainingPosition -= tp.size;
@@ -218,12 +226,16 @@ function compute({
     //   if (realBuy) {
     //     const price =
     //       (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - call.buyTax));
-    //     const realBuyMc = call.supply * price;
-    //     const theoricBuyMc = call.currentMC * (1 + slippage / 100);
+    //   const realBuyMc = call.supply * price;
+    //   const theoricBuyMc = call.currentMC * (1 + slippage / 100);
+    //   if (call.xs >= 40 && !call.rug)
     //     accuracy.push({
-    //       slippage: round(slippage, 2),
-    //       snipes: call.nbSnipes + call.nbBribes,
+    //       slippage: round(slippage, 0),
+    //       snipes: call.nbSnipes,
     //       theoricDiff: (theoricBuyMc / realBuyMc - 1) * 100,
+    //       theoricBuyMc,
+    //       realBuyMc,
+    //       ca: call.ca,
     //     });
     //   }
     // }
@@ -249,6 +261,10 @@ function compute({
     });
   });
 
+  // console.log(accuracy);
+  // console.log(
+  //   accuracy.reduce((sum, acc) => sum + acc.theoricDiff, 0) / accuracy.length
+  // );
   // console.log(accuracy.map((v) => v.slippage));
   // console.log(accuracy.map((v) => v.snipes));
   // console.log(accuracy.map((v) => v.theoricDiff));
@@ -307,6 +323,7 @@ function findTarget({
   gweiDelta,
   targetStart,
   buyTaxInXs,
+  feeInXs,
   slippageGuessing,
   end,
   increment,
@@ -316,6 +333,7 @@ function findTarget({
   gweiDelta: number;
   targetStart: TakeProfit;
   buyTaxInXs: boolean;
+  feeInXs: boolean;
   slippageGuessing: boolean;
   end: number;
   increment: number;
@@ -336,6 +354,7 @@ function findTarget({
       position,
       gweiDelta,
       buyTaxInXs,
+      feeInXs,
       slippageGuessing,
       takeProfits: [currentTP],
     });
