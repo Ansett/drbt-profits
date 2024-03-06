@@ -117,7 +117,7 @@
               <!-- FUNDS -->
               <div class="text-2xl flex gap-2 align-items-center">
                 <InfoButton
-                  :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected position or max-buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`"
+                  :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag or contract's max buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`"
                   direction="right"
                 />
                 Realized profits:
@@ -140,7 +140,7 @@
                     worstDrawdown[0]
                       ? ` (${worstDrawdown[0]} in this case)`
                       : ''
-                  }.<br>You need at least double this value in your wallet to sustain the strategy.<br>Position sale is counted the same day than buy, because we don't know better, but in really it can happen weeks later, thus increasing your drawdown even more.</li>`"
+                  }.<br>You need at least double this value in your wallet to sustain the strategy.<br>Sale is counted the same day as buy because we don't know better, but in reality it can happen weeks later, which makes your drawdown even bigger.</li>`"
                   direction="right"
                 />
                 Worst drawdown:
@@ -173,7 +173,7 @@
               <!-- RATIO -->
               <div class="text-lg flex gap-2 align-items-center">
                 <InfoButton
-                  :text="`Might help you to see if drawdown increases more than profits and it becomes to not worth it to go that way`"
+                  :text="`Might help you to see if drawdown increases more than profits, and it stops being worth it`"
                   direction="right"
                 />
                 <span class="">Profit/drawdown ratio: </span>
@@ -394,7 +394,7 @@
             />
             <label for="taxOption">Tax lowers target </label>
             <InfoButton
-              text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts profit and not targets"
+              text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts final profit and not targets"
               class="align-self-start"
             />
           </div>
@@ -407,7 +407,7 @@
             />
             <label for="feeOption">Gas lowers target </label>
             <InfoButton
-              text="If activated, Xs targeting is using the same calculation than sniper bots [profit% = worth/(initial+gas)). If not activated, Xs target are just targetPrice/entryPrice. Whichever you choose, gas cost is just a flat value deduced from profit."
+              text="If activated, Xs target is using the same calculation than sniper bots [profit% = worth/(initial+gas)). If not activated, Xs target is just targetPrice/entryPrice. Whichever you choose, gas cost is just a flat value deduced from profit."
               class="align-self-start"
             />
           </div>
@@ -420,7 +420,7 @@
             />
             <label for="slippageOption">Slippage guess </label>
             <InfoButton
-              :text="`By default buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, the algorithm tries to guess a more realistic, but still imperfect, slippage with the help of block 0 snipes data`"
+              :text="`By default, buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, the algorithm tries to guess a more realistic, but still very imperfect, slippage with the help of block 0 snipes data`"
               class="align-self-start"
             />
           </div>

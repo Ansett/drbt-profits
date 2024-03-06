@@ -12,7 +12,7 @@ export const ptNumberInput = {
 };
 
 export const SELL_TAX = 4;
-export const ETH_PRICE = 3000;
+export const ETH_PRICE = 4000;
 export const SELL_GAS_PRICE = 0.01;
 export const DEFAULT_SLIPPAGE = 25;
 export const DAY_DELIMITATION = 9; // in the by-day table, a day is considered to start at 9am UTC
