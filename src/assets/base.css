@@ -11,7 +11,8 @@ p {
 ul {
   list-style-type: none;
 }
-.p-tooltip ul {
+.p-tooltip ul,
+ul.bullets {
   list-style-type: disc;
 }
 .p-tooltip {

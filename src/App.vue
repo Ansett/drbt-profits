@@ -667,13 +667,14 @@
       <template #header>&nbsp;</template>
       <p>
         If you want to donate anything so I can invest more time to improve the
-        tool, I'll gladly accept transfers<sup>*</sup> to:
-        <CaLink ca="0xbb717878ba44f2200af6b0d95199252c6522ea53" wallet />
+        tool, I'll gladly accept transfers to:
+        
       </p>
+      <ul class="bullets">
+        <li><CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet /> (Ethereum, Polygon, Avalanche)</li>
+        <li><CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet /> (Solana)</li>
+      </ul>
       <p class="mt-3">Thanks wholeheartedly :D</p>
-      <p class="mt-5 text-color-secondary text-xs">
-        * any coin on Ethereum, Arbitrum, Optimism, Polygon, Avalanche or BSC
-      </p>
     </Dialog>
   </main>
 </template>
