@@ -32,10 +32,14 @@
             />
             <Button
               icon="pi pi-code"
-              aria-label="Invert"
               raised
               outlined
               class="align-self-end mb-1"
+              aria-label="Invert"
+              v-tooltip.bottom="{
+                value: 'Invert left and right',
+                showDelay: 500,
+              }"
               @click="invert"
             />
           </div>
@@ -210,7 +214,7 @@ import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import Button from "primevue/button";
 import MultiSelect from "primevue/multiselect";
-import InputMask from "primevue/inputmask";
+import vTooltip from "primevue/tooltip";
 import { type CallDiff, type CallArchive, type DiffType } from "@/types/Call";
 import { FilterMatchMode } from "primevue/api";
 import { prettifyDate, sleep } from "@/lib";

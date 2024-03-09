@@ -138,7 +138,10 @@
           <i
             class="link pi pi-plus-circle"
             style="font-size: 0.8rem"
-            v-tooltip.top="'Add a tag'"
+            v-tooltip.bottom="{
+              value: 'Add a tag',
+              showDelay: 500,
+            }"
             @click="showTagInput(data.id, $event)"
           ></i>
           <span v-for="(tag, index) in data.tags" :key="index"

@@ -7,14 +7,20 @@
         v-if="!wallet"
         class="pi pi-external-link text-primary cursor-pointer ml-1 mr-1"
         aria-label="Open chart"
-        v-tooltip.bottom="'Open chart'"
+        v-tooltip.bottom="{
+          value: 'Open chart',
+          showDelay: 500,
+        }"
         @click="openChart(ca)"
       ></i>
 
       <code
         :class="['text-color-secondary', 'hoverlink', { 'px-1': !wallet }]"
         aria-label="Copy to clipboard"
-        v-tooltip.bottom="'Copy address to clipboard'"
+        v-tooltip.bottom="{
+          value: 'Copy address to clipboard',
+          showDelay: 500,
+        }"
         @click="copyCA"
       >
         {{ truncatedCa }}</code

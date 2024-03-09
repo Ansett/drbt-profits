@@ -7,7 +7,10 @@
       raised
       class="accordion-button"
       aria-label="Logs view"
-      v-tooltip.left="textual ? 'Switch to table view' : 'Swith to text view'"
+      v-tooltip.left="{
+        value: textual ? 'Switch to table view' : 'Switch to text view',
+        showDelay: 500,
+      }"
       @click.stop="textual = !textual"
     />
 
@@ -85,7 +88,10 @@
           <Button
             icon="pi pi-file-export"
             aria-label="Export CSV"
-            v-tooltip.top="'Export CSV'"
+            v-tooltip.top="{
+              value: 'Export CSV',
+              showDelay: 500,
+            }"
             @click="exportLogs()"
           />
           <InputGroup class="w-auto">

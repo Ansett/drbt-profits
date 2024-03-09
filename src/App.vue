@@ -78,7 +78,10 @@
                     v-if="archives.length >= 2"
                     icon="pi pi-code"
                     outlined
-                    v-tooltip.bottom="'Examine differences between 2 files'"
+                    v-tooltip.bottom="{
+                      value: 'Examine differences between 2 files',
+                      showDelay: 500,
+                    }"
                     aria-label="Difference"
                     @click="showDiff = true"
                   />
@@ -536,11 +539,12 @@
               <span
                 v-if="state.week[day.index] === null"
                 class="ml-1 iconButton text-lg material-symbols-outlined"
-                v-tooltip.bottom="
-                  state.hours[day.index][0]
+                v-tooltip.bottom="{
+                  value: state.hours[day.index][0]
                     ? 'Uncheck all hours'
-                    : 'Check all hours'
-                "
+                    : 'Check all hours',
+                  showDelay: 500,
+                }"
                 @click="toggleHours(day.index)"
                 >{{
                   state.hours[day.index][0] ? "remove_done" : "done_all"
@@ -606,11 +610,16 @@
       <p>
         If you want to donate anything so I can invest more time to improve the
         tool, I'll gladly accept transfers to:
-        
       </p>
       <ul class="bullets">
-        <li><CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet /> (Ethereum, Polygon, Avalanche)</li>
-        <li><CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet /> (Solana)</li>
+        <li>
+          <CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet />
+          (Ethereum, Polygon, Avalanche)
+        </li>
+        <li>
+          <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet />
+          (Solana)
+        </li>
       </ul>
       <p class="mt-3">Thanks wholeheartedly :D</p>
     </Dialog>
