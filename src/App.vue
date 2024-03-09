@@ -78,6 +78,7 @@
                     v-if="archives.length >= 2"
                     icon="pi pi-code"
                     outlined
+                    v-tooltip.bottom="'Examine differences between 2 files'"
                     aria-label="Difference"
                     @click="showDiff = true"
                   />
@@ -104,86 +105,15 @@
         <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
           <!-- RESULTS -->
           <AccordionTab header="STATISTICS">
-            <div class="flex flex-column align-items-start relative">
-              <ProgressSpinner
-                v-if="loading"
-                class="absolute top-50 left-50"
-                style="
-                  width: 99px;
-                  height: 99px;
-                  transform: translate(-50%, -50%);
-                "
-              />
-              <!-- FUNDS -->
-              <div class="text-2xl flex gap-2 align-items-center">
-                <InfoButton
-                  :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag or contract's max buy, calculated using $${ETH_PRICE} ETH value, minus tax and gas price (calculated from current+delta gwei).</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price and ${SELL_TAX}% tax are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li></ul>`"
-                  direction="right"
-                />
-                Realized profits:
-                <span class="font-bold text-primary">{{ finalETH }}</span>
-                <span class="text-color-secondary text-lg"> ETH</span>
-              </div>
-              <!-- DRAWDOWN -->
-              <div class="text-lg flex gap-2 align-items-center">
-                <InfoButton
-                  text="The lowest the wallet has fallen to, starting from 0 ETH, during the whole period"
-                  direction="right"
-                />
-                Overall drawdown:
-                <span class="font-bold text-primary">{{ drawdown }}</span>
-                <span class="text-color-secondary text-xs"> ETH</span>
-              </div>
-              <div class="text-lg flex gap-2 align-items-center">
-                <InfoButton
-                  :text="`The lowest the wallet has fallen to, starting from 0 ETH, if you began your strategy at the worst time during the selected period${
-                    worstDrawdown[0]
-                      ? ` (${worstDrawdown[0]} in this case)`
-                      : ''
-                  }.<br>You need at least double this value in your wallet to sustain the strategy.<br>Sale is counted the same day as buy because we don't know better, but in reality it can happen weeks later, which makes your drawdown even bigger.</li>`"
-                  direction="right"
-                />
-                Worst drawdown:
-                <span class="font-bold text-primary">{{
-                  worstDrawdown[1]
-                }}</span>
-                <span class="text-color-secondary text-xs"> ETH </span>
-              </div>
-              <!-- NB CALLS -->
-              <div class="text-lg flex gap-2 align-items-center">
-                <InfoButton
-                  :text="`Including<ul>${
-                    counters.unrealistic
-                      ? `<li>${counters.unrealistic} unrealistic trades where we had to cap Xs</li>`
-                      : ''
-                  }<li>${counters.rug} rugs</li><li>${
-                    counters.postAth
-                  } calls that occurred after ATH and thus counted as losses</li><li>${
-                    counters.x100
-                  } calls that made 100x</li><li>${
-                    counters.x50
-                  } calls that made 50x</li><li>${
-                    counters.x10
-                  } calls that made 10x</li></ul>`"
-                  direction="right"
-                />
-                <span class="">Number of calls: </span>
-                <span class="text-primary">{{ filteredCalls.length }}</span>
-              </div>
-              <!-- RATIO -->
-              <div class="text-lg flex gap-2 align-items-center">
-                <InfoButton
-                  :text="`Might help you to see if drawdown increases more than profits, and it stops being worth it`"
-                  direction="right"
-                />
-                <span class="">Profit/drawdown ratio: </span>
-                <span class="text-primary">{{
-                  worstDrawdown[1]
-                    ? round(finalETH / Math.abs(worstDrawdown[1]), 2)
-                    : 0
-                }}</span>
-              </div>
-            </div>
+            <Statistics
+              :loading="loading"
+              info
+              :finalETH="finalETH"
+              :drawdown="drawdown"
+              :worstDrawdown="worstDrawdown"
+              :counters="counters"
+              :nbCalls="filteredCalls.length"
+            />
           </AccordionTab>
 
           <!-- LOGS -->
@@ -652,6 +582,14 @@
       v-model:diffTypes="state.diffTypes"
       :archives="archives"
       :current="current"
+      :computingParams="{
+        position: state.position,
+        gweiDelta: state.gweiDelta,
+        buyTaxInXs: state.buyTaxInXs,
+        feeInXs: state.feeInXs,
+        slippageGuessing: state.slippageGuessing,
+        takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
+      }"
       @closed="showDiff = false"
     />
 
@@ -692,7 +630,6 @@ import AccordionTab from "primevue/accordiontab";
 import Message from "primevue/message";
 import InputMask from "primevue/inputmask";
 import InputSwitch from "primevue/inputswitch";
-import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
 import Checkbox from "primevue/checkbox";
 import TriStateCheckbox from "primevue/tristatecheckbox";
@@ -730,6 +667,7 @@ import {
   SELL_GAS_PRICE,
   DEFAULT_SLIPPAGE,
 } from "./constants";
+import Statistics from "./components/Statistics.vue";
 
 const error = ref("");
 const loading = ref(false);

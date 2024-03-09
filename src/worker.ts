@@ -25,7 +25,7 @@ onmessage = function ({ data }) {
       postMessage({ type: "XLSX", rows, fileName: data.xlsx.name });
     });
   if (data.type === "COMPUTE")
-    return postMessage({ type: "COMPUTE", ...compute(data) });
+    return postMessage({ type: "COMPUTE", ...compute(data), variant: data.variant });
   if (data.type === "TARGETING")
     return postMessage({ type: "TARGETING", result: findTarget(data) });
   if (data.type === "DIFF")
