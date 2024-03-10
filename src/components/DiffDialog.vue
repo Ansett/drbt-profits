@@ -8,189 +8,126 @@
       width: '150rem',
       maxHeight: '90%',
     }"
-    :pt="{ content: { class: 'p-0' } }"
     @hide="onClose"
   >
-    <template #header>Differences from left to right set of calls</template>
+    <template #header
+      ><div class="flex flex-row column-gap-3 align-items-center">
+        Differences between
+        <Dropdown
+          v-model="left.archive"
+          optionLabel="fileName"
+          :options="archives"
+          aria-label="Left file"
+          style="max-width: 25rem"
+          scrollHeight="275px"
+        />
+        and
+        <Dropdown
+          v-model="right.archive"
+          optionLabel="fileName"
+          :options="archives"
+          aria-label="Right file"
+          style="max-width: 25rem"
+          scrollHeight="275px"
+        />
+        <Button
+          icon="pi pi-code"
+          raised
+          outlined
+          aria-label="Invert"
+          v-tooltip.bottom="{
+            value: 'Invert sets of calls',
+            showDelay: 500,
+          }"
+          @click="invert"
+        /></div
+    ></template>
 
-    <div class="flex flex-row flex-wrap column-gap-3 row-gap-2 px-3">
+    <div class="flex flex-row flex-wrap gap-3 px-3">
       <Card
-        class="flex-grow-1 surface-section relative"
+        class="flex-grow-1 border-round surface-section"
         :pt="{
           content: { class: 'p-0' },
         }"
       >
-        <template #title>
-          <div class="flex flex-row justify-content-between">
-            <Dropdown
-              v-model="left"
-              optionLabel="fileName"
-              :options="archives"
-              aria-label="Left file"
-              style="max-width: 25rem"
-              scrollHeight="275px"
-            />
-            <Button
-              icon="pi pi-code"
-              raised
-              outlined
-              class="align-self-end mb-1"
-              aria-label="Invert"
-              v-tooltip.bottom="{
-                value: 'Invert left and right',
-                showDelay: 500,
-              }"
-              @click="invert"
-            />
-          </div>
-        </template>
+        <template #title> Calls only in {{ left.archive.fileName }} </template>
         <template #content>
           <Statistics
-            :loading="loadingLeft"
-            :finalETH="statsLeft.finalETH"
-            :drawdown="statsLeft.drawdown"
-            :worstDrawdown="statsLeft.worstDrawdown"
-            :counters="statsLeft.counters"
-            :nbCalls="left.calls.length"
+            :loading="left.loading"
+            :finalETH="left.stats.finalETH"
+            :drawdown="left.stats.drawdown"
+            :worstDrawdown="left.stats.worstDrawdown"
+            :counters="left.stats.counters"
+            :nbCalls="left.stats.logs.length"
+          />
+
+          <LogsTable
+            :logs="left.stats.logs"
+            v-model:selectedColumns="logColumns"
+            :rows="10"
+            initialSort="gain"
+            class="mt-3"
           />
         </template>
       </Card>
 
       <Card
-        class="flex-grow-1 surface-section"
+        class="flex-grow-1 border-round surface-section"
         :pt="{
           content: { class: 'p-0' },
         }"
       >
-        <template #title>
-          <Dropdown
-            v-model="right"
-            optionLabel="fileName"
-            :options="archives"
-            aria-label="Right file"
-            style="max-width: 25rem"
-            scrollHeight="275px"
-          />
-        </template>
+        <template #title> Calls only in {{ right.archive.fileName }} </template>
         <template #content>
           <Statistics
-            :loading="loadingRight"
-            :finalETH="statsRight.finalETH"
-            :drawdown="statsRight.drawdown"
-            :worstDrawdown="statsRight.worstDrawdown"
-            :counters="statsRight.counters"
-            :nbCalls="right.calls.length"
+            :loading="right.loading"
+            :finalETH="right.stats.finalETH"
+            :drawdown="right.stats.drawdown"
+            :worstDrawdown="right.stats.worstDrawdown"
+            :counters="right.stats.counters"
+            :nbCalls="right.stats.logs.length"
+          />
+
+          <LogsTable
+            :logs="right.stats.logs"
+            v-model:selectedColumns="logColumns"
+            :rows="10"
+            initialSort="gain"
+            class="mt-3"
+          />
+        </template>
+      </Card>
+
+      <Card
+        class="flex-grow-1 border-round surface-section"
+        :pt="{
+          content: { class: 'p-0' },
+        }"
+      >
+        <template #title> Calls in both files </template>
+        <template #content>
+          <Statistics
+            :loading="common.loading"
+            :finalETH="common.stats.finalETH"
+            :drawdown="common.stats.drawdown"
+            :worstDrawdown="common.stats.worstDrawdown"
+            :counters="common.stats.counters"
+            :nbCalls="common.stats.logs.length"
+          />
+
+          <LogsTable
+            :logs="common.stats.logs"
+            v-model:selectedColumns="logColumns"
+            :rows="10"
+            initialSort="gain"
+            class="mt-3"
           />
         </template>
       </Card>
     </div>
 
-    <DataTable
-      :value="diff"
-      dataKey="call.ca"
-      :sortField="(d) => (d.call.rug ? -1 : d.call.xs)"
-      :sortOrder="-1"
-      sortMode="single"
-      v-model:filters="filters"
-      filterDisplay="row"
-      :paginator="diff.length > 20"
-      :rows="50"
-    >
-      <template #empty> No difference... </template>
-
-      <Column
-        sortable
-        sortField="call.date"
-        filterField="call.date"
-        :showFilterMenu="false"
-        header="Date"
-      >
-        <template #body="{ data }">
-          <span class="flex flex-wrap column-gap-2">
-            <span class="nowrap">{{
-              prettifyDate(data.call.date, "date")
-            }}</span>
-            <span class="nowrap text-color-secondary">{{
-              prettifyDate(data.call.date, "hour")
-            }}</span>
-          </span>
-        </template>
-        <template #filter="{ filterModel, filterCallback }">
-          <InputText
-            v-model="filterModel.value"
-            type="text"
-            placeholder="Search"
-            class="p-column-filter max-w-20rem"
-            @input="filterCallback()"
-          />
-        </template>
-      </Column>
-      <Column
-        sortable
-        sortField="call.name"
-        filterField="call.nameAndCa"
-        :showFilterMenu="false"
-        header="Name & CA"
-      >
-        <template #body="{ data }">
-          <CaLink :name="data.call.name" :ca="data.call.ca" />
-        </template>
-        <template #filter="{ filterModel, filterCallback }">
-          <InputText
-            v-model="filterModel.value"
-            type="text"
-            @input="filterCallback()"
-            class="p-column-filter max-w-20rem"
-            placeholder="Search"
-          />
-        </template>
-      </Column>
-      <Column
-        sortable
-        field="status"
-        sortField="status"
-        :showFilterMenu="false"
-        header="Status"
-      >
-        <template #body="{ data }">
-          <Tag
-            :value="data.status.toLowerCase()"
-            :severity="
-              data.status === 'ADDED'
-                ? 'success'
-                : data.status === 'REMOVED'
-                ? 'danger'
-                : 'primary'
-            "
-          />
-        </template>
-        <template #filter="{ filterModel, filterCallback }">
-          <MultiSelect
-            v-model="filterModel.value"
-            :options="allTypes"
-            placeholder="Any"
-            optionLabel="description"
-            optionValue="id"
-            :showClear="true"
-            class="p-column-filter max-w-20rem"
-            @change="filterCallback()"
-          />
-        </template>
-      </Column>
-      <Column
-        sortable
-        :sortField="(d) => (d.call.rug ? -1 : d.call.xs)"
-        header="Perf"
-      >
-        <template #body="{ data }">
-          <Tag v-if="data.call.rug" value="rug" severity="warning" />
-          <span v-else>{{ data.call.xs }}x</span>
-        </template>
-      </Column>
-    </DataTable>
-
     <ProgressSpinner
-      v-if="loading"
+      v-if="loadingDiffs"
       class="absolute top-50 left-50"
       style="width: 99px; height: 99px; transform: translate(-50%, -50%)"
       :pt="{
@@ -201,32 +138,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from "vue";
+import { computed, reactive, ref, watch, watchEffect } from "vue";
 import Card from "primevue/card";
 import Dialog from "primevue/dialog";
 import Dropdown from "primevue/dropdown";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Tag from "primevue/tag";
 import ProgressSpinner from "primevue/progressspinner";
-import InputText from "primevue/inputtext";
-import InputGroup from "primevue/inputgroup";
-import InputGroupAddon from "primevue/inputgroupaddon";
 import Button from "primevue/button";
-import MultiSelect from "primevue/multiselect";
 import vTooltip from "primevue/tooltip";
 import { type CallDiff, type CallArchive, type DiffType } from "@/types/Call";
-import { FilterMatchMode } from "primevue/api";
-import { prettifyDate, sleep } from "@/lib";
+import { sleep } from "@/lib";
 import Worker from "@/worker?worker";
 import Statistics from "./Statistics.vue";
-import CaLink from "./CaLink.vue";
-import type { ComputationResult } from "@/types/CpmputationResult";
+import type { ComputationResult } from "@/types/ComputationResult";
+import LogsTable from "./LogsTable.vue";
+import type { Call } from "@/types/Call";
+
+type DiffPart = {
+  archive: CallArchive;
+  diff: Call[];
+  loading: boolean;
+  stats: ComputationResult;
+};
 
 const props = defineProps<{
   archives: CallArchive[];
   current: CallArchive;
-  diffTypes: DiffType[];
   computingParams: {
     position: number;
     gweiDelta: number;
@@ -236,150 +172,149 @@ const props = defineProps<{
     takeProfits: string;
   };
 }>();
+
+const logColumns = defineModel<string[]>("logColumns", {
+  required: true,
+});
+
 const emit = defineEmits<{
   (e: "closed"): void;
-  (e: "update:diffTypes", selection: DiffType[]): void;
 }>();
 
 const currentIndex = props.archives.findIndex(
   (a) => a.fileName === props.current.fileName
 );
-// previous file, or first one
-const left = ref<CallArchive>(props.archives[Math.max(0, currentIndex - 1)]);
-// current file, or last one
-const right = ref<CallArchive>(
-  props.current.fileName === left.value.fileName && props.archives.length > 1
-    ? props.archives[props.archives.length - 1]
-    : props.current
-);
+
+const getDefaultStats = () =>
+  ({
+    finalETH: 0,
+    drawdown: 0,
+    worstDrawdown: ["", 0],
+    counters: {
+      rug: 0,
+      unrealistic: 0,
+      postAth: 0,
+      x100: 0,
+      x50: 0,
+      x10: 0,
+    },
+    logs: [],
+    hashes: {},
+    signatures: {},
+  } as ComputationResult);
+
+const left = reactive<DiffPart>({
+  // previous file, or first one
+  archive: props.archives[Math.max(0, currentIndex - 1)],
+  diff: [],
+  loading: false,
+  stats: getDefaultStats(),
+});
+const right = reactive<DiffPart>({
+  // current file, or last one
+  archive:
+    props.current.fileName === left.archive.fileName &&
+    props.archives.length > 1
+      ? props.archives[props.archives.length - 1]
+      : props.current,
+  diff: [],
+  loading: false,
+  stats: getDefaultStats(),
+});
+const common = reactive<DiffPart>({
+  archive: {
+    fileName: "",
+    calls: [],
+  },
+  diff: [],
+  loading: false,
+  stats: getDefaultStats(),
+});
+
 const invert = () => {
-  const temp = right.value;
-  right.value = left.value;
-  left.value = temp;
+  const temp = right.archive;
+  right.archive = left.archive;
+  left.archive = temp;
 };
 
-const diff = ref<CallDiff[]>([]);
-const loading = ref(true);
-const loadingLeft = ref(false);
-const loadingRight = ref(false);
+const loadingDiffs = ref(true);
 const visible = ref(true);
-const statsLeft = ref<ComputationResult>({
-  finalETH: 0,
-  drawdown: 0,
-  worstDrawdown: ["", 0],
-  counters: {
-    rug: 0,
-    unrealistic: 0,
-    postAth: 0,
-    x100: 0,
-    x50: 0,
-    x10: 0,
-  },
-  logs: [],
-  hashes: {},
-  signatures: {},
-});
-const statsRight = ref<ComputationResult>({
-  finalETH: 0,
-  drawdown: 0,
-  worstDrawdown: ["", 0],
-  counters: {
-    rug: 0,
-    unrealistic: 0,
-    postAth: 0,
-    x100: 0,
-    x50: 0,
-    x10: 0,
-  },
-  logs: [],
-  hashes: {},
-  signatures: {},
-});
-
-const allTypes = [
-  { id: "ADDED", description: "added" },
-  { id: "REMOVED", description: "removed" },
-  { id: "IN-BOTH", description: "in-both" },
-];
 
 const onClose = async () => {
   await sleep(500);
   emit("closed");
 };
 
-const filters = ref({
-  "call.date": {
-    value: null,
-    matchMode: FilterMatchMode.CONTAINS,
-  },
-  "call.nameAndCa": {
-    value: null,
-    matchMode: FilterMatchMode.CONTAINS,
-  },
-  status: {
-    value: props.diffTypes || [],
-    matchMode: FilterMatchMode.IN,
-  },
-});
-
-watchEffect(() => emit("update:diffTypes", filters.value.status.value));
-
 const worker = new Worker();
 worker.onmessage = ({ data }) => {
   if (data.type === "DIFF") {
-    diff.value = data.diff;
-    loading.value = false;
+    left.diff = (data.diff as CallDiff[])
+      .filter((data) => data.status === "REMOVED")
+      .map((data) => data.call);
+    right.diff = (data.diff as CallDiff[])
+      .filter((data) => data.status === "ADDED")
+      .map((data) => data.call);
+    common.diff = (data.diff as CallDiff[])
+      .filter((data) => data.status === "IN-BOTH")
+      .map((data) => data.call);
+    loadingDiffs.value = false;
   } else if (data.type === "COMPUTE") {
     if (data.variant === "left") {
-      statsLeft.value = data;
-      loadingLeft.value = false;
+      left.stats = data;
+      left.loading = false;
+    } else if (data.variant === "right") {
+      right.stats = data;
+      right.loading = false;
     } else {
-      statsRight.value = data;
-      loadingRight.value = false;
+      common.stats = data;
+      common.loading = false;
     }
   }
 };
 
-function runCompute(variant: "left" | "right") {
-  if (variant === "left") loadingLeft.value = true;
-  else loadingRight.value = true;
+function runCompute(part: DiffPart, variant: "left" | "right" | "common") {
+  part.loading = true;
 
   worker.postMessage({
     type: "COMPUTE",
-    calls: JSON.parse(
-      JSON.stringify(variant === "left" ? left.value.calls : right.value.calls)
-    ),
+    calls: JSON.parse(JSON.stringify(part.diff)),
     ...props.computingParams,
     variant,
   });
 }
 
 async function extractDiff() {
-  if (!left.value || !right.value) return;
-
-  loading.value = true;
+  if (!left.archive || !right.archive) return;
   worker.postMessage({
     type: "DIFF",
-    previousCalls: JSON.parse(JSON.stringify(left.value.calls)),
-    newCalls: JSON.parse(JSON.stringify(right.value.calls)),
+    previousCalls: JSON.parse(JSON.stringify(left.archive.calls)),
+    newCalls: JSON.parse(JSON.stringify(right.archive.calls)),
   });
 }
 
 watch(
-  [left, right],
+  [() => left.archive, () => right.archive],
   () => {
     extractDiff();
-    runCompute("left");
-    runCompute("right");
   },
   { immediate: true }
 );
+watch(
+  () => left.diff,
+  () => {
+    runCompute(left, "left");
+  }
+);
+watch(
+  () => right.diff,
+  () => {
+    runCompute(right, "right");
+  }
+);
+watch(
+  () => common.diff,
+  () => {
+    runCompute(common, "common");
+  }
+);
 </script>
-
-<style scoped>
-.invertBtn {
-  /* position: absolute;
-  right: -32px;
-  top: 2px; */
-}
-</style>

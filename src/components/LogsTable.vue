@@ -1,6 +1,7 @@
 <template>
   <section>
     <Button
+      v-if="withDisplaySwitch"
       :icon="'pi ' + (textual ? 'pi-table' : 'pi-list')"
       size="small"
       text
@@ -61,7 +62,7 @@
         v-model:rows="logsRowCount"
         :totalRecords="logs.length"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-        :rowsPerPageOptions="[20, 50, 100]"
+        :rowsPerPageOptions="[10, 20, 50, 100]"
       />
     </template>
 
@@ -71,13 +72,13 @@
       :value="logs"
       dataKey="ca"
       size="small"
-      sortField="date"
+      :sortField="initialSort || 'date'"
       :sortOrder="-1"
       sortMode="single"
       :paginator="logs.length > 20"
-      :rows="20"
+      :rows="rows || 20"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-      :rowsPerPageOptions="[20, 50, 100]"
+      :rowsPerPageOptions="[10, 20, 50, 100]"
       :globalFilterFields="['ca', 'name', 'date']"
       v-model:filters="logFilters"
     >
@@ -88,6 +89,7 @@
           <Button
             icon="pi pi-file-export"
             aria-label="Export CSV"
+            :outlined="!withDisplaySwitch"
             v-tooltip.top="{
               value: 'Export CSV',
               showDelay: 500,
@@ -282,7 +284,10 @@ import CaLink from "./CaLink.vue";
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
   logs: Log[];
+  rows?: number;
   textual?: boolean;
+  initialSort?: string;
+  withDisplaySwitch?: boolean;
 }>();
 
 const emit = defineEmits<{

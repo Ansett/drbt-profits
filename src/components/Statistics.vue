@@ -47,6 +47,7 @@
                   worstDrawdown[1]
                 }}</span>
                 <span class="text-color-secondary text-xs"> ETH </span>
+                <span v-if="!info" class="text-color-secondary text-xs font-italic"> from {{ worstDrawdown[0] }}</span>
               </div>
               <!-- NB CALLS -->
               <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
@@ -91,7 +92,7 @@
 import { ref, computed } from "vue";
 import ProgressSpinner from "primevue/progressspinner";
 import { ETH_PRICE, SELL_GAS_PRICE, SELL_TAX } from "@/constants";
-import type { ComputationResult } from "@/types/CpmputationResult";
+import type { ComputationResult } from "@/types/ComputationResult";
 import type { Call } from "@/types/Call";
 import { round } from "@/lib";
 import InfoButton from "./InfoButton.vue";

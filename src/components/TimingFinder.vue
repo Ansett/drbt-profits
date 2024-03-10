@@ -24,7 +24,7 @@
             :class="{
               'text-green-400': data.count > 0,
             }"
-            >{{ round2Dec(data.count) }}</span
+            >{{ roundDec(data.count) }}</span
           >
         </template>
       </Column>
@@ -60,7 +60,7 @@ import ProgressSpinner from "primevue/progressspinner";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import type { Log } from "@/types/Log";
-import { round2Dec } from "@/lib";
+import { roundDec } from "@/lib";
 import { DAY_DELIMITATION } from "@/constants";
 
 const createWeekSlices = () => {
@@ -129,7 +129,7 @@ const hoursData = computed(() =>
         id: `${day.name}-${slice.name}`,
         dayName: day.name,
         sliceName: slice.name,
-        count: round2Dec(slice.count),
+        count: roundDec(slice.count),
       });
     }
     return arr;

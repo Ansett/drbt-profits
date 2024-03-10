@@ -59,8 +59,9 @@ export function sleep(ms = 0, callback: Function = () => true) {
     window.setTimeout(() => resolve(callback()), ms)
   );
 }
-export function round2Dec(value: number) {
-  return Math.round(value * 100) / 100;
+export function roundDec(value: number, decNumber = 2) {
+  const mult = 10 ** decNumber;
+  return Math.round(value * mult) / mult;
 }
 
 export function prettifyDate(

@@ -178,7 +178,7 @@ import InputSwitch from "primevue/inputswitch";
 import type { Call } from "@/types/Call";
 import { ptNumberInput } from "@/constants";
 import Worker from "../worker?worker";
-import type { ComputationShortResult } from "@/types/CpmputationResult";
+import type { ComputationShortResult } from "@/types/ComputationResult";
 import { debounce } from "@/lib";
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
@@ -277,3 +277,4 @@ watch(
 <style scoped>
 /* */
 </style>
+@/types/ComputationResult

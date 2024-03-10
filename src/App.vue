@@ -130,6 +130,7 @@
               :logs="logs"
               v-model:textual="state.textLogs"
               v-model:selectedColumns="state.logColumns"
+              withDisplaySwitch
             />
           </AccordionTab>
 
@@ -583,7 +584,7 @@
 
     <DiffDialog
       v-if="current && showDiff"
-      v-model:diffTypes="state.diffTypes"
+      v-model:logColumns="state.logColumns"
       :archives="archives"
       :current="current"
       :computingParams="{
@@ -916,7 +917,6 @@ const state = reactive({
   hashColumns: INIT_HASH_COLUMNS,
   logColumns: INIT_LOG_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
-  diffTypes: INIT_DIFF_TYPES,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
   feeInXs: INIT_FEE_IN_XS,
   slippageGuessing: INIT_SLIPPAGE_GUESSING,
@@ -972,7 +972,6 @@ function loadForm() {
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
   state.logColumns = savedState.logColumns ?? INIT_LOG_COLUMNS;
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
-  state.diffTypes = savedState.diffTypes ?? INIT_DIFF_TYPES;
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
   state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS;
   state.slippageGuessing =

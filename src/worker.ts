@@ -8,7 +8,7 @@ import type {
   ComputationForTarget,
   ComputationResult,
   ComputationShortResult,
-} from "./types/CpmputationResult";
+} from "./types/ComputationResult";
 import {
   ETH_PRICE,
   SELL_TAX,
@@ -25,7 +25,11 @@ onmessage = function ({ data }) {
       postMessage({ type: "XLSX", rows, fileName: data.xlsx.name });
     });
   if (data.type === "COMPUTE")
-    return postMessage({ type: "COMPUTE", ...compute(data), variant: data.variant });
+    return postMessage({
+      type: "COMPUTE",
+      ...compute(data),
+      variant: data.variant,
+    });
   if (data.type === "TARGETING")
     return postMessage({ type: "TARGETING", result: findTarget(data) });
   if (data.type === "DIFF")
