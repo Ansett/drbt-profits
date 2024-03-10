@@ -82,7 +82,7 @@
       :globalFilterFields="['ca', 'name', 'date']"
       v-model:filters="logFilters"
     >
-      <template #empty> No calls yet </template>
+      <template #empty> No calls </template>
 
       <template #header v-if="logs.length">
         <div class="flex flex-wrap justify-content-end gap-3">

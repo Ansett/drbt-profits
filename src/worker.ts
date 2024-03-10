@@ -17,13 +17,16 @@ import {
 } from "./constants";
 // import realBuys from "../buys.json";
 
-onmessage = function ({ data }) {
+onmessage = async function ({ data }) {
   if (!data?.type) return;
 
-  if (data.type === "XLSX")
-    return readXlsxFile(data.xlsx).then((rows) => {
-      postMessage({ type: "XLSX", rows, fileName: data.xlsx.name });
-    });
+  if (data.type === "XLSX") {
+    for (const xlsx of data.allXlsx) {
+      const rows = await readXlsxFile(xlsx);
+      postMessage({ type: "XLSX", rows, fileName: xlsx.name });
+    }
+    return;
+  }
   if (data.type === "COMPUTE")
     return postMessage({
       type: "COMPUTE",

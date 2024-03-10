@@ -27,6 +27,7 @@
           ref="uploader"
           mode="advanced"
           accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          multiple
           :showUploadButton="false"
           :showCancelButton="false"
           chooseLabel="&nbsp;Import"
@@ -36,6 +37,20 @@
           @select="onUpload($event)"
         >
           <template #empty>
+            <ProgressSpinner
+              v-if="uploading"
+              class="absolute top-50 left-50"
+              style="
+                width: 99px;
+                height: 99px;
+                transform: translate(-50%, -88%);
+                zindex: 99;
+              "
+              :pt="{
+                spinner: { style: { animationDuration: '0s' } },
+              }"
+            />
+
             <div
               class="flex flex-column m-1 align-items-center justify-content-center"
             >
@@ -631,6 +646,7 @@
 // https://primevue.org/icons/#list
 // https://primeflex.org/flexdirection
 // https://fonts.google.com/icons?selected=Material+Symbols+Outlined:thumb_up:FILL@0;wght@400;GRAD@0;opsz@24&icon.set=Material+Symbols&icon.style=Outlined
+import ProgressSpinner from "primevue/progressspinner";
 import InputNumber from "primevue/inputnumber";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
@@ -681,6 +697,7 @@ import Statistics from "./components/Statistics.vue";
 
 const error = ref("");
 const loading = ref(false);
+const uploading = ref(0);
 const uploader = ref<InstanceType<typeof FileUpload>>();
 const showDonation = ref(false);
 
@@ -688,11 +705,11 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   const { files } = event;
   if (!files?.length) return;
 
-  const xlsx = files[0];
+  const allXlsx = [...files];
   (uploader.value as any)?.clear();
 
-  loading.value = true;
-  worker.postMessage({ type: "XLSX", xlsx });
+  uploading.value = allXlsx.length;
+  worker.postMessage({ type: "XLSX", allXlsx });
 };
 
 const showDiff = ref(false);
@@ -1033,6 +1050,9 @@ const incEndDate = (inc = 1) => {
 };
 
 const runCompute = async () => {
+  if (!filteredCalls.value.length) return;
+
+  loading.value = true;
   await sleep(0.2); // waiting for color transition on inputs
 
   return worker.postMessage({
@@ -1063,7 +1083,6 @@ watch(
     () => state.slippageGuessing,
   ],
   () => {
-    loading.value = true;
     debouncedCompute();
   },
   { deep: true }
@@ -1076,10 +1095,10 @@ function fail(message: string) {
 
 const worker = new Worker();
 worker.onmessage = ({ data }) => {
-  loading.value = false;
-
-  if (data.type === "XLSX") return storeData(data.rows, data.fileName);
-  else if (data.type === "COMPUTE") {
+  if (data.type === "XLSX") {
+    uploading.value = Math.max(0, uploading.value - 1);
+    return storeData(data.rows, data.fileName);
+  } else if (data.type === "COMPUTE") {
     finalETH.value = data.finalETH;
     drawdown.value = data.drawdown;
     worstDrawdown.value = data.worstDrawdown;
@@ -1087,8 +1106,7 @@ worker.onmessage = ({ data }) => {
     logs.value = data.logs;
     hashes.value = data.hashes;
     signatures.value = data.signatures;
-  } else if (data.type === "DIFF") {
-    // callsDiff.value = data.diff;
+    loading.value = false;
   }
 };
 worker.onerror = ({ message }) => {
