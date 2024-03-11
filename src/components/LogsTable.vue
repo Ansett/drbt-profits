@@ -17,10 +17,10 @@
 
     <template v-if="textual">
       <ul class="p-3 m-0">
-        <li v-if="!logs.length">No calls yet</li>
+        <li v-if="!filteredLogs.length">No calls</li>
         <li
           v-else
-          v-for="log in logs.slice(logsPage, logsPage + logsRowCount)"
+          v-for="log in filteredLogs.slice(logsPage, logsPage + logsRowCount)"
           :key="log.ca"
           class="text-sm mb-3"
         >
@@ -57,10 +57,10 @@
         </li>
       </ul>
       <Paginator
-        v-if="logs.length"
+        v-if="filteredLogs.length"
         v-model:first="logsPage"
         v-model:rows="logsRowCount"
-        :totalRecords="logs.length"
+        :totalRecords="filteredLogs.length"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         :rowsPerPageOptions="[10, 20, 50, 100]"
       />
@@ -69,13 +69,13 @@
     <DataTable
       v-else
       ref="logTable"
-      :value="logs"
+      :value="filteredLogs"
       dataKey="ca"
       size="small"
       :sortField="initialSort || 'date'"
       :sortOrder="-1"
       sortMode="single"
-      :paginator="logs.length > 20"
+      :paginator="filteredLogs.length > 20"
       :rows="rows || 20"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
       :rowsPerPageOptions="[10, 20, 50, 100]"
@@ -84,16 +84,37 @@
     >
       <template #empty> No calls </template>
 
-      <template #header v-if="logs.length">
+      <template #header v-if="filteredLogs.length">
         <div class="flex flex-wrap justify-content-end gap-3">
+          <InputGroup
+            class="w-auto small-button"
+            v-tooltip.top="{
+              value: profitableFilter
+                ? 'Show all trades'
+                : 'Show only profitable trades',
+              showDelay: 500,
+            }"
+          >
+            <InputGroupAddon class="narrowInput">
+              <span
+                class="material-symbols-outlined cursor-pointer"
+                @click="profitableFilter = !profitableFilter"
+                >trophy</span
+              >
+            </InputGroupAddon>
+            <InputGroupAddon>
+              <Checkbox v-model="profitableFilter" binary aria-label="Filter" />
+            </InputGroupAddon>
+          </InputGroup>
           <Button
             icon="pi pi-file-export"
             aria-label="Export CSV"
-            :outlined="!withDisplaySwitch"
+            outlined
             v-tooltip.top="{
               value: 'Export CSV',
               showDelay: 500,
             }"
+            class="small-button"
             @click="exportLogs()"
           />
           <InputGroup class="w-auto">
@@ -274,6 +295,7 @@ import InputText from "primevue/inputtext";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Button from "primevue/button";
+import Checkbox from "primevue/checkbox";
 import Tag from "primevue/tag";
 import Paginator from "primevue/paginator";
 import MultiSelect from "primevue/multiselect";
@@ -299,6 +321,11 @@ const textual = defineModel<boolean>("textual", {
 });
 const logsPage = ref(0);
 const logsRowCount = ref(20);
+
+const profitableFilter = ref(false);
+const filteredLogs = computed(() =>
+  profitableFilter.value ? props.logs.filter((l) => l.gain > 0) : props.logs
+);
 
 // prettier-ignore
 const optionalColumns = ["Invested","Gas price","Entry MC","Slippage","ATH MC"];
