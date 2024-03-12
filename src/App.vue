@@ -90,16 +90,27 @@
                     </template>
                   </Dropdown>
                   <Button
-                    v-if="archives.length >= 2"
+                    v-if="archives.length"
                     icon="pi pi-code"
                     outlined
+                    :disabled="archives.length < 2"
                     v-tooltip.bottom="{
-                      value: 'Examine differences between 2 files',
+                      value:
+                        archives.length < 2
+                          ? 'You can upload other XLSX to compare calls'
+                          : 'Examine differences between 2 files',
                       showDelay: 500,
                     }"
                     aria-label="Difference"
+                    style="pointer-events: auto"
                     @click="showDiff = true"
-                  />
+                  >
+                    <template #icon>
+                      <span class="material-symbols-outlined cursor-pointer"
+                        >difference</span
+                      >
+                    </template>
+                  </Button>
                 </InputGroup>
               </template>
               <template v-else>
@@ -805,11 +816,9 @@ const getHeaderIndexes = <T extends string>(
   return indexes;
 };
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
-  const header = rows[0];
-  rows.splice(0, 1);
-  if (!rows.length) return;
+  if (rows.length <= 1) return;
 
-  const indexes = getHeaderIndexes(header, [
+  const indexes = getHeaderIndexes(rows[0], [
     "Name",
     "CA",
     "Rug",
@@ -837,7 +846,9 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (!indexes) return;
 
   let newCalls: Call[] = [];
-  for (const row of rows) {
+  for (const rowIndex in rows) {
+    if (!rowIndex) return; // ignore headers
+    const row = rows[rowIndex];
     const parsedDate = row[indexes.Logged] as Date;
     const parsedAthDate = row[indexes.CRT_ATH_Date] as Date;
     if (!parsedDate || !parsedAthDate) continue;
@@ -885,7 +896,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
-  const newArchive = { calls: newCalls, fileName };
+  const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.CA };
   current.value = newArchive;
   const existIndex = archives.value.findIndex(
     (a) => a.fileName === newArchive.fileName

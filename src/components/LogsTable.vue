@@ -169,7 +169,7 @@
         </template>
       </Column>
       <Column
-        field="name"
+        :field="d => d.name + ' ' + d.ca"
         header="CA"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"

@@ -32,4 +32,6 @@ export type CallDiff = {
 export type CallArchive = {
   fileName: string;
   calls: Call[];
+  rows: (string | number | Date)[][];
+  caColumn: number;
 };

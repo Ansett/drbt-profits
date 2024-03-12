@@ -33,15 +33,30 @@
         <Button
           icon="pi pi-code"
           raised
-          outlined
           aria-label="Invert"
           v-tooltip.bottom="{
             value: 'Invert sets of calls',
             showDelay: 500,
           }"
           @click="invert"
-        /></div
-    ></template>
+        />
+        <Button
+          aria-label="Download merged XLSX"
+          outlined
+          v-tooltip.bottom="{
+            value: 'Download merged XLSX',
+            showDelay: 500,
+          }"
+          @click="mergeRows()"
+        >
+          <template #icon>
+            <span class="material-symbols-outlined cursor-pointer"
+              >arrow_and_edge</span
+            >
+          </template>
+        </Button>
+      </div></template
+    >
 
     <div class="flex flex-row flex-wrap gap-3 px-3">
       <Card
@@ -50,7 +65,14 @@
           content: { class: 'p-0' },
         }"
       >
-        <template #title> Calls only in {{ left.archive.fileName }} </template>
+        <template #title
+          ><span
+            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+            >chevron_left</span
+          >
+          Calls only in
+          {{ left.archive.fileName }}
+        </template>
         <template #content>
           <Statistics
             :loading="left.loading"
@@ -77,7 +99,14 @@
           content: { class: 'p-0' },
         }"
       >
-        <template #title> Calls only in {{ right.archive.fileName }} </template>
+        <template #title
+          ><span
+            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+            >chevron_right</span
+          >
+          Calls only in
+          {{ right.archive.fileName }}
+        </template>
         <template #content>
           <Statistics
             :loading="right.loading"
@@ -104,7 +133,13 @@
           content: { class: 'p-0' },
         }"
       >
-        <template #title> Calls in both files </template>
+        <template #title
+          ><span
+            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+            >code</span
+          >
+          &nbsp;Calls in both files
+        </template>
         <template #content>
           <Statistics
             :loading="common.loading"
@@ -138,7 +173,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch, watchEffect } from "vue";
+import writeXlsxFile from "write-excel-file";
+import { computed, reactive, ref, watch } from "vue";
 import Card from "primevue/card";
 import Dialog from "primevue/dialog";
 import Dropdown from "primevue/dropdown";
@@ -225,6 +261,8 @@ const common = reactive<DiffPart>({
   archive: {
     fileName: "",
     calls: [],
+    rows: [],
+    caColumn: 0,
   },
   diff: [],
   loading: false,
@@ -246,7 +284,7 @@ const onClose = async () => {
 };
 
 const worker = new Worker();
-worker.onmessage = ({ data }) => {
+worker.onmessage = async ({ data }) => {
   if (data.type === "DIFF") {
     left.diff = (data.diff as CallDiff[])
       .filter((data) => data.status === "REMOVED")
@@ -269,6 +307,16 @@ worker.onmessage = ({ data }) => {
       common.stats = data;
       common.loading = false;
     }
+  } else if (data.type === "MERGE") {
+    transformMergedRows(data.merged);
+    const blob = await writeXlsxFile(data.merged, {
+      stickyRowsCount: 1,
+      fontFamily: "Calibri",
+      fontSize: 11,
+    });
+
+    loadingDiffs.value = false;
+    downloadBlob(blob);
   }
 };
 
@@ -283,13 +331,54 @@ function runCompute(part: DiffPart, variant: "left" | "right" | "common") {
   });
 }
 
-async function extractDiff() {
+function extractDiff() {
   if (!left.archive || !right.archive) return;
   worker.postMessage({
     type: "DIFF",
     previousCalls: JSON.parse(JSON.stringify(left.archive.calls)),
     newCalls: JSON.parse(JSON.stringify(right.archive.calls)),
   });
+}
+
+async function mergeRows() {
+  if (!left.archive || !right.archive) return;
+  loadingDiffs.value = true;
+  worker.postMessage({
+    type: "MERGE",
+    leftRows: JSON.parse(JSON.stringify(left.archive.rows)),
+    rightRows: JSON.parse(JSON.stringify(right.archive.rows)),
+    caColumnLeft: left.archive.caColumn,
+    caColumnRight: right.archive.caColumn,
+  });
+}
+
+function transformMergedRows(
+  rows: {
+    value: string | number | Date;
+    format?: string; // if date
+    fontWeight?: "bold";
+    align?: "left" | "center" | "right";
+  }[][]
+) {
+  for (const index in rows) {
+    for (const cell of rows[index]) {
+      // header
+      if (index === "0") {
+        cell.fontWeight = "bold";
+        cell.align = "center";
+      } else {
+        // recreate Date from string so it can be converted properly in XLSX
+        if (cell.format?.startsWith("yyyy")) cell.value = new Date(cell.value);
+      }
+    }
+  }
+}
+
+function downloadBlob(blob: Blob) {
+  const link = document.createElement("a");
+  link.href = window.URL.createObjectURL(blob);
+  link.download = "Merged.xlsx";
+  link.click();
 }
 
 watch(

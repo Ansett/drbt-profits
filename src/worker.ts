@@ -1,4 +1,5 @@
 import readXlsxFile from "read-excel-file/web-worker";
+import writeXlsxFile from "write-excel-file";
 import type { Call, CallDiff } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
@@ -39,6 +40,16 @@ onmessage = async function ({ data }) {
     return postMessage({
       type: "DIFF",
       diff: getCallsDiff(data.previousCalls, data.newCalls),
+    });
+  if (data.type === "MERGE")
+    return postMessage({
+      type: "MERGE",
+      merged: mergeRows(
+        data.leftRows,
+        data.rightRows,
+        data.caColumnLeft,
+        data.caColumnRight
+      ),
     });
 };
 
@@ -376,4 +387,51 @@ function findTarget({
   } while (!ended);
 
   return results;
+}
+
+function mergeRows(
+  leftRows: (string | number)[][],
+  rightRows: (string | number)[][],
+  caColumnLeft: number,
+  caColumnRight: number
+): {
+  value: string | number;
+  format?: string;
+}[][] {
+  const mergedRows = leftRows.map(transformRow);
+  for (const rightRow of rightRows) {
+    if (
+      leftRows.every(
+        (leftRow) => leftRow[caColumnLeft] !== rightRow[caColumnRight]
+      )
+    ) {
+      mergedRows.push(transformRow(rightRow));
+    }
+  }
+
+  return mergedRows;
+}
+function transformRow(row: (string | number)[]): {
+  value: string | number;
+  format?: string;
+}[] {
+  return row.map((cell) => ({
+    value: cell,
+    format:
+      // stringification before worker post has transformed Date to string, so passing along a format for the XLSX export
+      typeof cell === "string" && cell.includes(".000Z")
+        ? "yyyy/mm/dd hh:mm:ss"
+        : "",
+  }));
+}
+
+function transformCells(
+  rows: (string | number | Date)[][]
+): { value: string | number | Date }[][] {
+  return rows.map((row) =>
+    row.map((cell) => ({
+      value: cell,
+      // type: typeof cell === 'object' ? Date : typeof cell === 'number' ? Number : String
+    }))
+  );
 }
