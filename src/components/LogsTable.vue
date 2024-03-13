@@ -84,7 +84,7 @@
     >
       <template #empty> No calls </template>
 
-      <template #header v-if="filteredLogs.length">
+      <template #header>
         <div class="flex flex-wrap justify-content-end gap-3">
           <InputGroup
             class="w-auto small-button"
@@ -169,7 +169,7 @@
         </template>
       </Column>
       <Column
-        :field="d => d.name + ' ' + d.ca"
+        :field="(d) => d.name + ' ' + d.ca"
         header="CA"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"

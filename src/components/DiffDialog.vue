@@ -11,7 +11,7 @@
     @hide="onClose"
   >
     <template #header
-      ><div class="flex flex-row column-gap-3 align-items-center">
+      ><div class="flex flex-row flex-wrap column-gap-3 align-items-center">
         Differences between
         <Dropdown
           v-model="left.archive"
@@ -40,27 +40,22 @@
           }"
           @click="invert"
         />
+
         <Button
-          aria-label="Download merged XLSX"
+          aria-label="XLSX with all merged calls"
           outlined
+          icon="pi pi-download"
           v-tooltip.bottom="{
-            value: 'Download merged XLSX',
+            value: 'XLSX with all merged calls',
             showDelay: 500,
           }"
-          @click="mergeRows()"
-        >
-          <template #icon>
-            <span class="material-symbols-outlined cursor-pointer"
-              >arrow_and_edge</span
-            >
-          </template>
-        </Button>
-      </div></template
-    >
+          @click="downloadRows('Merge')"
+        /></div
+    ></template>
 
-    <div class="flex flex-row flex-wrap gap-3 px-3">
+    <div class="flex flex-row flex-wrap gap-3">
       <Card
-        class="flex-grow-1 border-round surface-section"
+        class="flex-grow-1 border-round surface-section relative"
         :pt="{
           content: { class: 'p-0' },
         }"
@@ -72,6 +67,17 @@
           >
           Calls only in
           {{ left.archive.fileName }}
+          <Button
+            aria-label="XLSX with only those calls"
+            outlined
+            icon="pi pi-download"
+            v-tooltip.bottom="{
+              value: 'XLSX with only those calls',
+              showDelay: 500,
+            }"
+            class="cardExportBtn"
+            @click="downloadRows('Left')"
+          />
         </template>
         <template #content>
           <Statistics
@@ -94,7 +100,7 @@
       </Card>
 
       <Card
-        class="flex-grow-1 border-round surface-section"
+        class="flex-grow-1 border-round surface-section relative"
         :pt="{
           content: { class: 'p-0' },
         }"
@@ -106,6 +112,17 @@
           >
           Calls only in
           {{ right.archive.fileName }}
+          <Button
+            aria-label="XLSX with only those calls"
+            outlined
+            icon="pi pi-download"
+            v-tooltip.bottom="{
+              value: 'XLSX with only those calls',
+              showDelay: 500,
+            }"
+            class="cardExportBtn"
+            @click="downloadRows('Right')"
+          />
         </template>
         <template #content>
           <Statistics
@@ -128,7 +145,7 @@
       </Card>
 
       <Card
-        class="flex-grow-1 border-round surface-section"
+        class="flex-grow-1 border-round surface-section relative"
         :pt="{
           content: { class: 'p-0' },
         }"
@@ -139,6 +156,17 @@
             >code</span
           >
           &nbsp;Calls in both files
+          <Button
+            aria-label="XLSX with only those calls"
+            outlined
+            icon="pi pi-download"
+            v-tooltip.bottom="{
+              value: 'XLSX with only those calls',
+              showDelay: 500,
+            }"
+            class="cardExportBtn"
+            @click="downloadRows('Intersection')"
+          />
         </template>
         <template #content>
           <Statistics
@@ -180,6 +208,7 @@ import Dialog from "primevue/dialog";
 import Dropdown from "primevue/dropdown";
 import ProgressSpinner from "primevue/progressspinner";
 import Button from "primevue/button";
+import SplitButton from "primevue/splitbutton";
 import vTooltip from "primevue/tooltip";
 import { type CallDiff, type CallArchive, type DiffType } from "@/types/Call";
 import { sleep } from "@/lib";
@@ -187,7 +216,7 @@ import Worker from "@/worker?worker";
 import Statistics from "./Statistics.vue";
 import type { ComputationResult } from "@/types/ComputationResult";
 import LogsTable from "./LogsTable.vue";
-import type { Call } from "@/types/Call";
+import type { Call, CallExportType } from "@/types/Call";
 
 type DiffPart = {
   archive: CallArchive;
@@ -308,15 +337,15 @@ worker.onmessage = async ({ data }) => {
       common.loading = false;
     }
   } else if (data.type === "MERGE") {
-    transformMergedRows(data.merged);
-    const blob = await writeXlsxFile(data.merged, {
+    transformMergedRows(data.rows);
+    const blob = await writeXlsxFile(data.rows, {
       stickyRowsCount: 1,
       fontFamily: "Calibri",
       fontSize: 11,
     });
 
     loadingDiffs.value = false;
-    downloadBlob(blob);
+    downloadBlob(blob, data.title as CallExportType);
   }
 };
 
@@ -340,15 +369,32 @@ function extractDiff() {
   });
 }
 
-async function mergeRows() {
-  if (!left.archive || !right.archive) return;
+const exportingXlsx = () => {};
+const exportOptions = [
+  // {
+  //   label: "Export all merged calls",
+  //   icon: "pi pi-list",
+  //   command: () => {
+  //     const list = getIdsString();
+  //     navigator.clipboard.writeText(list);
+  //     toast.add({
+  //       severity: "success",
+  //       summary: "Copied list of IDs to clipboard",
+  //       detail: list.length > 100 ? list.substring(0, 100) + "..." : list,
+  //       life: 5000,
+  //     });
+  //   },
+  // }
+];
+
+async function downloadRows(title: CallExportType) {
   loadingDiffs.value = true;
   worker.postMessage({
     type: "MERGE",
     leftRows: JSON.parse(JSON.stringify(left.archive.rows)),
     rightRows: JSON.parse(JSON.stringify(right.archive.rows)),
-    caColumnLeft: left.archive.caColumn,
-    caColumnRight: right.archive.caColumn,
+    caColumn: left.archive.caColumn,
+    title,
   });
 }
 
@@ -374,11 +420,17 @@ function transformMergedRows(
   }
 }
 
-function downloadBlob(blob: Blob) {
+async function downloadBlob(blob: Blob, title: CallExportType) {
   const link = document.createElement("a");
   link.href = window.URL.createObjectURL(blob);
-  link.download = "Merged.xlsx";
+  link.download = `${title}.xlsx`;
+  document.body.appendChild(link);
   link.click();
+  await sleep(0);
+  try {
+    document.body.removeChild(link);
+  } catch (e) {}
+  window.URL.revokeObjectURL(link.href);
 }
 
 watch(
@@ -407,3 +459,11 @@ watch(
   }
 );
 </script>
+
+<style scoped>
+.cardExportBtn {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+}
+</style>

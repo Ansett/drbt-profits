@@ -35,3 +35,5 @@ export type CallArchive = {
   rows: (string | number | Date)[][];
   caColumn: number;
 };
+
+export type CallExportType = "Left" | "Right" | "Intersection" | "Merge";

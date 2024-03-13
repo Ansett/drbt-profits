@@ -1,6 +1,6 @@
 import readXlsxFile from "read-excel-file/web-worker";
 import writeXlsxFile from "write-excel-file";
-import type { Call, CallDiff } from "./types/Call";
+import type { Call, CallDiff, CallExportType } from "./types/Call";
 import type { Log } from "./types/Log";
 import type { TakeProfit } from "./types/TakeProfit";
 import { guessValues, prettifyDate, prettifyMc, round } from "./lib";
@@ -44,12 +44,10 @@ onmessage = async function ({ data }) {
   if (data.type === "MERGE")
     return postMessage({
       type: "MERGE",
-      merged: mergeRows(
-        data.leftRows,
-        data.rightRows,
-        data.caColumnLeft,
-        data.caColumnRight
-      ),
+      title: data.title,
+      rows: mergeRows(data.leftRows, data.rightRows, data.caColumn)[
+        data.title as CallExportType
+      ],
     });
 };
 
@@ -392,25 +390,46 @@ function findTarget({
 function mergeRows(
   leftRows: (string | number)[][],
   rightRows: (string | number)[][],
-  caColumnLeft: number,
-  caColumnRight: number
-): {
-  value: string | number;
-  format?: string;
-}[][] {
-  const mergedRows = leftRows.map(transformRow);
-  for (const rightRow of rightRows) {
+  caColumn: number
+) {
+  const headers = leftRows[0];
+  leftRows.splice(0, 1);
+  rightRows.splice(0, 1);
+
+  const onlyLeft = [transformRow(headers)];
+  const onlyRight = [transformRow(headers)];
+  const inBoth = [transformRow(headers)];
+  const all = [transformRow(headers)];
+
+  for (const leftRow of leftRows) {
+    const transformedRow = transformRow(leftRow);
+    all.push(transformedRow);
+
     if (
-      leftRows.every(
-        (leftRow) => leftRow[caColumnLeft] !== rightRow[caColumnRight]
-      )
+      rightRows.every((rightRow) => rightRow[caColumn] !== leftRow[caColumn])
     ) {
-      mergedRows.push(transformRow(rightRow));
+      onlyLeft.push(transformedRow);
     }
   }
 
-  return mergedRows;
+  for (const rightRow of rightRows) {
+    const transformedRow = transformRow(rightRow);
+    if (leftRows.every((leftRow) => leftRow[caColumn] !== rightRow[caColumn])) {
+      onlyRight.push(transformedRow);
+      all.push(transformedRow);
+    } else {
+      inBoth.push(transformedRow);
+    }
+  }
+
+  return {
+    Left: onlyLeft,
+    Right: onlyRight,
+    Intersection: inBoth,
+    Merge: all,
+  };
 }
+
 function transformRow(row: (string | number)[]): {
   value: string | number;
   format?: string;
@@ -423,15 +442,4 @@ function transformRow(row: (string | number)[]): {
         ? "yyyy/mm/dd hh:mm:ss"
         : "",
   }));
-}
-
-function transformCells(
-  rows: (string | number | Date)[][]
-): { value: string | number | Date }[][] {
-  return rows.map((row) =>
-    row.map((cell) => ({
-      value: cell,
-      // type: typeof cell === 'object' ? Date : typeof cell === 'number' ? Number : String
-    }))
-  );
 }

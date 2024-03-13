@@ -39,12 +39,12 @@ CALLS_GROUP - BANANA_BOT
 ```
 /transformation add power banana on PHONE
 ```
--> paste those two line in one go:
+-> after command validation, paste those two line in one go en press Enter:
 ```
 .*?(0x\w{40}).*=/scrapev2 --address:\1 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --gwei:5 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:100 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:https://t.me/c/@DeFiRobot_Dev_Bot/1
 ":","="
 ```
--> then paste any ETH addy, like 0x661013bB8D1C95D86D9C85f76E9004561F1bB36F
+-> When asked for "Transformation Changes Preview", paste any ETH addy, like 0x661013bB8D1C95D86D9C85f76E9004561F1bB36F, and press Enter
 
 -> then press Confirm button
 
