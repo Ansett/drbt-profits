@@ -8,6 +8,7 @@ export type Call = {
   xs: number;
   ath: number;
   athDate: string;
+  athDelayHours: number;
   callTimeAth: number;
   delay: number; // s
   fList: string;

@@ -177,6 +177,11 @@
             />
           </AccordionTab>
 
+          <!-- ATH -->
+          <AccordionTab header="ATH DELAY" :pt="{ content: { class: 'p-0' } }">
+            <AthStatistics :calls="filteredCalls" />
+          </AccordionTab>
+
           <!-- TIMING -->
           <AccordionTab
             header="DAILY BREAKDOWN"
@@ -705,6 +710,7 @@ import {
   DEFAULT_SLIPPAGE,
 } from "./constants";
 import Statistics from "./components/Statistics.vue";
+import AthStatistics from "./components/AthStatistics.vue";
 
 const error = ref("");
 const loading = ref(false);
@@ -819,6 +825,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (rows.length <= 1) return;
 
   const indexes = getHeaderIndexes(rows[0], [
+    "LiveAt",
     "Name",
     "CA",
     "Rug",
@@ -849,24 +856,24 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   for (const rowIndex in rows) {
     if (!rowIndex) return; // ignore headers
     const row = rows[rowIndex];
+    const parsedLaunch = row[indexes.LiveAt] as Date;
     const parsedDate = row[indexes.Logged] as Date;
     const parsedAthDate = row[indexes.CRT_ATH_Date] as Date;
     if (!parsedDate || !parsedAthDate) continue;
     try {
+      parsedLaunch.setHours(parsedLaunch.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
       parsedDate.setHours(parsedDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
       parsedAthDate.setHours(parsedAthDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
     } catch (e) {
       continue;
     }
-    const date = parsedDate.toISOString();
     const price = row[indexes.BlockPrice] as number;
     const supply = row[indexes.TSupply] as number;
     const callMc = price * supply;
-    const buyTax = (row[indexes.BuyTax] as number) / 100;
     const ath = row[indexes.CRT_ATH_MC] as number;
-    const athDate = parsedAthDate.toISOString();
     const xs = ath / callMc;
-    const nbSnipes = row[indexes.Snipes] as number;
+    const athDelayHours =
+      (parsedAthDate.getTime() - parsedLaunch.getTime()) / (1000 * 60 * 60);
 
     newCalls.push({
       name: row[indexes.Name] as string,
@@ -875,12 +882,13 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       price,
       supply,
       callMc,
-      buyTax,
+      buyTax: (row[indexes.BuyTax] as number) / 100,
       ath,
-      athDate,
+      athDate: parsedAthDate.toISOString(),
+      athDelayHours,
       xs,
       callTimeAth: row[indexes.ATH_MC] as number,
-      date,
+      date: parsedDate.toISOString(),
       delay: row[indexes.LaunchedDelay] as number,
       fList: row[indexes.FList] as string,
       maxBuy: ((row[indexes.MaxBuyPRCT] as number) || 100) / 100,
@@ -889,7 +897,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
       buyGas: (row[indexes.Gas] as number) || 200000,
-      nbSnipes,
+      nbSnipes: row[indexes.Snipes] as number,
       lp: row[indexes.LP_CRT] as number,
     });
   }
