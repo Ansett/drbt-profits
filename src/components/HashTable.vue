@@ -107,9 +107,9 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.perf[cat] }} ({{
+          {{ data.perf[cat] }} (&hairsp;{{
             Math.round((data.perf[cat] / data.allCalls.length) * 100) + "%"
-          }})
+          }}&hairsp;)
         </template>
       </Column>
       <!-- Rug -->
@@ -121,9 +121,9 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.rugs }} ({{
+          {{ data.rugs }} (&hairsp;{{
             Math.round((data.rugs / data.allCalls.length) * 100) + "%"
-          }})
+          }}&hairsp;)
         </template>
       </Column>
       <!-- Tags -->

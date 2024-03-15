@@ -39,7 +39,9 @@
             <span class="text-color-secondary"> to </span>
             <span class="font-bold">{{ prettifyMc(log.ath) }}</span>
           </template>
-          <span v-if="log.info" class="font-bold"> ({{ log.info }})</span>
+          <span v-if="log.info" class="font-bold">
+            (&hairsp;{{ log.info }}&hairsp;)</span
+          >
           <span class="text-color-secondary"> resulting in </span>
           <span
             :class="[
@@ -157,7 +159,7 @@
         field="date"
         header="Date"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2">
@@ -172,7 +174,7 @@
         :field="(d) => d.name + ' ' + d.ca"
         header="CA"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           <CaLink :name="data.name" :ca="data.ca" />
@@ -183,7 +185,7 @@
         field="invested"
         header="Invested"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           {{ data.invested }}
@@ -194,7 +196,7 @@
         field="gasPrice"
         header="Gas price"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           {{ data.gasPrice }}
@@ -205,7 +207,7 @@
         field="currentMC"
         header="MC"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           {{ prettifyMc(data.currentMC) }}
@@ -216,7 +218,7 @@
         field="slippage"
         header="Slippage"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #header
           ><InfoButton
@@ -234,7 +236,7 @@
         field="ath"
         header="ATH"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           <span :class="{ 'text-color-secondary font-italic': data.rug }">{{
@@ -246,18 +248,31 @@
         :field="(d) => (d.rug ? 0 : d.xs)"
         header="Perf"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
+        <template #header
+          ><InfoButton
+            text="ATH / call MC (in parenthesis, taking account slippage)"
+            direction="top"
+            hover
+            style="margin-top: 2px; margin-right: 6px"
+        /></template>
         <template #body="{ data }">
           <Tag v-if="data.rug" value="rug" severity="warning" />
-          <span v-else class="nowrap"
-            >{{ data.xs }}x
-            <InfoButton
-              v-if="data.info"
-              :text="data.info"
-              direction="top"
-              class="inlineIcon"
-            />
+          <span v-else class="flex flex-wrap column-gap-2 align-items-center">
+            <span class="nowrap"
+              >{{ data.xs }}x
+              <InfoButton
+                v-if="data.info"
+                :text="data.info"
+                direction="top"
+                class="inlineIcon"
+            /></span>
+            <span v-if="!data.info" class="text-sm text-color-secondary nowrap">
+              (&hairsp;{{
+                roundDec(data.xs / (1 + data.slippage / 100), 2)
+              }}x&hairsp;)
+            </span>
           </span>
         </template>
       </Column>
@@ -265,7 +280,7 @@
         field="gain"
         header="Gain"
         sortable
-        :pt="{ headerTitle: { class: 'text-sm' } }"
+        :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
           <span v-if="data.gain <= 0">{{ data.gain }}</span>
@@ -275,7 +290,7 @@
               v-if="data.hitTp.length"
               class="text-sm text-color-secondary nowrap"
             >
-              ({{ data.hitTp.join(" & ") }})
+              (&hairsp;{{ data.hitTp.join(" & ") }}&hairsp;)
             </span>
           </span>
         </template>
@@ -287,7 +302,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import type { Log } from "@/types/Log";
-import { prettifyDate, prettifyMc } from "@/lib";
+import { prettifyDate, prettifyMc, roundDec } from "@/lib";
 import { FilterMatchMode } from "primevue/api";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
