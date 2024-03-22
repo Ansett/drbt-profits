@@ -61,8 +61,7 @@
         }"
       >
         <template #title
-          ><span
-            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+          ><span class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
             >chevron_left</span
           >
           Calls only in
@@ -93,7 +92,7 @@
             :logs="left.stats.logs"
             v-model:selectedColumns="logColumns"
             :rows="10"
-            initialSort="gain"
+            initialSort="xs"
             class="mt-3"
           />
         </template>
@@ -106,8 +105,7 @@
         }"
       >
         <template #title
-          ><span
-            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+          ><span class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
             >chevron_right</span
           >
           Calls only in
@@ -151,8 +149,7 @@
         }"
       >
         <template #title
-          ><span
-            class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
+          ><span class="material-symbols-outlined text-primary icon-with-title vertical-align-top"
             >code</span
           >
           &nbsp;Calls in both files
@@ -201,60 +198,58 @@
 </template>
 
 <script setup lang="ts">
-import writeXlsxFile from "write-excel-file";
-import { computed, reactive, ref, watch } from "vue";
-import Card from "primevue/card";
-import Dialog from "primevue/dialog";
-import Dropdown from "primevue/dropdown";
-import ProgressSpinner from "primevue/progressspinner";
-import Button from "primevue/button";
-import SplitButton from "primevue/splitbutton";
-import vTooltip from "primevue/tooltip";
-import { type CallDiff, type CallArchive, type DiffType } from "@/types/Call";
-import { sleep } from "@/lib";
-import Worker from "@/worker?worker";
-import Statistics from "./Statistics.vue";
-import type { ComputationResult } from "@/types/ComputationResult";
-import LogsTable from "./LogsTable.vue";
-import type { Call, CallExportType } from "@/types/Call";
+import writeXlsxFile from 'write-excel-file'
+import { computed, reactive, ref, watch } from 'vue'
+import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
+import Dropdown from 'primevue/dropdown'
+import ProgressSpinner from 'primevue/progressspinner'
+import Button from 'primevue/button'
+import SplitButton from 'primevue/splitbutton'
+import vTooltip from 'primevue/tooltip'
+import { type CallDiff, type CallArchive, type DiffType } from '@/types/Call'
+import { sleep } from '@/lib'
+import Worker from '@/worker?worker'
+import Statistics from './Statistics.vue'
+import type { ComputationResult } from '@/types/ComputationResult'
+import LogsTable from './LogsTable.vue'
+import type { Call, CallExportType } from '@/types/Call'
 
 type DiffPart = {
-  archive: CallArchive;
-  diff: Call[];
-  loading: boolean;
-  stats: ComputationResult;
-};
+  archive: CallArchive
+  diff: Call[]
+  loading: boolean
+  stats: ComputationResult
+}
 
 const props = defineProps<{
-  archives: CallArchive[];
-  current: CallArchive;
+  archives: CallArchive[]
+  current: CallArchive
   computingParams: {
-    position: number;
-    gweiDelta: number;
-    buyTaxInXs: boolean;
-    feeInXs: boolean;
-    slippageGuessing: boolean;
-    takeProfits: string;
-  };
-}>();
+    position: number
+    gweiDelta: number
+    buyTaxInXs: boolean
+    feeInXs: boolean
+    slippageGuessing: boolean
+    takeProfits: string
+  }
+}>()
 
-const logColumns = defineModel<string[]>("logColumns", {
+const logColumns = defineModel<string[]>('logColumns', {
   required: true,
-});
+})
 
 const emit = defineEmits<{
-  (e: "closed"): void;
-}>();
+  (e: 'closed'): void
+}>()
 
-const currentIndex = props.archives.findIndex(
-  (a) => a.fileName === props.current.fileName
-);
+const currentIndex = props.archives.findIndex(a => a.fileName === props.current.fileName)
 
 const getDefaultStats = () =>
   ({
     finalETH: 0,
     drawdown: 0,
-    worstDrawdown: ["", 0],
+    worstDrawdown: ['', 0],
     counters: {
       rug: 0,
       unrealistic: 0,
@@ -266,7 +261,7 @@ const getDefaultStats = () =>
     logs: [],
     hashes: {},
     signatures: {},
-  } as ComputationResult);
+  } as ComputationResult)
 
 const left = reactive<DiffPart>({
   // previous file, or first one
@@ -274,21 +269,20 @@ const left = reactive<DiffPart>({
   diff: [],
   loading: false,
   stats: getDefaultStats(),
-});
+})
 const right = reactive<DiffPart>({
   // current file, or last one
   archive:
-    props.current.fileName === left.archive.fileName &&
-    props.archives.length > 1
+    props.current.fileName === left.archive.fileName && props.archives.length > 1
       ? props.archives[props.archives.length - 1]
       : props.current,
   diff: [],
   loading: false,
   stats: getDefaultStats(),
-});
+})
 const common = reactive<DiffPart>({
   archive: {
-    fileName: "",
+    fileName: '',
     calls: [],
     rows: [],
     caColumn: 0,
@@ -296,80 +290,80 @@ const common = reactive<DiffPart>({
   diff: [],
   loading: false,
   stats: getDefaultStats(),
-});
+})
 
 const invert = () => {
-  const temp = right.archive;
-  right.archive = left.archive;
-  left.archive = temp;
-};
+  const temp = right.archive
+  right.archive = left.archive
+  left.archive = temp
+}
 
-const loadingDiffs = ref(true);
-const visible = ref(true);
+const loadingDiffs = ref(true)
+const visible = ref(true)
 
 const onClose = async () => {
-  await sleep(500);
-  emit("closed");
-};
+  await sleep(500)
+  emit('closed')
+}
 
-const worker = new Worker();
+const worker = new Worker()
 worker.onmessage = async ({ data }) => {
-  if (data.type === "DIFF") {
+  if (data.type === 'DIFF') {
     left.diff = (data.diff as CallDiff[])
-      .filter((data) => data.status === "REMOVED")
-      .map((data) => data.call);
+      .filter(data => data.status === 'REMOVED')
+      .map(data => data.call)
     right.diff = (data.diff as CallDiff[])
-      .filter((data) => data.status === "ADDED")
-      .map((data) => data.call);
+      .filter(data => data.status === 'ADDED')
+      .map(data => data.call)
     common.diff = (data.diff as CallDiff[])
-      .filter((data) => data.status === "IN-BOTH")
-      .map((data) => data.call);
-    loadingDiffs.value = false;
-  } else if (data.type === "COMPUTE") {
-    if (data.variant === "left") {
-      left.stats = data;
-      left.loading = false;
-    } else if (data.variant === "right") {
-      right.stats = data;
-      right.loading = false;
+      .filter(data => data.status === 'IN-BOTH')
+      .map(data => data.call)
+    loadingDiffs.value = false
+  } else if (data.type === 'COMPUTE') {
+    if (data.variant === 'left') {
+      left.stats = data
+      left.loading = false
+    } else if (data.variant === 'right') {
+      right.stats = data
+      right.loading = false
     } else {
-      common.stats = data;
-      common.loading = false;
+      common.stats = data
+      common.loading = false
     }
-  } else if (data.type === "MERGE") {
-    transformMergedRows(data.rows);
+  } else if (data.type === 'MERGE') {
+    transformMergedRows(data.rows)
     const blob = await writeXlsxFile(data.rows, {
       stickyRowsCount: 1,
-      fontFamily: "Calibri",
+      fontFamily: 'Calibri',
       fontSize: 11,
-    });
+    })
 
-    loadingDiffs.value = false;
-    downloadBlob(blob, data.title as CallExportType);
+    loadingDiffs.value = false
+    downloadBlob(blob, data.title as CallExportType)
   }
-};
+}
 
-function runCompute(part: DiffPart, variant: "left" | "right" | "common") {
-  part.loading = true;
+function runCompute(part: DiffPart, variant: 'left' | 'right' | 'common') {
+  part.loading = true
 
   worker.postMessage({
-    type: "COMPUTE",
+    type: 'COMPUTE',
     calls: JSON.parse(JSON.stringify(part.diff)),
     ...props.computingParams,
     variant,
-  });
+  })
 }
 
 function extractDiff() {
-  if (!left.archive || !right.archive) return;
+  if (!left.archive || !right.archive) return
   worker.postMessage({
-    type: "DIFF",
+    type: 'DIFF',
     previousCalls: JSON.parse(JSON.stringify(left.archive.calls)),
     newCalls: JSON.parse(JSON.stringify(right.archive.calls)),
-  });
+  })
 }
 
-const exportingXlsx = () => {};
+const exportingXlsx = () => {}
 const exportOptions = [
   // {
   //   label: "Export all merged calls",
@@ -385,79 +379,79 @@ const exportOptions = [
   //     });
   //   },
   // }
-];
+]
 
 async function downloadRows(title: CallExportType) {
-  loadingDiffs.value = true;
+  loadingDiffs.value = true
   worker.postMessage({
-    type: "MERGE",
+    type: 'MERGE',
     leftRows: JSON.parse(JSON.stringify(left.archive.rows)),
     rightRows: JSON.parse(JSON.stringify(right.archive.rows)),
     caColumn: left.archive.caColumn,
     title,
-  });
+  })
 }
 
 function transformMergedRows(
   rows: {
-    value: string | number | Date;
-    format?: string; // if date
-    fontWeight?: "bold";
-    align?: "left" | "center" | "right";
-  }[][]
+    value: string | number | Date
+    format?: string // if date
+    fontWeight?: 'bold'
+    align?: 'left' | 'center' | 'right'
+  }[][],
 ) {
   for (const index in rows) {
     for (const cell of rows[index]) {
       // header
-      if (index === "0") {
-        cell.fontWeight = "bold";
-        cell.align = "center";
+      if (index === '0') {
+        cell.fontWeight = 'bold'
+        cell.align = 'center'
       } else {
         // recreate Date from string so it can be converted properly in XLSX
-        if (cell.format?.startsWith("yyyy")) cell.value = new Date(cell.value);
+        if (cell.format?.startsWith('yyyy')) cell.value = new Date(cell.value)
       }
     }
   }
 }
 
 async function downloadBlob(blob: Blob, title: CallExportType) {
-  const link = document.createElement("a");
-  link.href = window.URL.createObjectURL(blob);
-  link.download = `${title}.xlsx`;
-  document.body.appendChild(link);
-  link.click();
-  await sleep(0);
+  const link = document.createElement('a')
+  link.href = window.URL.createObjectURL(blob)
+  link.download = `${title}.xlsx`
+  document.body.appendChild(link)
+  link.click()
+  await sleep(0)
   try {
-    document.body.removeChild(link);
+    document.body.removeChild(link)
   } catch (e) {}
-  window.URL.revokeObjectURL(link.href);
+  window.URL.revokeObjectURL(link.href)
 }
 
 watch(
   [() => left.archive, () => right.archive],
   () => {
-    extractDiff();
+    extractDiff()
   },
-  { immediate: true }
-);
+  { immediate: true },
+)
 watch(
   () => left.diff,
   () => {
-    runCompute(left, "left");
-  }
-);
+    runCompute(left, 'left')
+  },
+)
 watch(
   () => right.diff,
   () => {
-    runCompute(right, "right");
-  }
-);
+    runCompute(right, 'right')
+  },
+)
 watch(
   () => common.diff,
   () => {
-    runCompute(common, "common");
-  }
-);
+    runCompute(common, 'common')
+  },
+)
 </script>
 
 <style scoped>
