@@ -5,7 +5,7 @@ export type Log = {
   invested: number
   gasPrice: number
   xs: number // -99 is rug
-  currentMC: number
+  callMc: number
   ath: number
   gain: number
   info: string

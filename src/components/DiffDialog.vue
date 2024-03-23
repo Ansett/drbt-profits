@@ -136,7 +136,7 @@
             :logs="right.stats.logs"
             v-model:selectedColumns="logColumns"
             :rows="10"
-            initialSort="gain"
+            initialSort="xs"
             class="mt-3"
           />
         </template>
@@ -179,7 +179,7 @@
             :logs="common.stats.logs"
             v-model:selectedColumns="logColumns"
             :rows="10"
-            initialSort="gain"
+            initialSort="xs"
             class="mt-3"
           />
         </template>

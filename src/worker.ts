@@ -118,7 +118,7 @@ function compute({
   const signatures: Record<string, HashInfo> = {}
 
   calls.forEach(call => {
-    const maxBuyETH = computeMaxETH(call.currentMC, call.supply, call.maxBuy)
+    const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy)
     let invested = Math.min(maxBuyETH || position, position)
     if (Number.isNaN(invested)) {
       invested = position
@@ -225,7 +225,7 @@ function compute({
     //     const price =
     //       (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - call.buyTax));
     //   const realBuyMc = call.supply * price;
-    //   const theoricBuyMc = call.currentMC * (1 + slippage / 100);
+    //   const theoricBuyMc = call.callMc * (1 + slippage / 100);
     //   if (call.xs >= 40 && !call.rug)
     //     accuracy.push({
     //       slippage: round(slippage, 0),
@@ -244,7 +244,7 @@ function compute({
       name: call.name,
       xs: call.rug ? -99 : round(bestXs, 1),
       ath: call.ath,
-      currentMC: call.currentMC,
+      callMc: call.callMc,
       info: unrealistic
         ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
         : postAth

@@ -19,10 +19,7 @@
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
     >
-      <div
-        class="w-screen xl:w-6 m-1 xl:m-4"
-        style="max-width: min(95vw, 75rem)"
-      >
+      <div class="w-screen xl:w-6 m-1 xl:m-4" style="max-width: min(95vw, 75rem)">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -40,27 +37,18 @@
             <ProgressSpinner
               v-if="uploading"
               class="absolute top-50 left-50"
-              style="
-                width: 99px;
-                height: 99px;
-                transform: translate(-50%, -88%);
-                zindex: 99;
-              "
+              style="width: 99px; height: 99px; transform: translate(-50%, -88%); zindex: 99"
               :pt="{
                 spinner: { style: { animationDuration: '0s' } },
               }"
             />
 
-            <div
-              class="flex flex-column m-1 align-items-center justify-content-center"
-            >
+            <div class="flex flex-column m-1 align-items-center justify-content-center">
               <i
                 class="pi pi-file mb-4"
                 :style="{
                   fontSize: '5.25rem',
-                  color: selectedFile
-                    ? 'var(--primary-color)'
-                    : 'var(--cyan-300)',
+                  color: selectedFile ? 'var(--primary-color)' : 'var(--cyan-300)',
                 }"
               />
 
@@ -106,9 +94,7 @@
                     @click="showDiff = true"
                   >
                     <template #icon>
-                      <span class="material-symbols-outlined cursor-pointer"
-                        >difference</span
-                      >
+                      <span class="material-symbols-outlined cursor-pointer">difference</span>
                     </template>
                   </Button>
                 </InputGroup>
@@ -127,9 +113,7 @@
           </template>
         </FileUpload>
 
-        <Message v-if="error" severity="error" :icon="'none'" class="m-6">{{
-          error
-        }}</Message>
+        <Message v-if="error" severity="error" :icon="'none'" class="m-6">{{ error }}</Message>
 
         <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
           <!-- RESULTS -->
@@ -161,10 +145,7 @@
           </AccordionTab>
 
           <!-- TARGETS -->
-          <AccordionTab
-            header="TARGET SIMULATOR"
-            :pt="{ content: { class: 'p-0' } }"
-          >
+          <AccordionTab header="TARGET SIMULATOR" :pt="{ content: { class: 'p-0' } }">
             <TargetFinder
               :data="{
                 calls: filteredCalls,
@@ -183,18 +164,12 @@
           </AccordionTab>
 
           <!-- TIMING -->
-          <AccordionTab
-            header="DAILY BREAKDOWN"
-            :pt="{ content: { class: 'p-0' } }"
-          >
+          <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
             <TimingFinder :logs="logs" :limited="state.withHours" />
           </AccordionTab>
 
           <!-- HASHES -->
-          <AccordionTab
-            header="FUNCTIONS HASH"
-            :pt="{ content: { class: 'p-0' } }"
-          >
+          <AccordionTab header="FUNCTIONS HASH" :pt="{ content: { class: 'p-0' } }">
             <HashTable
               :lines="hashesWithTags"
               filter-template="~HashF.str.contains('{}', na=False)"
@@ -205,10 +180,7 @@
           </AccordionTab>
 
           <!-- SIGNATURES -->
-          <AccordionTab
-            header="FUNCTION SIGNATURE"
-            :pt="{ content: { class: 'p-0' } }"
-          >
+          <AccordionTab header="FUNCTION SIGNATURE" :pt="{ content: { class: 'p-0' } }">
             <HashTable
               :lines="signaturesWithTags"
               filter-template="~FList.str.contains('{}', na=False)"
@@ -347,16 +319,9 @@
         <div
           class="flex flex-column md:flex-row flex-wrap align-items-start md:align-items-center gap-2"
         >
-          <Button class="m-3 align-self-start" @click="addTarget"
-            >Add a target</Button
-          >
+          <Button class="m-3 align-self-start" @click="addTarget">Add a target</Button>
           <div class="flex flex-row gap-2 align-items-center pl-3">
-            <Checkbox
-              inputId="taxOption"
-              v-model="state.buyTaxInXs"
-              binary
-              class="flex-shrink-0"
-            />
+            <Checkbox inputId="taxOption" v-model="state.buyTaxInXs" binary class="flex-shrink-0" />
             <label for="taxOption">Tax lowers target </label>
             <InfoButton
               text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts final profit and not targets"
@@ -364,12 +329,7 @@
             />
           </div>
           <div class="flex flex-row gap-2 align-items-center pl-3">
-            <Checkbox
-              inputId="feeOption"
-              v-model="state.feeInXs"
-              binary
-              class="flex-shrink-0"
-            />
+            <Checkbox inputId="feeOption" v-model="state.feeInXs" binary class="flex-shrink-0" />
             <label for="feeOption">Gas lowers target </label>
             <InfoButton
               text="If activated, Xs target is using the same calculation than sniper bots [profit% = worth/(initial+gas)). If not activated, Xs target is just targetPrice/entryPrice. Whichever you choose, gas cost is just a flat value deduced from profit."
@@ -401,12 +361,7 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">today</span>
             </InputGroupAddon>
-            <Button
-              icon="pi pi-minus"
-              outlined
-              severity="secondary"
-              @click="incStartDate(-1)"
-            />
+            <Button icon="pi pi-minus" outlined severity="secondary" @click="incStartDate(-1)" />
             <InputMask
               v-model="selection.startDate"
               id="start-input"
@@ -415,12 +370,7 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button
-              icon="pi pi-plus"
-              outlined
-              severity="secondary"
-              @click="incStartDate()"
-            />
+            <Button icon="pi pi-plus" outlined severity="secondary" @click="incStartDate()" />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
@@ -430,6 +380,7 @@
               placeholder="00:00"
               class="settingInputSmall"
             />
+            <!-- prettier-ignore -->
             <Button
               icon="pi pi-times"
               outlined
@@ -450,12 +401,7 @@
             <InputGroupAddon>
               <span class="material-symbols-outlined">event</span>
             </InputGroupAddon>
-            <Button
-              icon="pi pi-minus"
-              outlined
-              severity="secondary"
-              @click="incEndDate(-1)"
-            />
+            <Button icon="pi pi-minus" outlined severity="secondary" @click="incEndDate(-1)" />
             <InputMask
               v-model="selection.endDate"
               id="end-input"
@@ -464,12 +410,7 @@
               placeholder="YYYY-MM-DD"
               class="settingInput"
             />
-            <Button
-              icon="pi pi-plus"
-              outlined
-              severity="secondary"
-              @click="incEndDate()"
-            />
+            <Button icon="pi pi-plus" outlined severity="secondary" @click="incEndDate()" />
           </InputGroup>
           <InputGroup class="flex-1">
             <InputMask
@@ -479,6 +420,7 @@
               placeholder="00:00"
               class="settingInputSmall"
             />
+            <!-- prettier-ignore -->
             <Button
               icon="pi pi-times"
               outlined
@@ -498,10 +440,7 @@
               >Custom trading periods<span class="text-xs"> (UTC)</span></label
             >
           </div>
-          <div
-            v-if="state.withHours"
-            class="card flex flex-wrap justify-content-start gap-3"
-          >
+          <div v-if="state.withHours" class="card flex flex-wrap justify-content-start gap-3">
             <div
               v-for="day in allDays"
               :key="day.index"
@@ -524,7 +463,7 @@
                 <template #nullableicon="scope"></template>
               </TriStateCheckbox>
               <label :for="day.name" class="">
-                {{ day.name + (state.week[day.index] === null ? ":" : "") }}
+                {{ day.name + (state.week[day.index] === null ? ':' : '') }}
               </label>
 
               <template v-for="hour in allHours" :key="`${day.name}-${hour}`">
@@ -547,9 +486,7 @@
                     <i
                       :class="[
                         'pi font-bold text-xs border-primary',
-                        scope.checked
-                          ? 'pi-check text-primary'
-                          : 'pi-times text-orange-300',
+                        scope.checked ? 'pi-check text-primary' : 'pi-times text-orange-300',
                         scope.class,
                       ]"
                     ></i>
@@ -559,9 +496,7 @@
                   :for="`${day.name}-${hour}`"
                   :class="[
                     'mr-1',
-                    state.week[day.index] === null
-                      ? 'text-color-secondary'
-                      : 'text-200',
+                    state.week[day.index] === null ? 'text-color-secondary' : 'text-200',
                   ]"
                 >
                   {{ hour }}
@@ -572,15 +507,11 @@
                 v-if="state.week[day.index] === null"
                 class="ml-1 iconButton text-lg material-symbols-outlined"
                 v-tooltip.bottom="{
-                  value: state.hours[day.index][0]
-                    ? 'Uncheck all hours'
-                    : 'Check all hours',
+                  value: state.hours[day.index][0] ? 'Uncheck all hours' : 'Check all hours',
                   showDelay: 500,
                 }"
                 @click="toggleHours(day.index)"
-                >{{
-                  state.hours[day.index][0] ? "remove_done" : "done_all"
-                }}</span
+                >{{ state.hours[day.index][0] ? 'remove_done' : 'done_all' }}</span
               >
             </div>
           </div>
@@ -588,9 +519,7 @@
 
         <!-- MIN CALLS -->
         <div class="flex flex-column gap-2">
-          <label for="mincalls-input"
-            >Minimum calls count to show hashes and signatures</label
-          >
+          <label for="mincalls-input">Minimum calls count to show hashes and signatures</label>
           <InputGroup>
             <InputGroupAddon>
               <i class="pi pi-megaphone"></i>
@@ -640,13 +569,13 @@
     >
       <template #header>&nbsp;</template>
       <p>
-        If you want to donate anything so I can invest more time to improve the
-        tool, I'll gladly accept transfers to:
+        If you want to donate anything so I can invest more time to improve the tool, I'll gladly
+        accept transfers to:
       </p>
       <ul class="bullets">
         <li>
           <CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet />
-          (Ethereum, Polygon, Avalanche)
+          (Ethereum, Polygon, Base, Avalanche)
         </li>
         <li>
           <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet />
@@ -662,27 +591,27 @@
 // https://primevue.org/icons/#list
 // https://primeflex.org/flexdirection
 // https://fonts.google.com/icons?selected=Material+Symbols+Outlined:thumb_up:FILL@0;wght@400;GRAD@0;opsz@24&icon.set=Material+Symbols&icon.style=Outlined
-import ProgressSpinner from "primevue/progressspinner";
-import InputNumber from "primevue/inputnumber";
-import InputGroup from "primevue/inputgroup";
-import InputGroupAddon from "primevue/inputgroupaddon";
-import FileUpload, { type FileUploadSelectEvent } from "primevue/fileupload";
-import Accordion from "primevue/accordion";
-import AccordionTab from "primevue/accordiontab";
-import Message from "primevue/message";
-import InputMask from "primevue/inputmask";
-import InputSwitch from "primevue/inputswitch";
-import Button from "primevue/button";
-import Checkbox from "primevue/checkbox";
-import TriStateCheckbox from "primevue/tristatecheckbox";
-import HashTable from "./components/HashTable.vue";
-import DiffDialog from "./components/DiffDialog.vue";
-import InfoButton from "./components/InfoButton.vue";
-import Dialog from "primevue/dialog";
-import Toast from "primevue/toast";
-import Dropdown from "primevue/dropdown";
-import vTooltip from "primevue/tooltip";
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import ProgressSpinner from 'primevue/progressspinner'
+import InputNumber from 'primevue/inputnumber'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
+import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
+import Accordion from 'primevue/accordion'
+import AccordionTab from 'primevue/accordiontab'
+import Message from 'primevue/message'
+import InputMask from 'primevue/inputmask'
+import InputSwitch from 'primevue/inputswitch'
+import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
+import TriStateCheckbox from 'primevue/tristatecheckbox'
+import HashTable from './components/HashTable.vue'
+import DiffDialog from './components/DiffDialog.vue'
+import InfoButton from './components/InfoButton.vue'
+import Dialog from 'primevue/dialog'
+import Toast from 'primevue/toast'
+import Dropdown from 'primevue/dropdown'
+import vTooltip from 'primevue/tooltip'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {
   debounce,
   decimalHourToString,
@@ -692,192 +621,177 @@ import {
   sumObjectProperty,
   sleep,
   round,
-} from "./lib";
-import { type CallArchive, type Call, type DiffType } from "./types/Call";
-import type { Log } from "./types/Log";
-import Worker from "./worker?worker";
-import type { TakeProfit } from "./types/TakeProfit";
-import type { HashInfo } from "./types/HashInfo";
-import LogsTable from "./components/LogsTable.vue";
-import TargetFinder from "./components/TargetFinder.vue";
-import CaLink from "./components/CaLink.vue";
-import TimingFinder from "./components/TimingFinder.vue";
-import {
-  ptNumberInput,
-  ETH_PRICE,
-  SELL_TAX,
-  SELL_GAS_PRICE,
-  DEFAULT_SLIPPAGE,
-} from "./constants";
-import Statistics from "./components/Statistics.vue";
-import AthStatistics from "./components/AthStatistics.vue";
+} from './lib'
+import { type CallArchive, type Call, type DiffType } from './types/Call'
+import type { Log } from './types/Log'
+import Worker from './worker?worker'
+import type { TakeProfit } from './types/TakeProfit'
+import type { HashInfo } from './types/HashInfo'
+import LogsTable from './components/LogsTable.vue'
+import TargetFinder from './components/TargetFinder.vue'
+import CaLink from './components/CaLink.vue'
+import TimingFinder from './components/TimingFinder.vue'
+import { ptNumberInput, ETH_PRICE, SELL_TAX, SELL_GAS_PRICE, DEFAULT_SLIPPAGE } from './constants'
+import Statistics from './components/Statistics.vue'
+import AthStatistics from './components/AthStatistics.vue'
 
-const error = ref("");
-const loading = ref(false);
-const uploading = ref(0);
-const uploader = ref<InstanceType<typeof FileUpload>>();
-const showDonation = ref(false);
+const error = ref('')
+const loading = ref(false)
+const uploading = ref(0)
+const uploader = ref<InstanceType<typeof FileUpload>>()
+const showDonation = ref(false)
 
 const onUpload = async (event: FileUploadSelectEvent) => {
-  const { files } = event;
-  if (!files?.length) return;
+  const { files } = event
+  if (!files?.length) return
 
-  const allXlsx = [...files];
-  (uploader.value as any)?.clear();
+  const allXlsx = [...files]
+  ;(uploader.value as any)?.clear()
 
-  uploading.value = allXlsx.length;
-  worker.postMessage({ type: "XLSX", allXlsx });
-};
+  uploading.value = allXlsx.length
+  worker.postMessage({ type: 'XLSX', allXlsx })
+}
 
-const showDiff = ref(false);
-const logs = ref<Log[]>([]);
-const TAGS_STORAGE_KEY = "tags";
-const localTags = ref<Record<string, string[]>>(
-  localStorageGetObject(TAGS_STORAGE_KEY) || {}
-);
+const showDiff = ref(false)
+const logs = ref<Log[]>([])
+const TAGS_STORAGE_KEY = 'tags'
+const localTags = ref<Record<string, string[]>>(localStorageGetObject(TAGS_STORAGE_KEY) || {})
 
 const removeTag = (hash: string, index: number) => {
-  localTags.value[hash]?.splice(index, 1);
-};
+  localTags.value[hash]?.splice(index, 1)
+}
 const addTag = (hash: string, newTag: string) => {
-  if (!localTags.value[hash]) localTags.value[hash] = [];
-  localTags.value[hash].push(newTag);
-};
+  if (!localTags.value[hash]) localTags.value[hash] = []
+  localTags.value[hash].push(newTag)
+}
 watch(
   localTags,
   () => {
-    localStorageSetObject(TAGS_STORAGE_KEY, localTags.value);
+    localStorageSetObject(TAGS_STORAGE_KEY, localTags.value)
   },
-  { deep: true }
-);
+  { deep: true },
+)
 
-const hashes = ref<Record<string, HashInfo>>({});
+const hashes = ref<Record<string, HashInfo>>({})
 const hashesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash)
-);
-const signatures = ref<Record<string, HashInfo>>({});
+  addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash),
+)
+const signatures = ref<Record<string, HashInfo>>({})
 const signaturesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash)
-);
+  addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash),
+)
 
-const archives = ref<CallArchive[]>([]);
-const current = ref<CallArchive | null>(null);
+const archives = ref<CallArchive[]>([])
+const current = ref<CallArchive | null>(null)
 const removeArchive = (index: number) => {
-  if (archives.value[index].fileName === current.value?.fileName)
-    current.value = archives.value[0];
-  archives.value.splice(index, 1);
-};
+  if (archives.value[index].fileName === current.value?.fileName) current.value = archives.value[0]
+  archives.value.splice(index, 1)
+}
 
-const selectedFile = computed(() => current.value?.fileName || "");
-const calls = computed(() => current.value?.calls || []);
+const selectedFile = computed(() => current.value?.fileName || '')
+const calls = computed(() => current.value?.calls || [])
 const filteredCalls = computed<Call[]>(() =>
-  calls.value.filter((call) => {
+  calls.value.filter(call => {
     // filtering period
     if (selection.startDate) {
-      const time = selection.startHour?.match(/\d\d:\d\d/)
-        ? selection.startHour
-        : "00:00";
-      const fullStart = `${selection.startDate}T${time}:00.000Z`;
-      if (call.date < fullStart) return false;
+      const time = selection.startHour?.match(/\d\d:\d\d/) ? selection.startHour : '00:00'
+      const fullStart = `${selection.startDate}T${time}:00.000Z`
+      if (call.date < fullStart) return false
     }
     if (selection.endDate) {
-      const time = selection.endHour?.match(/\d\d:\d\d/)
-        ? selection.endHour
-        : "00:00";
-      const fullEnd = `${selection.endDate}T${time}:00.000Z`;
-      if (call.date > fullEnd) return false;
+      const time = selection.endHour?.match(/\d\d:\d\d/) ? selection.endHour : '00:00'
+      const fullEnd = `${selection.endDate}T${time}:00.000Z`
+      if (call.date > fullEnd) return false
     }
 
     // filtering trading hours and days
-    if (state.withHours && state.week.some((active) => !active)) {
-      const date = new Date(call.date);
-      const callDay = date.getUTCDay();
-      if (state.week[callDay]) return true;
-      else if (state.week[callDay] === false) return false;
+    if (state.withHours && state.week.some(active => !active)) {
+      const date = new Date(call.date)
+      const callDay = date.getUTCDay()
+      if (state.week[callDay]) return true
+      else if (state.week[callDay] === false) return false
       // when null: costom hours
-      const callHour = date.getUTCHours();
-      return state.hours[callDay][callHour];
+      const callHour = date.getUTCHours()
+      return state.hours[callDay][callHour]
     }
 
-    return true;
-  })
-);
+    return true
+  }),
+)
 
 const getHeaderIndexes = <T extends string>(
   header: (string | number | Date)[],
-  names: T[]
+  names: T[],
 ): Record<T, number> | null => {
-  const indexes = {} as Record<T, number>;
+  const indexes = {} as Record<T, number>
 
   for (const name of names) {
-    const allIndexes = header.flatMap((h, i) => (h === name ? i : []));
-    if (!allIndexes.length) return fail(`${name} header not found`);
+    const allIndexes = header.flatMap((h, i) => (h === name ? i : []))
+    if (!allIndexes.length) return fail(`${name} header not found`)
 
     // if the same header is present multiple time in sheet (ie. CRT_MC), take the last one
-    indexes[name] =
-      allIndexes.length > 1 ? allIndexes[allIndexes.length - 1] : allIndexes[0];
-    header.indexOf(name);
+    indexes[name] = allIndexes.length > 1 ? allIndexes[allIndexes.length - 1] : allIndexes[0]
+    header.indexOf(name)
   }
 
-  return indexes;
-};
+  return indexes
+}
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
-  if (rows.length <= 1) return;
+  if (rows.length <= 1) return
 
   const indexes = getHeaderIndexes(rows[0], [
-    "LiveAt",
-    "Name",
-    "CA",
-    "Rug",
-    "BlockPrice",
-    "CRT_ATH_MC", // ATH at the time of export
-    "CRT_ATH_Date",
-    "ATH_MC", // ATH at the time of call
-    "TSupply",
-    "MaxBuyPRCT", // MaxBuy is not realiable, using percentage instead
-    "CRT_MC", // taking the second column with same name, the first one is MC at present time, not call-time
-    "HashF",
-    "BuyTax",
-    "Logged",
-    "LaunchedDelay",
-    "FList",
-    "GWEI",
-    "Gas",
-    "Snipes",
-    "PriorityMin",
-    "PriorityMax",
-    "PriorityAVG",
-    "LP_CRT",
-  ]);
+    'LiveAt',
+    'Name',
+    'CA',
+    'Rug',
+    'CRT_ATH_MC', // ATH at the time of export
+    'CRT_ATH_Date',
+    'ATH_MC', // ATH at the time of call
+    'TSupply',
+    'MaxBuyPRCT', // MaxBuy is not realiable, using percentage instead
+    'CRT_MC', // taking the second column with same name, the first one is MC at present time, not call-time
+    'HashF',
+    'BuyTax',
+    'Logged',
+    'LaunchedDelay',
+    'FList',
+    'GWEI',
+    'Gas',
+    'Snipes',
+    'PriorityMin',
+    'PriorityMax',
+    'PriorityAVG',
+    'LP_CRT',
+  ])
 
-  if (!indexes) return;
+  if (!indexes) return
 
-  let newCalls: Call[] = [];
+  let newCalls: Call[] = []
   for (const rowIndex in rows) {
-    if (!rowIndex) return; // ignore headers
-    const row = rows[rowIndex];
-    const parsedLaunch = row[indexes.LiveAt] as Date;
-    const parsedDate = row[indexes.Logged] as Date;
-    const parsedAthDate = row[indexes.CRT_ATH_Date] as Date;
-    if (!parsedDate || !parsedAthDate) continue;
+    if (!rowIndex) return // ignore headers
+    const row = rows[rowIndex]
+    const parsedLaunch = row[indexes.LiveAt] as Date
+    const parsedDate = row[indexes.Logged] as Date
+    const parsedAthDate = row[indexes.CRT_ATH_Date] as Date
+    if (!parsedDate || !parsedAthDate) continue
     try {
-      parsedLaunch.setHours(parsedLaunch.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
-      parsedDate.setHours(parsedDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
-      parsedAthDate.setHours(parsedAthDate.getHours() - 1); // not sure why dates are UTC+1 in the XLSX
+      parsedLaunch.setHours(parsedLaunch.getHours() - 1) // not sure why dates are UTC+1 in the XLSX
+      parsedDate.setHours(parsedDate.getHours() - 1) // not sure why dates are UTC+1 in the XLSX
+      parsedAthDate.setHours(parsedAthDate.getHours() - 1) // not sure why dates are UTC+1 in the XLSX
     } catch (e) {
-      continue;
+      continue
     }
-    const price = row[indexes.BlockPrice] as number;
-    const supply = row[indexes.TSupply] as number;
-    const callMc = price * supply;
-    const ath = row[indexes.CRT_ATH_MC] as number;
-    const xs = ath / callMc;
-    const athDelayHours =
-      (parsedAthDate.getTime() - parsedLaunch.getTime()) / (1000 * 60 * 60);
+    const ca = row[indexes.CA] as string
+    const supply = row[indexes.TSupply] as number
+    const callMc = row[indexes.CRT_MC] as number
+    const price = callMc / supply
+    const ath = row[indexes.CRT_ATH_MC] as number
+    const xs = ath / callMc
+    const athDelayHours = (parsedAthDate.getTime() - parsedLaunch.getTime()) / (1000 * 60 * 60)
 
     newCalls.push({
       name: row[indexes.Name] as string,
-      ca: row[indexes.CA] as string,
+      ca,
       nameAndCa: ((row[indexes.Name] as string) + row[indexes.CA]) as string,
       price,
       supply,
@@ -892,49 +806,43 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       delay: row[indexes.LaunchedDelay] as number,
       fList: row[indexes.FList] as string,
       maxBuy: ((row[indexes.MaxBuyPRCT] as number) || 100) / 100,
-      currentMC: row[indexes.CRT_MC] as number,
       rug: !!row[indexes.Rug],
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
       buyGas: (row[indexes.Gas] as number) || 200000,
       nbSnipes: row[indexes.Snipes] as number,
       lp: row[indexes.LP_CRT] as number,
-    });
+    })
   }
 
-  newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
 
-  const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.CA };
-  current.value = newArchive;
-  const existIndex = archives.value.findIndex(
-    (a) => a.fileName === newArchive.fileName
-  );
-  if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive);
-  else archives.value.push(newArchive);
+  const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.CA }
+  current.value = newArchive
+  const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
+  if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)
+  else archives.value.push(newArchive)
 }
 
-const INIT_POSITION = 0.05;
+const INIT_POSITION = 0.05
 const INIT_TP = {
   size: 100,
   xs: 50,
   withXs: true,
   mc: 1000000,
   withMc: true,
-} as TakeProfit;
-const INIT_GWEI = 5;
-const INIT_MIN_CALLS = 5;
-const INIT_HASH_COLUMNS = ["Count", "Average", "x10", "x50", "Tags"];
-const INIT_LOG_COLUMNS = ["Invested", "Entry MC", "Slippage", "ATH MC"];
-const INIT_TEXT_LOGS = false;
-const INIT_DIFF_TYPES = ["ADDED", "REMOVED"] as DiffType[];
-const INIT_BUY_TAX_IN_XS = true;
-const INIT_FEE_IN_XS = true;
-const INIT_SLIPPAGE_GUESSING = true;
-const INIT_WITH_HOURS = false;
-const INIT_WEEK = [true, true, true, true, true, true, true] as (
-  | boolean
-  | null
-)[];
+} as TakeProfit
+const INIT_GWEI = 5
+const INIT_MIN_CALLS = 5
+const INIT_HASH_COLUMNS = ['Count', 'Average', 'x10', 'x50', 'Tags']
+const INIT_LOG_COLUMNS = ['Invested', 'Entry MC', 'Slippage', 'ATH MC']
+const INIT_TEXT_LOGS = false
+const INIT_DIFF_TYPES = ['ADDED', 'REMOVED'] as DiffType[]
+const INIT_BUY_TAX_IN_XS = true
+const INIT_FEE_IN_XS = true
+const INIT_SLIPPAGE_GUESSING = true
+const INIT_WITH_HOURS = false
+const INIT_WEEK = [true, true, true, true, true, true, true] as (boolean | null)[]
 // prettier-ignore
 const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
@@ -959,30 +867,30 @@ const state = reactive({
   withHours: INIT_WITH_HOURS,
   week: INIT_WEEK,
   hours: INIT_HOURS,
-});
+})
 
 const selection = reactive({
-  startDate: "",
-  startHour: "",
-  endDate: "",
-  endHour: "",
-});
+  startDate: '',
+  startHour: '',
+  endDate: '',
+  endHour: '',
+})
 
 const allDays = [
-  { index: 1, name: "Monday" },
-  { index: 2, name: "Tuesday" },
-  { index: 3, name: "Wednesday" },
-  { index: 4, name: "Thursday" },
-  { index: 5, name: "Friday" },
-  { index: 6, name: "Saturday" },
-  { index: 0, name: "Sunday" },
-];
-const allHours = Array.from({ length: 24 }, (_, index) => index);
+  { index: 1, name: 'Monday' },
+  { index: 2, name: 'Tuesday' },
+  { index: 3, name: 'Wednesday' },
+  { index: 4, name: 'Thursday' },
+  { index: 5, name: 'Friday' },
+  { index: 6, name: 'Saturday' },
+  { index: 0, name: 'Sunday' },
+]
+const allHours = Array.from({ length: 24 }, (_, index) => index)
 
-const initialized = ref(false);
-const finalETH = ref(0);
-const drawdown = ref(0);
-const worstDrawdown = ref<[string, number]>(["", 0]);
+const initialized = ref(false)
+const finalETH = ref(0)
+const drawdown = ref(0)
+const worstDrawdown = ref<[string, number]>(['', 0])
 const counters = ref({
   rug: 0,
   unrealistic: 0,
@@ -990,92 +898,87 @@ const counters = ref({
   x100: 0,
   x50: 0,
   x10: 0,
-});
+})
 
-const STATE_STORAGE_KEY = "state-c";
+const STATE_STORAGE_KEY = 'state-c'
 function storeForm() {
-  localStorageSetObject(STATE_STORAGE_KEY, state);
+  localStorageSetObject(STATE_STORAGE_KEY, state)
 }
-watch(state, () => storeForm(), { deep: true });
+watch(state, () => storeForm(), { deep: true })
 function loadForm() {
-  const savedState = localStorageGetObject(STATE_STORAGE_KEY);
-  if (!savedState) return;
+  const savedState = localStorageGetObject(STATE_STORAGE_KEY)
+  if (!savedState) return
 
-  state.position = savedState.position ?? INIT_POSITION;
-  state.takeProfits = savedState.takeProfits ?? [INIT_TP];
-  state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI;
-  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS;
-  state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS;
-  state.logColumns = savedState.logColumns ?? INIT_LOG_COLUMNS;
-  state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS;
-  state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS;
-  state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS;
-  state.slippageGuessing =
-    savedState.slippageGuessing ?? INIT_SLIPPAGE_GUESSING;
-  state.withHours = savedState.withHours ?? INIT_WITH_HOURS;
-  state.week = savedState.week ?? INIT_WEEK;
-  state.hours = savedState.hours ?? INIT_HOURS;
+  state.position = savedState.position ?? INIT_POSITION
+  state.takeProfits = savedState.takeProfits ?? [INIT_TP]
+  state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
+  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
+  state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
+  state.logColumns = savedState.logColumns ?? INIT_LOG_COLUMNS
+  state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
+  state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS
+  state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS
+  state.slippageGuessing = savedState.slippageGuessing ?? INIT_SLIPPAGE_GUESSING
+  state.withHours = savedState.withHours ?? INIT_WITH_HOURS
+  state.week = savedState.week ?? INIT_WEEK
+  state.hours = savedState.hours ?? INIT_HOURS
 }
 onMounted(() => {
-  loadForm();
-  initialized.value = true;
-});
+  loadForm()
+  initialized.value = true
+})
 
 const toggleHours = (dayIndex: number) => {
-  const previous = state.hours[dayIndex][0];
+  const previous = state.hours[dayIndex][0]
   for (let h = 0; h <= 23; h++) {
-    state.hours[dayIndex][h] = !previous;
+    state.hours[dayIndex][h] = !previous
   }
-};
+}
 
 const addTarget = () => {
-  const lastTarget = state.takeProfits[state.takeProfits.length - 1];
-  const remainingPct =
-    100 - sumObjectProperty(state.takeProfits, (tp) => tp.size);
+  const lastTarget = state.takeProfits[state.takeProfits.length - 1]
+  const remainingPct = 100 - sumObjectProperty(state.takeProfits, tp => tp.size)
   state.takeProfits.push({
     ...INIT_TP,
     ...lastTarget,
     size: remainingPct,
-  });
-};
+  })
+}
 const removeTarget = (index: number) => {
-  state.takeProfits.splice(index, 1);
-};
+  state.takeProfits.splice(index, 1)
+}
 
 const getMaxSize = (index: number): number => {
-  const otherTps = [...state.takeProfits];
-  otherTps.splice(index, 1);
-  return 100 - sumObjectProperty(otherTps, (tp) => tp.size);
-};
+  const otherTps = [...state.takeProfits]
+  otherTps.splice(index, 1)
+  return 100 - sumObjectProperty(otherTps, tp => tp.size)
+}
 
 const incStartDate = (inc = 1) => {
-  const base = selection.startDate || filteredCalls.value[0]?.date || "";
-  if (!base) return;
-  const offset = selection.startDate ? inc : 0;
-  const current = new Date(base);
-  current.setDate(current.getDate() + offset);
-  selection.startDate = current.toISOString().split("T")[0];
-};
+  const base = selection.startDate || filteredCalls.value[0]?.date || ''
+  if (!base) return
+  const offset = selection.startDate ? inc : 0
+  const current = new Date(base)
+  current.setDate(current.getDate() + offset)
+  selection.startDate = current.toISOString().split('T')[0]
+}
 const incEndDate = (inc = 1) => {
-  const base =
-    selection.endDate ||
-    filteredCalls.value[filteredCalls.value.length - 1]?.date ||
-    "";
-  if (!base) return;
-  const offset = selection.endDate ? inc : 1;
-  const current = new Date(base);
-  current.setDate(current.getDate() + offset);
-  selection.endDate = current.toISOString().split("T")[0];
-};
+  const base = selection.endDate || filteredCalls.value[filteredCalls.value.length - 1]?.date || ''
+  if (!base) return
+  const offset = selection.endDate ? inc : 1
+  const current = new Date(base)
+  current.setDate(current.getDate() + offset)
+  selection.endDate = current.toISOString().split('T')[0]
+}
 
 const runCompute = async () => {
-  if (!filteredCalls.value.length) return;
+  if (!filteredCalls.value.length) return
 
-  loading.value = true;
-  await sleep(0.2); // waiting for color transition on inputs
+  loading.value = true
+  await sleep(0.2) // waiting for color transition on inputs
 
   return worker.postMessage({
-    type: "COMPUTE",
+    type: 'COMPUTE',
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     gweiDelta: state.gweiDelta,
@@ -1083,14 +986,14 @@ const runCompute = async () => {
     feeInXs: state.feeInXs,
     slippageGuessing: state.slippageGuessing,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
-  });
-};
-const debouncedCompute = debounce(runCompute, 1000);
+  })
+}
+const debouncedCompute = debounce(runCompute, 1000)
 watch(filteredCalls, () => {
-  if (!initialized.value) return;
-  loading.value = true;
-  debouncedCompute();
-});
+  if (!initialized.value) return
+  loading.value = true
+  debouncedCompute()
+})
 // reload when an input related to profit changes
 watch(
   [
@@ -1102,35 +1005,35 @@ watch(
     () => state.slippageGuessing,
   ],
   () => {
-    debouncedCompute();
+    debouncedCompute()
   },
-  { deep: true }
-);
+  { deep: true },
+)
 
 function fail(message: string) {
-  error.value = message;
-  return null;
+  error.value = message
+  return null
 }
 
-const worker = new Worker();
+const worker = new Worker()
 worker.onmessage = ({ data }) => {
-  if (data.type === "XLSX") {
-    uploading.value = Math.max(0, uploading.value - 1);
-    return storeData(data.rows, data.fileName);
-  } else if (data.type === "COMPUTE") {
-    finalETH.value = data.finalETH;
-    drawdown.value = data.drawdown;
-    worstDrawdown.value = data.worstDrawdown;
-    counters.value = data.counters;
-    logs.value = data.logs;
-    hashes.value = data.hashes;
-    signatures.value = data.signatures;
-    loading.value = false;
+  if (data.type === 'XLSX') {
+    uploading.value = Math.max(0, uploading.value - 1)
+    return storeData(data.rows, data.fileName)
+  } else if (data.type === 'COMPUTE') {
+    finalETH.value = data.finalETH
+    drawdown.value = data.drawdown
+    worstDrawdown.value = data.worstDrawdown
+    counters.value = data.counters
+    logs.value = data.logs
+    hashes.value = data.hashes
+    signatures.value = data.signatures
+    loading.value = false
   }
-};
+}
 worker.onerror = ({ message }) => {
-  error.value = message;
-};
+  error.value = message
+}
 </script>
 
 <style scoped>

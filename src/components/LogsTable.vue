@@ -190,7 +190,7 @@
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          {{ prettifyMc(data.currentMC) }}
+          {{ prettifyMc(data.callMc) }}
         </template></Column
       >
       <Column
