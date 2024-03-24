@@ -53,7 +53,7 @@
         /></div
     ></template>
 
-    <div class="flex flex-row flex-wrap gap-3">
+    <div class="flex flex-row flex-wrap row-gap-5 column-gap-3">
       <Card
         class="flex-grow-1 border-round surface-section relative"
         :pt="{

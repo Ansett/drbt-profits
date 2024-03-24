@@ -320,9 +320,10 @@
           class="flex flex-column md:flex-row flex-wrap align-items-start md:align-items-center gap-2"
         >
           <Button class="m-3 align-self-start" @click="addTarget">Add a target</Button>
+
           <div class="flex flex-row gap-2 align-items-center pl-3">
             <Checkbox inputId="taxOption" v-model="state.buyTaxInXs" binary class="flex-shrink-0" />
-            <label for="taxOption">Tax lowers target </label>
+            <label for="taxOption">Tax impacts target </label>
             <InfoButton
               text="If activated, buy tax lowers Xs and thus impacts targets. If not activated, buy tax only impacts final profit and not targets"
               class="align-self-start"
@@ -330,7 +331,7 @@
           </div>
           <div class="flex flex-row gap-2 align-items-center pl-3">
             <Checkbox inputId="feeOption" v-model="state.feeInXs" binary class="flex-shrink-0" />
-            <label for="feeOption">Gas lowers target </label>
+            <label for="feeOption">Gas impacts target </label>
             <InfoButton
               text="If activated, Xs target is using the same calculation than sniper bots [profit% = worth/(initial+gas)). If not activated, Xs target is just targetPrice/entryPrice. Whichever you choose, gas cost is just a flat value deduced from profit."
               class="align-self-start"
@@ -343,7 +344,7 @@
               binary
               class="flex-shrink-0"
             />
-            <label for="slippageOption">Slippage guess </label>
+            <label for="slippageOption">Guess slippage </label>
             <InfoButton
               :text="`By default, buy slippage is ${DEFAULT_SLIPPAGE}%. But with this option, for block 1 or 2 buys, the algorithm tries to guess a more realistic, but still very imperfect, slippage with the help of block 0 snipes data`"
               class="align-self-start"
