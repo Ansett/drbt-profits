@@ -1,0 +1,29 @@
+export type Log = {
+  date: string
+  ca: string
+  name: string
+  invested: number
+  gasPrice: number
+  xs: number // -99 is rug
+  callMc: number
+  ath: number
+  gain: number
+  info: string
+  hitTp: string[]
+  slippage: number
+  /* for accuracy check */
+  nbSnipes: number
+  buyTax: number
+  supply: number
+  delay: number
+}
+
+export type AccuracyLog = {
+  slippage: number
+  snipes: number
+  relativeError: number // in %
+  theoricBuyMc: number
+  realBuyMc: number
+  ca: string
+  delay: number
+}

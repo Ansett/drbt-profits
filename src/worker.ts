@@ -1,0 +1,562 @@
+import readXlsxFile from 'read-excel-file/web-worker'
+import {
+  Alchemy,
+  AssetTransfersCategory,
+  BigNumber,
+  Network,
+  Utils,
+  type AssetTransfersResult,
+} from 'alchemy-sdk'
+import type { Call, CallDiff, CallExportType } from './types/Call'
+import type { AccuracyLog, Log } from './types/Log'
+import type { TakeProfit } from './types/TakeProfit'
+import { getSaleDate, prettifyDate, round, sumObjectProperty } from './lib'
+import type { HashInfo } from './types/HashInfo'
+import type {
+  ComputationForTarget,
+  ComputationResult,
+  ComputationShortResult,
+} from './types/ComputationResult'
+import {
+  ETH_PRICE,
+  SELL_TAX,
+  SELL_GAS_PRICE,
+  AVERAGE_LP_TO_MC_RATIO,
+  BUILDER_ADDYS,
+  EXCLUDED_FROM_ACCURACY,
+} from './constants'
+import type { BlockTx, TokenTransfer } from './types/Transaction'
+import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
+import { fetchAllBuysFrom, fetchTxsFromBlock } from './chain'
+
+onmessage = async function ({ data }) {
+  if (!data?.type) return
+
+  if (data.type === 'XLSX') {
+    for (const xlsx of data.allXlsx) {
+      const rows = await readXlsxFile(xlsx)
+      postMessage({ type: 'XLSX', rows, fileName: xlsx.name })
+    }
+    return
+  }
+  if (data.type === 'COMPUTE') {
+    const computation = await compute(data)
+    return postMessage({
+      type: 'COMPUTE',
+      ...computation,
+      variant: data.variant,
+    })
+  }
+  if (data.type === 'TARGETING') {
+    const result = await findTarget(data)
+    return postMessage({ type: 'TARGETING', result })
+  }
+  if (data.type === 'DIFF')
+    return postMessage({
+      type: 'DIFF',
+      diff: getCallsDiff(data.previousCalls, data.newCalls),
+    })
+  if (data.type === 'MERGE')
+    return postMessage({
+      type: 'MERGE',
+      title: data.title,
+      rows: mergeRows(data.leftRows, data.rightRows, data.caColumn)[data.title as CallExportType],
+    })
+}
+
+const REALISTIC_MAX_XS = 100000
+
+const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
+  const supplyBought = maxBuy * supply
+  return ((currentMC / supply) * supplyBought) / ETH_PRICE
+}
+
+const getGasPrice = (call: Call, gweiDelta: number): number =>
+  ((call.gwei + gweiDelta) / 1000000000) * call.buyGas
+
+const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: number): number => {
+  const lpOtherAmount = lpAmount / previousPrice
+  const newPrice =
+    (lpAmount - 1 * ((lpOtherAmount * lpAmount) / (lpOtherAmount + nbTokens) - lpAmount)) /
+    (lpOtherAmount - nbTokens)
+  const slippage = (newPrice / previousPrice - 1) * 100
+
+  return slippage
+}
+
+const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: BlockTx[]): number => {
+  const myTokens = invested / call.price
+  const previousTxs = txs.filter(tx => tx.gasPrice >= gweiDelta)
+  const tokenBought = myTokens + sumObjectProperty(previousTxs, tx => tx.amount)
+
+  const impact = getPriceImpact(call.lp * ETH_PRICE, call.price, tokenBought)
+
+  return impact
+}
+
+async function compute({
+  calls,
+  position,
+  gweiDelta,
+  takeProfits,
+  buyTaxInXs,
+  feeInXs,
+  chainApiKey,
+  withPriceImpact,
+  withAccuracyAddy,
+}: {
+  calls: Call[]
+  position: number
+  gweiDelta: number
+  takeProfits: TakeProfit[]
+  buyTaxInXs: boolean
+  feeInXs: boolean
+  chainApiKey: string
+  withPriceImpact: boolean
+  withAccuracyAddy?: string
+}): Promise<ComputationResult> {
+  let finalETH = 0
+  let drawdown = 0
+  const counters = {
+    rug: 0,
+    unrealistic: 0,
+    postAth: 0,
+    x100: 0,
+    x50: 0,
+    x10: 0,
+  }
+  await createBlockStore()
+  const logs: Log[] = []
+  const hashes: Record<string, HashInfo> = {}
+  const signatures: Record<string, HashInfo> = {}
+
+  const gainByDate: Record<string, number> = {}
+  const addGain = (date: string, gain: number) => {
+    const day = prettifyDate(date, 'date')
+    gainByDate[day] = (gainByDate[day] || 0) + gain
+  }
+
+  let firstBlockOfPeriod = 0
+  let loadingMessageSent = false
+  const estimatedOnChainMins = Math.max(
+    1,
+    Math.round((calls.filter(call => callWorthOnChainData(call)).length * 0.5) / 60),
+  )
+
+  for (const call of calls) {
+    const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy)
+    let invested = Math.min(maxBuyETH || position, position)
+    if (Number.isNaN(invested)) {
+      invested = position
+    }
+
+    if (call.rug) counters.rug++
+    const unrealistic = !call.rug && call.xs > REALISTIC_MAX_XS
+    if (unrealistic) counters.unrealistic++
+    const postAth = callIsPostAth(call)
+    if (postAth) counters.postAth++
+
+    const gasPrice = getGasPrice(call, gweiDelta)
+    let gain = -invested - gasPrice
+    addGain(call.date, gain)
+
+    // we consider tx is done block +2
+    const blockStart = call.block + 1
+    // if delay is 6-13s, we consider we buy block+2 instead of block+1
+    const blockEnd = call.block + (call.delay >= 6 && call.delay <= 13 ? 2 : 1)
+    firstBlockOfPeriod =
+      !firstBlockOfPeriod || blockStart < firstBlockOfPeriod ? blockStart : firstBlockOfPeriod
+    const blockNeeded = chainApiKey && callWorthOnChainData(call)
+    let blockTransactions: BlockTx[] | undefined | null = null
+
+    if (blockNeeded) {
+      blockTransactions = await getBlockDataFromStore(call.ca, blockStart, blockEnd)
+      if (!blockTransactions) {
+        if (!loadingMessageSent) {
+          loadingMessageSent = true
+          postMessage({
+            type: 'LOADING',
+            text: `Fetching blocks info, it can take up to ${estimatedOnChainMins}'`,
+          })
+        }
+        blockTransactions = await fetchTxsFromBlock(
+          blockStart,
+          blockEnd,
+          call.ca,
+          chainApiKey,
+          call.delay <= 13,
+        )
+        if (blockTransactions)
+          await storeBlockDataInStore(call.ca, blockStart, blockEnd, blockTransactions)
+      }
+    }
+
+    if (!blockTransactions && blockNeeded) {
+      postMessage({
+        type: 'WARNING',
+        text: 'Some block data could not be retrieved, so calculated slippage will be less acurate',
+      })
+    }
+
+    const slippage = blockTransactions
+      ? getSlippage(call, invested, gweiDelta, blockTransactions)
+      : 25
+    let bestXs = call.xs / (1 + slippage / 100)
+    bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
+
+    const feeMultiplicator = invested / (invested + gasPrice)
+    const taxMultiplicator = 1 - call.buyTax
+    // we reduce Xs used for targeting with gas fee, but we later need to revert that when using the Xs to actually calculate the final profit; only do that for Xs target, not MC target transformed in Xs
+    const reducedXs = (rawXs: number, includeFee: boolean, includeGas: boolean) => {
+      let xs = includeFee ? rawXs * feeMultiplicator : rawXs
+      xs = includeGas ? xs * taxMultiplicator : xs
+      return xs
+    }
+    const unreducedXs = (xsWithFeeAndGas: number, includedFee: boolean, includedGas: boolean) => {
+      let xs = includedFee ? xsWithFeeAndGas / feeMultiplicator : xsWithFeeAndGas
+      xs = includedGas ? xs / taxMultiplicator : xs
+      return xs
+    }
+
+    const hitTp: string[] = []
+
+    if (!call.rug && !postAth) {
+      let remainingPosition = 100
+      let tpIndex = 0
+      for (const tp of takeProfits) {
+        const targetXsDirect = tp.withXs ? tp.xs : 0
+        const targetXsFromMc = tp.withMc ? (bestXs / call.ath) * tp.mc : 0
+        const bothTargets = !!targetXsDirect && !!targetXsFromMc
+
+        const reachedXsTarget =
+          reducedXs(bestXs, feeInXs, buyTaxInXs) >= targetXsDirect ? targetXsDirect : 0
+        const reachedMcTarget =
+          reducedXs(bestXs, false, false) >= targetXsFromMc ? targetXsFromMc : 0
+        const reachedTarget =
+          tp.andLogic && bothTargets
+            ? reachedXsTarget && reachedMcTarget
+              ? Math.max(reachedXsTarget, reachedMcTarget)
+              : 0
+            : reachedXsTarget || reachedMcTarget
+            ? bothTargets && reachedXsTarget && reachedMcTarget
+              ? Math.min(reachedXsTarget, reachedMcTarget)
+              : reachedXsTarget || reachedMcTarget
+            : 0
+        const reachedTargetIsFromMc = reachedTarget === reachedMcTarget
+
+        if (tp.size && reachedTarget) {
+          const salePrice = call.price * reachedTarget
+          const saleMc = salePrice * call.supply
+          const dollarLp = saleMc * AVERAGE_LP_TO_MC_RATIO
+          const tokensSold = (((invested * ETH_PRICE) / call.price) * tp.size) / 100
+
+          const priceImpact = withPriceImpact
+            ? Math.min(100, Math.abs(getPriceImpact(dollarLp, salePrice, tokensSold)))
+            : 0
+
+          const profit =
+            ((invested * tp.size) / 100) *
+              unreducedXs(
+                reachedTarget,
+                feeInXs && !reachedTargetIsFromMc,
+                buyTaxInXs && !reachedTargetIsFromMc,
+              ) *
+              (1 - SELL_TAX / 100) *
+              (1 - priceImpact / 100) -
+            SELL_GAS_PRICE
+
+          gain += profit
+          addGain(getSaleDate(call, saleMc), profit)
+          remainingPosition -= tp.size
+          hitTp.push('TP' + (tpIndex + 1))
+        }
+
+        if (remainingPosition <= 0) break
+        tpIndex++
+      }
+
+      if (bestXs >= 100) counters.x100++
+      if (bestXs >= 50) counters.x50++
+      if (bestXs >= 10) counters.x10++
+    }
+
+    finalETH += gain
+    if (finalETH < drawdown) drawdown = round(finalETH)
+
+    // Regrouping hashes
+    if (call.hashF) {
+      if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF)
+      hashes[call.hashF].allCalls.push(call)
+      if (call.rug) hashes[call.hashF].rugs++
+      if (call.xs >= 5 && !call.rug) hashes[call.hashF].perf.x5++
+      if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++
+      if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++
+      if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++
+      hashes[call.hashF].xSum += call.rug ? 0 : call.xs
+    }
+
+    // Regrouping function 4bytes signatures
+    if (call.fList) {
+      for (const id of call.fList.split(',')) {
+        if (!signatures[id]) signatures[id] = initHash(id)
+        signatures[id].allCalls.push(call)
+        if (call.rug) signatures[id].rugs++
+        if (call.xs >= 5 && !call.rug) signatures[id].perf.x5++
+        if (call.xs >= 10 && !call.rug) signatures[id].perf.x10++
+        if (call.xs >= 50 && !call.rug) signatures[id].perf.x50++
+        if (call.xs >= 100 && !call.rug) signatures[id].perf.x100++
+        signatures[id].xSum += call.rug ? 0 : call.xs
+      }
+    }
+
+    logs.unshift({
+      date: prettifyDate(call.date),
+      ca: call.ca,
+      name: call.name,
+      xs: call.rug ? -99 : round(bestXs, 1),
+      ath: call.ath,
+      callMc: call.callMc,
+      info: unrealistic
+        ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
+        : postAth
+        ? 'Post-ath: Entry occured after the current ATH'
+        : '',
+      invested: round(invested, 3),
+      gasPrice: round(gasPrice, 3),
+      gain: round(gain, 3),
+      hitTp,
+      slippage: round(slippage, 2),
+      nbSnipes: call.nbSnipes,
+      buyTax: call.buyTax,
+      supply: call.supply,
+      delay: call.delay,
+    })
+  }
+
+  if (chainApiKey && withAccuracyAddy && firstBlockOfPeriod) {
+    compareToRealBuys(withAccuracyAddy, firstBlockOfPeriod, logs, chainApiKey)
+  }
+
+  /* Compute drawdowns: */
+  const dates = Object.keys(gainByDate).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+  let cumulatedProfitByDate: [string, number][] = []
+  let drawdownByDate: [string, number][] = []
+  for (const date of dates) {
+    cumulatedProfitByDate = [...cumulatedProfitByDate, [date, 0]]
+    for (const p of cumulatedProfitByDate) {
+      p[1] += gainByDate[date]
+    }
+    drawdownByDate = [...drawdownByDate, [date, 0]]
+    for (const index in drawdownByDate) {
+      if (cumulatedProfitByDate[index][1] < drawdownByDate[index][1])
+        drawdownByDate[index][1] = round(cumulatedProfitByDate[index][1])
+    }
+  }
+
+  return {
+    finalETH: round(finalETH),
+    drawdown: round(drawdown),
+    // find the minimum value in all drawdowns
+    worstDrawdown: drawdownByDate.reduce((prev, cur) => (cur[1] < prev[1] ? cur : prev), ['', 0]),
+    counters,
+    logs,
+    hashes,
+    signatures,
+  }
+}
+
+function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {
+  if (!previousCalls.length || !newCalls.length) return []
+  const diff = [] as CallDiff[]
+
+  for (const call of newCalls) {
+    diff.push({
+      call,
+      status: previousCalls.some(c => c.ca === call.ca) ? 'IN-BOTH' : 'ADDED',
+    })
+  }
+  for (const call of previousCalls) {
+    if (newCalls.every(c => c.ca !== call.ca)) diff.push({ call, status: 'REMOVED' })
+  }
+
+  return diff
+}
+
+function initHash(id: string) {
+  return {
+    id,
+    tags: [],
+    perf: {
+      x5: 0,
+      x10: 0,
+      x50: 0,
+      x100: 0,
+    },
+    rugs: 0,
+    xSum: 0,
+    allCalls: [],
+  }
+}
+
+async function findTarget({
+  calls,
+  position,
+  gweiDelta,
+  targetStart,
+  buyTaxInXs,
+  feeInXs,
+  chainApiKey,
+  end,
+  increment,
+  withPriceImpact,
+}: {
+  calls: Call[]
+  position: number
+  gweiDelta: number
+  targetStart: TakeProfit
+  buyTaxInXs: boolean
+  feeInXs: boolean
+  chainApiKey: string
+  end: number
+  increment: number
+  withPriceImpact: boolean
+}): Promise<ComputationForTarget[]> {
+  const withMc = targetStart.withMc
+  let currentTP = { ...targetStart }
+  const inc = (): boolean => {
+    const prop = withMc ? 'mc' : 'xs'
+    currentTP[prop] += increment
+    return currentTP[prop] > end
+  }
+
+  let ended = false
+  const results = [] as ComputationForTarget[]
+  do {
+    const { finalETH, drawdown, worstDrawdown } = await compute({
+      calls,
+      position,
+      gweiDelta,
+      buyTaxInXs,
+      feeInXs,
+      chainApiKey,
+      takeProfits: [currentTP],
+      withPriceImpact,
+    })
+    results.push({
+      finalETH,
+      drawdown,
+      worstDrawdown,
+      target: withMc ? `$${currentTP.mc}` : `${currentTP.xs}x`,
+    })
+
+    ended = inc()
+  } while (!ended)
+
+  return results
+}
+
+function mergeRows(
+  leftRows: (string | number)[][],
+  rightRows: (string | number)[][],
+  caColumn: number,
+) {
+  const headers = leftRows[0]
+  leftRows.splice(0, 1)
+  rightRows.splice(0, 1)
+
+  const onlyLeft = [transformRow(headers)]
+  const onlyRight = [transformRow(headers)]
+  const inBoth = [transformRow(headers)]
+  const all = [transformRow(headers)]
+
+  for (const leftRow of leftRows) {
+    const transformedRow = transformRow(leftRow)
+    all.push(transformedRow)
+
+    if (rightRows.every(rightRow => rightRow[caColumn] !== leftRow[caColumn])) {
+      onlyLeft.push(transformedRow)
+    }
+  }
+
+  for (const rightRow of rightRows) {
+    const transformedRow = transformRow(rightRow)
+    if (leftRows.every(leftRow => leftRow[caColumn] !== rightRow[caColumn])) {
+      onlyRight.push(transformedRow)
+      all.push(transformedRow)
+    } else {
+      inBoth.push(transformedRow)
+    }
+  }
+
+  return {
+    Left: onlyLeft,
+    Right: onlyRight,
+    Intersection: inBoth,
+    Merge: all,
+  }
+}
+
+function transformRow(row: (string | number)[]): {
+  value: string | number
+  format?: string
+}[] {
+  return row.map(cell => ({
+    value: cell,
+    format:
+      // stringification before worker post has transformed Date to string, so passing along a format for the XLSX export
+      typeof cell === 'string' && cell.includes('.000Z') ? 'yyyy/mm/dd hh:mm:ss' : '',
+  }))
+}
+
+async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[], apiKey: string) {
+  const myBuys = await fetchAllBuysFrom(myAddy, firstBlock, apiKey)
+  let accuracy: AccuracyLog[] = []
+
+  for (const log of logs) {
+    const realBuy = myBuys.find(b => b.ca === log.ca.toLowerCase())
+    if (realBuy) {
+      const price = (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - log.buyTax))
+      const realBuyMc = log.supply * price
+      const theoricBuyMc = log.callMc * (1 + log.slippage / 100)
+      if (log.xs > 5 && !log.info)
+        accuracy.push({
+          slippage: round(log.slippage, 0),
+          snipes: log.nbSnipes,
+          relativeError: ((realBuyMc - theoricBuyMc) / theoricBuyMc) * 100,
+          theoricBuyMc,
+          realBuyMc,
+          ca: log.ca,
+          delay: log.delay,
+        })
+    }
+  }
+
+  accuracy = accuracy.filter(acc => !EXCLUDED_FROM_ACCURACY.includes(acc.ca))
+
+  console.log({
+    globalAccuracy:
+      accuracy.reduce((sum, acc) => sum + acc.relativeError, 0) / accuracy.length + '%',
+    ...[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].reduce(
+      (obj, delay) => ({
+        ...obj,
+        ['delay' + delay]:
+          accuracy
+            .filter(acc => acc.delay === delay)
+            .reduce((sum, acc) => sum + acc.relativeError, 0) /
+            accuracy.length +
+          '%',
+      }),
+      {},
+    ),
+    worstAccuracy: accuracy.filter(acc => Math.abs(acc.relativeError) >= 100),
+  })
+
+  postMessage({ type: 'SCATTER', accuracy })
+}
+
+function callIsPostAth(call: Call): boolean {
+  return !call.rug && call.date > call.athDate
+}
+function callWorthOnChainData(call: Call): boolean {
+  return !call.rug && !callIsPostAth(call) && call.xs > 5
+}
