@@ -153,7 +153,7 @@
             ><LogsTable
               :logs="logs"
               v-model:textual="state.textLogs"
-              v-model:selectedColumns="state.logColumns"
+              v-model:selectedColumns="state.logsColumns"
               withDisplaySwitch
             />
           </AccordionTab>
@@ -165,10 +165,10 @@
                 calls: filteredCalls,
                 position: state.position,
                 gweiDelta: state.gweiDelta,
+                prioBySnipes: computedPrioBySnipes,
                 buyTaxInXs: state.buyTaxInXs,
                 feeInXs: state.feeInXs,
                 chainApiKey: state.chainApiKey,
-                withPriceImpact: state.withPriceImpact,
               }"
             />
           </AccordionTab>
@@ -257,25 +257,57 @@
               />
             </InputGroup>
           </div>
-          <!-- GAP PRICE -->
-          <div class="flex-grow-1 flex flex-column gap-2">
-            <label for="gwei-input">Max buy priority (GWEI delta)</label>
-            <InputGroup>
-              <InputGroupAddon>
-                <span class="material-symbols-outlined">local_gas_station</span>
-              </InputGroupAddon>
-              <InputNumber
-                v-model="state.gweiDelta"
-                id="gwei-input"
-                showButtons
-                buttonLayout="stacked"
-                :min="1"
-                :step="1"
-                :pt="getPtNumberInput()"
-                class="settingInput"
-                style="height: 4rem"
-              />
-            </InputGroup>
+          <!-- GAS PRICE -->
+          <div class="flex flex-row align-items-end">
+            <div class="flex flex-column gap-2">
+              <label for="gwei-input"
+                >Priority (GWEI delta) {{ state.conditionalPrio ? 'based on snipes' : '' }}</label
+              >
+              <InputGroup>
+                <InputGroupAddon>
+                  <span class="material-symbols-outlined">local_gas_station</span>
+                </InputGroupAddon>
+                <InputNumber
+                  v-model="state.gweiDelta"
+                  id="gwei-input"
+                  showButtons
+                  buttonLayout="stacked"
+                  :min="1"
+                  :step="1"
+                  mode="decimal"
+                  :minFractionDigits="1"
+                  :maxFractionDigits="1"
+                  :disabled="state.conditionalPrio"
+                  :pt="getPtNumberInput()"
+                  class="settingInput"
+                  style="height: 4rem"
+                />
+              </InputGroup>
+            </div>
+            <!-- CONDITIONAL PRIO SWITCH -->
+            <div
+              v-tooltip.top="{
+                value: `Priority based on snipes`,
+                showDelay: 500,
+              }"
+              class="flex flex-column gap-1 mb-3 align-items-center ml-4 mr-2"
+            >
+              <label for="conditional-prio" class="text-xs">Conditionnal</label>
+              <InputSwitch v-model="state.conditionalPrio" inputId="conditional-prio" />
+            </div>
+            <!-- FIXME: clog -->
+            <Button
+              icon="pi pi-cog"
+              text
+              aria-label="Configure conditional priorities"
+              class="mb-2"
+              v-tooltip.top="{
+                value: `Configure conditional priorities`,
+                showDelay: 500,
+              }"
+              :pt="{ icon: { class: 'text-xl' } }"
+              @click="configuringPrios = !configuringPrios"
+            />
           </div>
         </div>
 
@@ -752,16 +784,60 @@
       </div>
     </div>
 
+    <!-- CONDITIONAL PRIORITY VALUES -->
+    <Sidebar
+      ref="conditionalPrioFields"
+      :visible="!!configuringPrios"
+      position="right"
+      :modal="false"
+      header="Used gas priority based on number of snipes"
+      :dismissable="false"
+      :pt="{
+        root: {
+          class: 'w-full md:w-min',
+        },
+      }"
+      @update:visible="configuringPrios = false"
+      @hide="configuringPrios = false"
+    >
+      <div class="flex flex-row flex-wrap gap-4 m-2 justify-content-center">
+        <div
+          v-for="snipesThreshold in state.prioBySnipes"
+          :key="snipesThreshold[0]"
+          class="flex flex-column gap-2"
+        >
+          <label :for="'snipe-th-' + snipesThreshold"
+            >{{ getPrioTitle(snipesThreshold[0]) }}
+          </label>
+          <InputNumber
+            v-model="snipesThreshold[1]"
+            :id="'snipe-th-' + snipesThreshold[0]"
+            showButtons
+            buttonLayout="stacked"
+            :min="1"
+            :step="1"
+            mode="decimal"
+            :minFractionDigits="1"
+            :maxFractionDigits="1"
+            suffix="  GWEI"
+            :pt="getPtNumberInput()"
+            class="settingInput"
+          />
+        </div>
+      </div>
+    </Sidebar>
+
     <Toast />
 
     <DiffDialog
       v-if="current && showDiff"
-      v-model:logColumns="state.logColumns"
+      v-model:logsColumns="state.logsColumns"
       :archives="archives"
       :current="current"
       :computingParams="{
         position: state.position,
         gweiDelta: state.gweiDelta,
+        prioBySnipes: computedPrioBySnipes,
         buyTaxInXs: state.buyTaxInXs,
         feeInXs: state.feeInXs,
         chainApiKey: state.chainApiKey,
@@ -819,6 +895,7 @@ import Message from 'primevue/message'
 import InputMask from 'primevue/inputmask'
 import InputSwitch from 'primevue/inputswitch'
 import Button from 'primevue/button'
+import Sidebar from 'primevue/sidebar'
 import Checkbox from 'primevue/checkbox'
 import TriStateCheckbox from 'primevue/tristatecheckbox'
 import HashTable from './components/HashTable.vue'
@@ -864,6 +941,8 @@ const loading = ref<string | boolean>(false)
 const uploading = ref(0)
 const uploader = ref<InstanceType<typeof FileUpload>>()
 const showDonation = ref(false)
+const configuringPrios = ref(false)
+const conditionalPrioFields = ref<InstanceType<typeof Sidebar>>()
 
 const onUpload = async (event: FileUploadSelectEvent) => {
   const { files } = event
@@ -1064,11 +1143,21 @@ const INIT_TP = {
   andLogic: false,
 } as TakeProfit
 const INIT_GWEI = 5
+const INIT_PRIO_BY_SNIPES = [
+  [-1, 2],
+  [0, 4],
+  [1, 2],
+  [2, 10],
+  [10, 20],
+  [20, 20],
+  [30, 20],
+  [40, 30],
+]
+const INIT_CONDITIONAL_PRIO = false
 const INIT_MIN_CALLS = 5
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x10', 'x50', 'Tags']
-const INIT_LOG_COLUMNS = ['Invested', 'Entry MC', 'ATH MC']
+const INIT_LOGS_COLUMNS = ['Invested', 'Entry MC']
 const INIT_TEXT_LOGS = false
-const INIT_DIFF_TYPES = ['ADDED', 'REMOVED'] as DiffType[]
 const INIT_BUY_TAX_IN_XS = true
 const INIT_FEE_IN_XS = true
 const INIT_WITH_HOURS = false
@@ -1089,9 +1178,11 @@ const state = reactive({
   position: INIT_POSITION,
   takeProfits: [INIT_TP],
   gweiDelta: INIT_GWEI,
+  prioBySnipes: INIT_PRIO_BY_SNIPES,
+  conditionalPrio: INIT_CONDITIONAL_PRIO,
   minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
-  logColumns: INIT_LOG_COLUMNS,
+  logsColumns: INIT_LOGS_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
   feeInXs: INIT_FEE_IN_XS,
@@ -1148,9 +1239,11 @@ function loadForm() {
   state.position = savedState.position ?? INIT_POSITION
   state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : [INIT_TP]
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
+  state.prioBySnipes = savedState.prioBySnipes ?? INIT_PRIO_BY_SNIPES
+  state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
-  state.logColumns = savedState.logColumns ?? INIT_LOG_COLUMNS
+  state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS
   state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS
@@ -1166,6 +1259,18 @@ onMounted(() => {
   loadForm()
   initialized.value = true
 })
+
+const computedPrioBySnipes = computed(() =>
+  state.conditionalPrio ? JSON.parse(JSON.stringify(state.prioBySnipes)) : null,
+)
+const getPrioTitle = (snipes: number) => {
+  if (snipes === -1) return `(call block 4 or later)`
+  const index = state.prioBySnipes.findIndex(p => p[0] === snipes)
+  const nextThreshold = state.prioBySnipes[index + 1]
+  if (!nextThreshold) return `more than ${snipes} snipes`
+  if (nextThreshold[0] === snipes + 1) return `${snipes} snipe${snipes > 1 ? 's' : ''}`
+  return `between ${snipes} and ${nextThreshold[0] - 1} snipes`
+}
 
 const toggleHours = (dayIndex: number) => {
   const previous = state.hours[dayIndex][0]
@@ -1249,6 +1354,7 @@ const runCompute = async () => {
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     gweiDelta: state.gweiDelta,
+    prioBySnipes: computedPrioBySnipes.value,
     buyTaxInXs: state.buyTaxInXs,
     feeInXs: state.feeInXs,
     chainApiKey: state.chainApiKey,
@@ -1269,6 +1375,8 @@ watch(
     () => state.position,
     () => state.takeProfits,
     () => state.gweiDelta,
+    () => state.conditionalPrio,
+    () => state.prioBySnipes,
     () => state.buyTaxInXs,
     () => state.feeInXs,
     () => state.chainApiKey,

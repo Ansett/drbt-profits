@@ -121,6 +121,7 @@
               placeholder="Columns"
               selectedItemsLabel="{0} cols"
               :maxSelectedLabels="0"
+                    scrollHeight="300px"
               class="narrowInput"
               :pt="{
                 root: { class: 'narrowInput' },
@@ -159,6 +160,17 @@
       >
         <template #body="{ data }">
           <CaLink :name="data.name" :ca="data.ca" />
+        </template>
+      </Column>
+      <Column
+        v-if="selectedColumns.includes('Block')"
+        field="block"
+        header="block"
+        sortable
+        :pt="{ headerTitle: { class: 'text-xs' } }"
+      >
+        <template #body="{ data }">
+          <a :href="'https://etherscan.io/block/' + data.block" target="_blank">{{ data.block }}</a>
         </template>
       </Column>
       <Column
@@ -302,7 +314,7 @@ const filteredLogs = computed(() =>
 )
 
 // prettier-ignore
-const optionalColumns = ["Invested","Gas price","Entry MC","ATH MC"];
+const optionalColumns = ["Block", "Invested","Gas price","Entry MC","ATH MC"];
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })

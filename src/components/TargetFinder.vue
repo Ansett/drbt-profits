@@ -102,7 +102,7 @@
     <!-- Result -->
     <div>
       <div class="ml-3 my-3 font-italic">
-        Profit when selling 100% at each target within the range:
+        Profit when selling 100% at each target within the range: (price impact is deactivated here)
       </div>
 
       <DataTable :value="result" sortField="target" dataKey="target" sortMode="single" size="small">
@@ -173,10 +173,10 @@ const props = defineProps<{
     calls: Call[]
     position: number
     gweiDelta: number
+    prioBySnipes: [number, number][] | null
     buyTaxInXs: boolean
     feeInXs: boolean
     chainApiKey: string
-    withPriceImpact: boolean
   }
 }>()
 
@@ -196,10 +196,11 @@ const compute = () => {
     calls: JSON.parse(JSON.stringify(props.data.calls)),
     position: props.data.position,
     gweiDelta: props.data.gweiDelta,
+    prioBySnipes: props.data.prioBySnipes,
     buyTaxInXs: props.data.buyTaxInXs,
     feeInXs: props.data.feeInXs,
     chainApiKey: props.data.chainApiKey,
-    withPriceImpact: props.data.withPriceImpact,
+    withPriceImpact: false,
     increment: withXs.value ? xIncrement.value : mcIncrement.value,
     end: withXs.value ? xTargetEnd.value : mcTargetEnd.value,
     targetStart: JSON.parse(
@@ -218,8 +219,8 @@ const compute = () => {
 const result = ref<ComputationShortResult[]>([])
 const worker = new Worker()
 worker.onmessage = ({ data }) => {
-  loading.value = false
   if (data.type === 'TARGETING') {
+    loading.value = false
     result.value = data.result
   }
 }
@@ -239,17 +240,17 @@ const extremeValues = computed(function () {
   }
 })
 
-const debouncedCompute = debounce(compute, 500)
+const debouncedCompute = debounce(compute, 1000)
 onMounted(() => debouncedCompute())
 watch(
   [
     () => props.data.calls,
     () => props.data.position,
     () => props.data.gweiDelta,
+    () => props.data.prioBySnipes,
     () => props.data.buyTaxInXs,
     () => props.data.feeInXs,
     () => props.data.chainApiKey,
-    () => props.data.withPriceImpact,
     withXs,
     xTargetStart,
     mcTargetStart,

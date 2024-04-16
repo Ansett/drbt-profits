@@ -16,6 +16,10 @@ p {
   margin: 0;
 }
 
+input {
+  min-width: 4rem;
+}
+
 ul {
   list-style-type: none;
 }

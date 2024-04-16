@@ -1,33 +1,23 @@
 import readXlsxFile from 'read-excel-file/web-worker'
-import {
-  Alchemy,
-  AssetTransfersCategory,
-  BigNumber,
-  Network,
-  Utils,
-  type AssetTransfersResult,
-} from 'alchemy-sdk'
 import type { Call, CallDiff, CallExportType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
-import { getSaleDate, prettifyDate, round, sumObjectProperty } from './lib'
+import { getSaleDate, prettifyDate, round, sumObjectProperty, uuid } from './lib'
 import type { HashInfo } from './types/HashInfo'
-import type {
-  ComputationForTarget,
-  ComputationResult,
-  ComputationShortResult,
-} from './types/ComputationResult'
+import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import {
   ETH_PRICE,
   SELL_TAX,
   SELL_GAS_PRICE,
   AVERAGE_LP_TO_MC_RATIO,
-  BUILDER_ADDYS,
   EXCLUDED_FROM_ACCURACY,
 } from './constants'
-import type { BlockTx, TokenTransfer } from './types/Transaction'
+import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
 import { fetchAllBuysFrom, fetchTxsFromBlock } from './chain'
+
+let computeController: AbortController | null = null
+let targetingController: AbortController | null = null
 
 onmessage = async function ({ data }) {
   if (!data?.type) return
@@ -40,7 +30,11 @@ onmessage = async function ({ data }) {
     return
   }
   if (data.type === 'COMPUTE') {
-    const computation = await compute(data)
+    computeController?.abort()
+    computeController = new AbortController()
+    const computation = await compute(data, computeController.signal)
+    if (computation.finalETH === undefined) return
+
     return postMessage({
       type: 'COMPUTE',
       ...computation,
@@ -48,7 +42,11 @@ onmessage = async function ({ data }) {
     })
   }
   if (data.type === 'TARGETING') {
-    const result = await findTarget(data)
+    targetingController?.abort()
+    targetingController = new AbortController()
+    const result = await findTarget(data, targetingController.signal)
+    if (!result) return
+
     return postMessage({ type: 'TARGETING', result })
   }
   if (data.type === 'DIFF')
@@ -94,27 +92,32 @@ const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: Block
   return impact
 }
 
-async function compute({
-  calls,
-  position,
-  gweiDelta,
-  takeProfits,
-  buyTaxInXs,
-  feeInXs,
-  chainApiKey,
-  withPriceImpact,
-  withAccuracyAddy,
-}: {
-  calls: Call[]
-  position: number
-  gweiDelta: number
-  takeProfits: TakeProfit[]
-  buyTaxInXs: boolean
-  feeInXs: boolean
-  chainApiKey: string
-  withPriceImpact: boolean
-  withAccuracyAddy?: string
-}): Promise<ComputationResult> {
+async function compute(
+  {
+    calls,
+    position,
+    gweiDelta,
+    prioBySnipes,
+    takeProfits,
+    buyTaxInXs,
+    feeInXs,
+    chainApiKey,
+    withPriceImpact,
+    withAccuracyAddy,
+  }: {
+    calls: Call[]
+    position: number
+    gweiDelta: number
+    prioBySnipes: [number, number][] | null
+    takeProfits: TakeProfit[]
+    buyTaxInXs: boolean
+    feeInXs: boolean
+    chainApiKey: string
+    withPriceImpact: boolean
+    withAccuracyAddy?: string
+  },
+  abortSignal: AbortSignal,
+) {
   let finalETH = 0
   let drawdown = 0
   const counters = {
@@ -144,6 +147,8 @@ async function compute({
   )
 
   for (const call of calls) {
+    if (abortSignal.aborted) return {}
+
     const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy)
     let invested = Math.min(maxBuyETH || position, position)
     if (Number.isNaN(invested)) {
@@ -156,7 +161,8 @@ async function compute({
     const postAth = callIsPostAth(call)
     if (postAth) counters.postAth++
 
-    const gasPrice = getGasPrice(call, gweiDelta)
+    const usedPriority = getUsedPriority(call, gweiDelta, prioBySnipes)
+    const gasPrice = getGasPrice(call, usedPriority)
     let gain = -invested - gasPrice
     addGain(call.date, gain)
 
@@ -199,7 +205,7 @@ async function compute({
     }
 
     const slippage = blockTransactions
-      ? getSlippage(call, invested, gweiDelta, blockTransactions)
+      ? getSlippage(call, invested, usedPriority, blockTransactions)
       : 25
     let bestXs = call.xs / (1 + slippage / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
@@ -323,13 +329,14 @@ async function compute({
         : '',
       invested: round(invested, 3),
       gasPrice: round(gasPrice, 3),
-      gain: round(gain, 3),
+      gain: round(gain, 1),
       hitTp,
-      slippage: round(slippage, 2),
+      slippage: round(slippage, 3),
       nbSnipes: call.nbSnipes,
       buyTax: call.buyTax,
       supply: call.supply,
       delay: call.delay,
+      block: blockEnd,
     })
   }
 
@@ -398,29 +405,34 @@ function initHash(id: string) {
   }
 }
 
-async function findTarget({
-  calls,
-  position,
-  gweiDelta,
-  targetStart,
-  buyTaxInXs,
-  feeInXs,
-  chainApiKey,
-  end,
-  increment,
-  withPriceImpact,
-}: {
-  calls: Call[]
-  position: number
-  gweiDelta: number
-  targetStart: TakeProfit
-  buyTaxInXs: boolean
-  feeInXs: boolean
-  chainApiKey: string
-  end: number
-  increment: number
-  withPriceImpact: boolean
-}): Promise<ComputationForTarget[]> {
+async function findTarget(
+  {
+    calls,
+    position,
+    gweiDelta,
+    prioBySnipes,
+    targetStart,
+    buyTaxInXs,
+    feeInXs,
+    chainApiKey,
+    end,
+    increment,
+    withPriceImpact,
+  }: {
+    calls: Call[]
+    position: number
+    gweiDelta: number
+    prioBySnipes: [number, number][] | null
+    targetStart: TakeProfit
+    buyTaxInXs: boolean
+    feeInXs: boolean
+    chainApiKey: string
+    end: number
+    increment: number
+    withPriceImpact: boolean
+  },
+  abortSignal: AbortSignal,
+): Promise<ComputationForTarget[] | null> {
   const withMc = targetStart.withMc
   let currentTP = { ...targetStart }
   const inc = (): boolean => {
@@ -432,16 +444,28 @@ async function findTarget({
   let ended = false
   const results = [] as ComputationForTarget[]
   do {
-    const { finalETH, drawdown, worstDrawdown } = await compute({
-      calls,
-      position,
-      gweiDelta,
-      buyTaxInXs,
-      feeInXs,
-      chainApiKey,
-      takeProfits: [currentTP],
-      withPriceImpact,
-    })
+    if (abortSignal.aborted) return null
+
+    const { finalETH, drawdown, worstDrawdown } = await compute(
+      {
+        calls,
+        position,
+        gweiDelta,
+        prioBySnipes,
+        buyTaxInXs,
+        feeInXs,
+        chainApiKey,
+        takeProfits: [currentTP],
+        withPriceImpact,
+      },
+      abortSignal,
+    )
+
+    if (finalETH === undefined) {
+      console.log('abort 2')
+      return null // aborted
+    }
+
     results.push({
       finalETH,
       drawdown,
@@ -559,4 +583,19 @@ function callIsPostAth(call: Call): boolean {
 }
 function callWorthOnChainData(call: Call): boolean {
   return !call.rug && !callIsPostAth(call) && call.xs > 5
+}
+
+function getUsedPriority(
+  call: Call,
+  gweiDelta: number,
+  prioBySnipes: [number, number][] | null,
+): number {
+  if (!prioBySnipes) return gweiDelta
+  if (call.delay >= 30) return prioBySnipes.find(p => p[0] === -1)?.[1] || gweiDelta
+
+  const thresholdIndex = prioBySnipes.findIndex(p => p[0] > call.nbSnipes)
+  const appliedThreshold =
+    prioBySnipes[thresholdIndex === -1 ? prioBySnipes.length - 1 : Math.max(0, thresholdIndex - 1)]
+
+  return appliedThreshold?.[1] ?? gweiDelta
 }

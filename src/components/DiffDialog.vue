@@ -90,7 +90,7 @@
 
           <LogsTable
             :logs="left.stats.logs"
-            v-model:selectedColumns="logColumns"
+            v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
             class="mt-3"
@@ -134,7 +134,7 @@
 
           <LogsTable
             :logs="right.stats.logs"
-            v-model:selectedColumns="logColumns"
+            v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
             class="mt-3"
@@ -177,7 +177,7 @@
 
           <LogsTable
             :logs="common.stats.logs"
-            v-model:selectedColumns="logColumns"
+            v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
             class="mt-3"
@@ -228,6 +228,7 @@ const props = defineProps<{
   computingParams: {
     position: number
     gweiDelta: number
+    prioBySnipes: [number,number][] | null
     buyTaxInXs: boolean
     feeInXs: boolean
     chainApiKey: string
@@ -236,7 +237,7 @@ const props = defineProps<{
   }
 }>()
 
-const logColumns = defineModel<string[]>('logColumns', {
+const logsColumns = defineModel<string[]>('logsColumns', {
   required: true,
 })
 

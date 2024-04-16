@@ -67,8 +67,8 @@
                 <span class="">Number of calls: </span>
                 <span class="text-primary">{{ nbCalls }}</span>
               </div>
-              <div v-if="noApiKey" class="font-italic text-sm">
-                (&hairsp;It's recommanded to paste an API key in the top-right field in order to fetch on-chain data for a more realistic slippage simulation&hairsp;)
+              <div v-if="noApiKey" class="font-italic text-sm text-yellow-500">
+                (&hairsp;It's recommanded to provide an API key in order to fetch on-chain data for a more realistic slippage simulation&hairsp;)
               </div>
             </div>
 </template>

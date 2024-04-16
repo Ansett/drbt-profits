@@ -49,13 +49,13 @@ I highly suggest to install and connect the mobile app. Use `/get_app` to get th
 /replace add 1_gwei_regex &D0\sdays\s00:00:[012]\d& -> &
 ```
 ```
-/replace add 2_gwei_regex &D.* -> @GWEI_FOR_BLOCK3+:5
+/replace add 2_gwei_regex &D.* -> @GWEI_FOR_BLOCK3+:2
 ```
 ```
-/replace add 3_gwei_regex &S0?$ -> @GWEI_FOR_0_SNIPE:5
+/replace add 3_gwei_regex &S0?$ -> @GWEI_FOR_0_SNIPE:4
 ```
 ```
-/replace add 4_gwei_regex &S1$ -> @GWEI_FOR_1_SNIPE:5
+/replace add 4_gwei_regex &S1$ -> @GWEI_FOR_1_SNIPE:2
 ```
 ```
 /replace add 5_gwei_regex &S\d$ -> @GWEI_FOR_2-9_SNIPES:10
@@ -64,13 +64,13 @@ I highly suggest to install and connect the mobile app. Use `/get_app` to get th
 /replace add 6_gwei_regex &S1\d$ -> @GWEI_FOR_10-19_SNIPES:20
 ```
 ```
-/replace add 7_gwei_regex &S2\d$ -> @GWEI_FOR_20-29_SNIPES:30
+/replace add 7_gwei_regex &S2\d$ -> @GWEI_FOR_20-29_SNIPES:20
 ```
 ```
-/replace add 8_gwei_regex &S3\d$ -> @GWEI_FOR_30-39_SNIPES:40
+/replace add 8_gwei_regex &S3\d$ -> @GWEI_FOR_30-39_SNIPES:20
 ```
 ```
-/replace add 9_gwei_regex &S.*$ -> @GWEI_FOR_40+_SNIPES:50
+/replace add 9_gwei_regex &S.*$ -> @GWEI_FOR_40+_SNIPES:30
 ```
 ```
 /replace add 10_command_regex (.+?)@GWEI.+?:([\d.]+) -> /scrapev2 --address=\1 --gwei=\2 --numWallets=1 --ethAmount=0.05 --antiRug=1 --fof=0 --slippage=0.0 --tipAmount=0.0 --buyTaxLimit=30 --sellTaxLimit=70 --minLiq=500 --maxLiq=0.0 --title=DRBT --isSnipe=0 --isBuy=1 --isBundleBackup=0 --backupTip=0.0 --isMaxTxOrRevert=0 --isTransferOnBlacklist=1 --link=https://t.me/c/@DeFiRobot_Dev_Bot/1
@@ -178,14 +178,14 @@ CALLS_GROUP - TEST_GROUP
 ```
 .*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
 &D0\sdays\s00:00:[01]\d&=&
-&D.*=@GWEI_FOR_BLOCK3+:5
-&S0?$=@GWEI_FOR_0_SNIPE:5
-&S1$=@GWEI_FOR_1_SNIPE:5
+&D.*=@GWEI_FOR_BLOCK3+:2
+&S0?$=@GWEI_FOR_0_SNIPE:4
+&S1$=@GWEI_FOR_1_SNIPE:2
 &S\d$=@GWEI_FOR_2-9_SNIPES:10
 &S1\d$=@GWEI_FOR_10-19_SNIPES:20
-&S2\d$=@GWEI_FOR_20-29_SNIPES:30
-&S3\d$=@GWEI_FOR_30-39_SNIPES:40
-&S.*$=@GWEI_FOR_40+_SNIPES:50
+&S2\d$=@GWEI_FOR_20-29_SNIPES:20
+&S3\d$=@GWEI_FOR_30-39_SNIPES:20
+&S.*$=@GWEI_FOR_40+_SNIPES:30
 (.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:https://t.me/c/@DeFiRobot_Dev_Bot/1
 ":","="
 ```
