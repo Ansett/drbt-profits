@@ -22,12 +22,7 @@
       </template>
       <template #header v-if="lines.length">
         <div class="flex flex-wrap justify-content-end gap-3">
-          <SplitButton
-            label="Export"
-            size="small"
-            @click="exporting"
-            :model="exportOptions"
-          />
+          <SplitButton label="Export" size="small" @click="exporting" :model="exportOptions" />
           <InputGroup class="w-auto">
             <InputGroupAddon class="narrowInput">
               <i class="pi pi-sliders-v"></i>
@@ -66,11 +61,7 @@
       </template>
 
       <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-      <Column
-        field="id"
-        header="ID"
-        :pt="{ headerTitle: { class: 'text-sm' } }"
-      ></Column>
+      <Column field="id" header="ID" :pt="{ headerTitle: { class: 'text-sm' } }"></Column>
       <!-- Calls count -->
       <Column
         v-if="selectedColumns.includes('Count')"
@@ -88,7 +79,7 @@
       <!-- Average -->
       <Column
         v-if="selectedColumns.includes('Average')"
-        :field="(d) => '' + Math.round(d.xSum / d.allCalls.length)"
+        :field="d => '' + Math.round(d.xSum / d.allCalls.length)"
         header="Xs average"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
@@ -101,35 +92,35 @@
       <Column
         v-for="cat in shownPerf"
         :key="cat"
-        :field="(d) => getSortablePct(d.perf[cat] / d.allCalls.length)"
+        :field="d => getSortablePct(d.perf[cat] / d.allCalls.length)"
         :header="cat"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.perf[cat] }} (&hairsp;{{
-            Math.round((data.perf[cat] / data.allCalls.length) * 100) + "%"
-          }}&hairsp;)
+          {{ data.perf[cat] }}<br />({{
+            Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%'
+          }})
         </template>
       </Column>
       <!-- Rug -->
       <Column
         v-if="selectedColumns.includes('Rug')"
-        :field="(d) => getSortablePct(d.rugs / d.allCalls.length)"
+        :field="d => getSortablePct(d.rugs / d.allCalls.length)"
         header="Rugs"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
           {{ data.rugs }} (&hairsp;{{
-            Math.round((data.rugs / data.allCalls.length) * 100) + "%"
+            Math.round((data.rugs / data.allCalls.length) * 100) + '%'
           }}&hairsp;)
         </template>
       </Column>
       <!-- Tags -->
       <Column
         v-if="selectedColumns.includes('Tags')"
-        :field="(d) => (d.tags ? d.tags.join(', ') : '')"
+        :field="d => (d.tags ? d.tags.join(', ') : '')"
         header="Tags"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
@@ -145,10 +136,8 @@
             @click="showTagInput(data.id, $event)"
           ></i>
           <span v-for="(tag, index) in data.tags" :key="index"
-            >{{ index ? ", " : " "
-            }}<span class="link" @click="removeTag(data.id, index)">{{
-              tag
-            }}</span></span
+            >{{ index ? ', ' : ' '
+            }}<span class="link" @click="removeTag(data.id, index)">{{ tag }}</span></span
           >
         </template>
       </Column>
@@ -191,10 +180,8 @@
         <Column sortable field="date" header="Date">
           <template #body="{ data }">
             <span class="flex flex-wrap column-gap-2">
-              <span class="nowrap">{{ prettifyDate(data.date, "date") }}</span>
-              <span class="nowrap text-color-secondary">{{
-                prettifyDate(data.date, "hour")
-              }}</span>
+              <span class="nowrap">{{ prettifyDate(data.date, 'date') }}</span>
+              <span class="nowrap text-color-secondary">{{ prettifyDate(data.date, 'hour') }}</span>
             </span>
           </template>
         </Column>
@@ -203,10 +190,10 @@
             <CaLink :name="data.name" :ca="data.ca" />
           </template>
         </Column>
-        <Column sortable :field="(d) => (d.rug ? -1 : d.xs)" header="Perf">
+        <Column sortable :field="d => (d.rug ? -1 : d.xs)" header="Perf">
           <template #body="{ data }">
             <Tag v-if="data.rug" value="rug" severity="warning" />
-            <span v-else>{{ data.xs }}x</span>
+            <span v-else>{{ round(data.xs, 1) }}x</span>
           </template>
         </Column>
       </DataTable>
@@ -218,12 +205,7 @@
         <InputGroupAddon>
           <i class="pi pi-tags"></i>
         </InputGroupAddon>
-        <InputText
-          ref="tagInput"
-          type="text"
-          v-model="newTag"
-          @keyup.enter.native="addTag()"
-        />
+        <InputText ref="tagInput" type="text" v-model="newTag" @keyup.enter.native="addTag()" />
         <InputGroupAddon>
           <i class="pi pi-reply rotated"></i>
         </InputGroupAddon>
@@ -233,154 +215,145 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import type { HashInfo } from "../types/HashInfo";
-import Sidebar from "primevue/sidebar";
-import OverlayPanel from "primevue/overlaypanel";
-import InputGroup from "primevue/inputgroup";
-import InputGroupAddon from "primevue/inputgroupaddon";
-import InputText from "primevue/inputtext";
-import vTooltip from "primevue/tooltip";
-import Button from "primevue/button";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import SplitButton from "primevue/splitbutton";
-import MultiSelect from "primevue/multiselect";
-import Tag from "primevue/tag";
-import { useToast } from "primevue/usetoast";
-import { FilterMatchMode } from "primevue/api";
-import { prettifyDate } from "../lib";
-import CaLink from "./CaLink.vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import type { HashInfo } from '../types/HashInfo'
+import Sidebar from 'primevue/sidebar'
+import OverlayPanel from 'primevue/overlaypanel'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
+import InputText from 'primevue/inputtext'
+import vTooltip from 'primevue/tooltip'
+import Button from 'primevue/button'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import SplitButton from 'primevue/splitbutton'
+import MultiSelect from 'primevue/multiselect'
+import Tag from 'primevue/tag'
+import { useToast } from 'primevue/usetoast'
+import { FilterMatchMode } from 'primevue/api'
+import { prettifyDate, round } from '../lib'
+import CaLink from './CaLink.vue'
 
-const TAG_SEPARATOR = ", ";
+const TAG_SEPARATOR = ', '
 
 const props = defineProps<{
-  lines: HashInfo[];
-  filterTemplate: string;
-}>();
+  lines: HashInfo[]
+  filterTemplate: string
+}>()
 const emit = defineEmits<{
-  (e: "removeTag", hash: string, index: number): void;
-  (e: "addTag", hash: string, tag: string): void;
-}>();
+  (e: 'removeTag', hash: string, index: number): void
+  (e: 'addTag', hash: string, tag: string): void
+}>()
 
-const inspectedHash = ref<HashInfo | null>(null);
-const tagDropdown = ref<InstanceType<typeof OverlayPanel>>();
-const tagInput = ref();
-const newTag = ref("");
-const editingForHash = ref("");
+const inspectedHash = ref<HashInfo | null>(null)
+const tagDropdown = ref<InstanceType<typeof OverlayPanel>>()
+const tagInput = ref()
+const newTag = ref('')
+const editingForHash = ref('')
 const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-});
+})
 
 // prettier-ignore
 const optionalColumns = ["Count","Average","x5","x10","x50","x100","Rug","Tags"];
-const selectedColumns = defineModel<string[]>("selectedColumns", {
+const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
-});
+})
 
-const perfCats = ["x5", "x10", "x50", "x100"];
-const shownPerf = computed(() =>
-  perfCats.filter((cat) => selectedColumns.value.includes(cat))
-);
+const perfCats = ['x5', 'x10', 'x50', 'x100']
+const shownPerf = computed(() => perfCats.filter(cat => selectedColumns.value.includes(cat)))
 
-const removeTag = (hash: string, index: number) =>
-  emit("removeTag", hash, index);
+const removeTag = (hash: string, index: number) => emit('removeTag', hash, index)
 const showTagInput = async (hash: string, event: MouseEvent) => {
-  editingForHash.value = hash;
-  newTag.value = "";
-  tagDropdown.value?.show(event);
-  await nextTick();
-  tagInput.value?.$el.focus();
-};
+  editingForHash.value = hash
+  newTag.value = ''
+  tagDropdown.value?.show(event)
+  await nextTick()
+  tagInput.value?.$el.focus()
+}
 const addTag = () => {
-  tagDropdown.value?.hide();
-  if (!editingForHash.value) return;
-  emit(
-    "addTag",
-    editingForHash.value,
-    newTag.value.trim().replace(TAG_SEPARATOR.trim(), "")
-  );
-  newTag.value = "";
-  editingForHash.value = "";
-};
+  tagDropdown.value?.hide()
+  if (!editingForHash.value) return
+  emit('addTag', editingForHash.value, newTag.value.trim().replace(TAG_SEPARATOR.trim(), ''))
+  newTag.value = ''
+  editingForHash.value = ''
+}
 
-const getSortablePct = (num: number) =>
-  ("" + Math.round(num * 100) / 100).padEnd(4, "0");
+const getSortablePct = (num: number) => ('' + Math.round(num * 100) / 100).padEnd(4, '0')
 
-let currentData: HashInfo[] = [];
+let currentData: HashInfo[] = []
 // when sorting or searching
 const onDataChange = (data: HashInfo[]) => {
-  currentData = data;
-};
-const selection = ref<HashInfo[]>([]);
+  currentData = data
+}
+const selection = ref<HashInfo[]>([])
 // when checking rows
-const getSelection = () =>
-  selection.value.length ? selection.value : currentData;
+const getSelection = () => (selection.value.length ? selection.value : currentData)
 
-const table = ref<InstanceType<typeof DataTable>>();
-const toast = useToast();
+const table = ref<InstanceType<typeof DataTable>>()
+const toast = useToast()
 const getIdsString = () =>
-  props.filterTemplate.includes("[{}]")
+  props.filterTemplate.includes('[{}]')
     ? getSelection()
-        .map((d) => `'${d.id}'`)
-        .join(",")
+        .map(d => `'${d.id}'`)
+        .join(',')
     : getSelection()
-        .map((d) => d.id)
-        .join("|");
-const getQueryFilter = () => props.filterTemplate.replace("{}", getIdsString());
+        .map(d => d.id)
+        .join('|')
+const getQueryFilter = () => props.filterTemplate.replace('{}', getIdsString())
 
 const exportOptions = [
   {
-    label: "Copy IDs",
-    icon: "pi pi-list",
+    label: 'Copy IDs',
+    icon: 'pi pi-list',
     command: () => {
-      const list = getIdsString();
-      navigator.clipboard.writeText(list);
+      const list = getIdsString()
+      navigator.clipboard.writeText(list)
       toast.add({
-        severity: "success",
-        summary: "Copied list of IDs to clipboard",
-        detail: list.length > 100 ? list.substring(0, 100) + "..." : list,
+        severity: 'success',
+        summary: 'Copied list of IDs to clipboard',
+        detail: list.length > 100 ? list.substring(0, 100) + '...' : list,
         life: 5000,
-      });
+      })
     },
   },
   {
-    label: "Copy filter",
-    icon: "pi pi-filter",
+    label: 'Copy filter',
+    icon: 'pi pi-filter',
     command: () => {
-      const list = getQueryFilter();
-      navigator.clipboard.writeText(list);
+      const list = getQueryFilter()
+      navigator.clipboard.writeText(list)
       toast.add({
-        severity: "success",
-        summary: "Copied filter to clipboard",
-        detail: list.length > 100 ? list.substring(0, 100) + "..." : list,
+        severity: 'success',
+        summary: 'Copied filter to clipboard',
+        detail: list.length > 100 ? list.substring(0, 100) + '...' : list,
         life: 5000,
-      });
+      })
     },
   },
   {
-    label: "Export CSV",
-    icon: "pi pi-file-export",
+    label: 'Export CSV',
+    icon: 'pi pi-file-export',
     command: () => {
-      table.value?.exportCSV();
+      table.value?.exportCSV()
     },
   },
-];
+]
 
-const exporting = () => exportOptions[0].command();
+const exporting = () => exportOptions[0].command()
 
-const sidebar = ref<InstanceType<typeof Sidebar>>();
+const sidebar = ref<InstanceType<typeof Sidebar>>()
 const onKeyDown = (event: KeyboardEvent) => {
-  if (event.code === "Escape") {
-    inspectedHash.value = null;
+  if (event.code === 'Escape') {
+    inspectedHash.value = null
   }
-};
-window.document.addEventListener("keydown", onKeyDown);
+}
+window.document.addEventListener('keydown', onKeyDown)
 onBeforeUnmount(() => {
-  window.document.removeEventListener("keydown", onKeyDown);
-});
+  window.document.removeEventListener('keydown', onKeyDown)
+})
 
-onMounted(() => {});
+onMounted(() => {})
 </script>
 
 <style scoped>
