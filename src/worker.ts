@@ -15,8 +15,14 @@ import {
 import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
 import { fetchAllBuysFrom, fetchTxsFromBlock } from './chain'
+import { ComputeVariant } from './types/ComputeVariant'
 
-let computeController: AbortController | null = null
+const computeControllers: Record<ComputeVariant, AbortController | null> = {
+  [ComputeVariant.LEFT]: null,
+  [ComputeVariant.RIGHT]: null,
+  [ComputeVariant.COMMON]: null,
+  [ComputeVariant.MAIN]: null,
+}
 let targetingController: AbortController | null = null
 
 onmessage = async function ({ data }) {
@@ -30,15 +36,16 @@ onmessage = async function ({ data }) {
     return
   }
   if (data.type === 'COMPUTE') {
-    computeController?.abort()
-    computeController = new AbortController()
-    const computation = await compute(data, computeController.signal)
+    const variant: ComputeVariant = data.variant || ComputeVariant.MAIN
+    computeControllers[variant]?.abort()
+    computeControllers[variant] = new AbortController()
+    const computation = await compute(data, computeControllers[variant]!.signal)
     if (computation.finalETH === undefined) return
 
     return postMessage({
       type: 'COMPUTE',
       ...computation,
-      variant: data.variant,
+      variant,
     })
   }
   if (data.type === 'TARGETING') {

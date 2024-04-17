@@ -214,6 +214,7 @@ import Statistics from './Statistics.vue'
 import type { ComputationResult } from '@/types/ComputationResult'
 import LogsTable from './LogsTable.vue'
 import type { Call, CallExportType } from '@/types/Call'
+import { ComputeVariant } from '@/types/ComputeVariant'
 
 type DiffPart = {
   archive: CallArchive
@@ -228,7 +229,7 @@ const props = defineProps<{
   computingParams: {
     position: number
     gweiDelta: number
-    prioBySnipes: [number,number][] | null
+    prioBySnipes: [number, number][] | null
     buyTaxInXs: boolean
     feeInXs: boolean
     chainApiKey: string
@@ -322,10 +323,10 @@ worker.onmessage = async ({ data }) => {
       .map(data => data.call)
     loadingDiffs.value = false
   } else if (data.type === 'COMPUTE') {
-    if (data.variant === 'left') {
+    if (data.variant === ComputeVariant.LEFT) {
       left.stats = data
       left.loading = false
-    } else if (data.variant === 'right') {
+    } else if (data.variant === ComputeVariant.RIGHT) {
       right.stats = data
       right.loading = false
     } else {
@@ -345,7 +346,7 @@ worker.onmessage = async ({ data }) => {
   }
 }
 
-function runCompute(part: DiffPart, variant: 'left' | 'right' | 'common') {
+function runCompute(part: DiffPart, variant: ComputeVariant) {
   part.loading = true
 
   worker.postMessage({
@@ -439,19 +440,19 @@ watch(
 watch(
   () => left.diff,
   () => {
-    runCompute(left, 'left')
+    runCompute(left, ComputeVariant.LEFT)
   },
 )
 watch(
   () => right.diff,
   () => {
-    runCompute(right, 'right')
+    runCompute(right, ComputeVariant.RIGHT)
   },
 )
 watch(
   () => common.diff,
   () => {
-    runCompute(common, 'common')
+    runCompute(common, ComputeVariant.COMMON)
   },
 )
 </script>
