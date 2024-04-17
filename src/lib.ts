@@ -159,3 +159,15 @@ export function uuid(): string {
     return v.toString(16)
   })
 }
+
+export function mergeOrderedTuples(
+  arr1: [number, number][],
+  arr2: [number, number][],
+): [number, number][] {
+  const merged = structuredClone(arr1)
+  merged.forEach(item => {
+    const newValue = arr2.find(v => v[0] === item[0])
+    if (newValue) item[1] = newValue[1]
+  })
+  return merged
+}

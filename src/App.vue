@@ -800,11 +800,11 @@
       @update:visible="configuringPrios = false"
       @hide="configuringPrios = false"
     >
-      <div class="flex flex-row flex-wrap gap-4 m-2 justify-content-center">
+      <div class="flex flex-row flex-wrap gap-3 m-2 justify-content-center">
         <div
           v-for="snipesThreshold in state.prioBySnipes"
           :key="snipesThreshold[0]"
-          class="flex flex-column gap-2"
+          class="flex flex-column gap-1"
         >
           <label :for="'snipe-th-' + snipesThreshold"
             >{{ getPrioTitle(snipesThreshold[0]) }}
@@ -917,6 +917,7 @@ import {
   sleep,
   prettifyMc,
   round,
+  mergeOrderedTuples,
 } from './lib'
 import { type CallArchive, type Call, type DiffType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
@@ -1145,13 +1146,14 @@ const INIT_TP = {
 const INIT_GWEI = 5
 const INIT_PRIO_BY_SNIPES = [
   [-1, 2],
-  [0, 4],
+  [0, 2],
   [1, 2],
-  [2, 10],
-  [10, 20],
-  [20, 20],
-  [30, 20],
-  [40, 30],
+  [2, 4],
+  [10, 5],
+  [20, 10],
+  [30, 10],
+  [40, 40],
+  [50, 50],
 ]
 const INIT_CONDITIONAL_PRIO = false
 const INIT_MIN_CALLS = 5
@@ -1239,7 +1241,7 @@ function loadForm() {
   state.position = savedState.position ?? INIT_POSITION
   state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : [INIT_TP]
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
-  state.prioBySnipes = savedState.prioBySnipes ?? INIT_PRIO_BY_SNIPES
+  state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
