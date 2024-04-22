@@ -42,7 +42,13 @@ const onClose = async () => {
 }
 
 const cleanedData = computed(
-  () => props.data?.filter(d => !EXCLUDED_FROM_ACCURACY.includes(d.ca)) || [],
+  () =>
+    props.data?.filter(
+      d =>
+        !EXCLUDED_FROM_ACCURACY.includes(d.ca) &&
+        // remove entries where block diff is > 1, indicating my query is now delivering a call with a delay different then it was at the time of launch
+        Math.abs(d.realBlock - d.theoricBlock) <= 1,
+    ) || [],
 )
 
 const dataset = computed(() =>

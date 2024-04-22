@@ -5,6 +5,7 @@ import {
   Utils,
   type BigNumber,
   type AssetTransfersResult,
+  type AssetTransfersResponse,
 } from 'alchemy-sdk'
 import { round, sleep, uuid } from './lib'
 import type { BlockTx, TokenTransfer } from './types/Transaction'
@@ -120,31 +121,41 @@ export async function fetchAllBuysFrom(addy: string, firstBlock: number, apiKey 
   const alchemy = getAlchemy(apiKey)
   const fromBlock = Utils.hexlify(firstBlock)
 
-  const tokens = await alchemy.core.getAssetTransfers({
-    fromBlock,
-    toAddress: addy,
-    category: [AssetTransfersCategory.ERC20],
-  })
+  const tokenTransfers = await fetchPaginatedTransfers(pageKey =>
+    alchemy.core.getAssetTransfers({
+      fromBlock,
+      toAddress: addy,
+      category: [AssetTransfersCategory.ERC20],
+      pageKey,
+    }),
+  )
 
-  const eth = await alchemy.core.getAssetTransfers({
-    fromBlock,
-    fromAddress: addy,
-    category: [AssetTransfersCategory.EXTERNAL],
-  })
+  const ethTransfers = await fetchPaginatedTransfers(pageKey =>
+    alchemy.core.getAssetTransfers({
+      fromBlock,
+      fromAddress: addy,
+      category: [AssetTransfersCategory.EXTERNAL],
+      pageKey,
+    }),
+  )
 
-  const reimbursments = await alchemy.core.getAssetTransfers({
-    fromBlock,
-    fromAddress: BANANA,
-    toAddress: addy,
-    category: [AssetTransfersCategory.INTERNAL],
-  })
+  // only needed for snipes afaik
+  const reimbursmentTransfers = await fetchPaginatedTransfers(pageKey =>
+    alchemy.core.getAssetTransfers({
+      fromBlock,
+      fromAddress: BANANA,
+      toAddress: addy,
+      category: [AssetTransfersCategory.INTERNAL],
+      pageKey,
+    }),
+  )
 
-  return tokens.transfers.reduce(
+  return tokenTransfers.reduce(
     (arr, token) => {
-      const tx = eth.transfers.find(tx => tx.hash === token.hash)
+      const tx = ethTransfers.find(tx => tx.hash === token.hash)
       if (!tx) return arr
 
-      const reimbursement = reimbursments.transfers.find(re => re.hash === token.hash)
+      const reimbursement = reimbursmentTransfers.find(re => re.hash === token.hash)
 
       arr.push({
         symbol: token.asset || '',
@@ -164,4 +175,18 @@ export async function fetchAllBuysFrom(addy: string, firstBlock: number, apiKey 
       eth: number
     }[],
   )
+}
+
+async function fetchPaginatedTransfers<
+  F extends (pageKey?: string) => Promise<AssetTransfersResponse>,
+>(fn: F): Promise<AssetTransfersResult[]> {
+  let pageKey: string | undefined
+  let transfers: AssetTransfersResult[] = []
+  do {
+    const res = await fn(pageKey)
+    transfers = transfers.concat(res.transfers)
+    pageKey = res.pageKey
+  } while (pageKey)
+
+  return transfers
 }

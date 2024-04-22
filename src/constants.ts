@@ -35,4 +35,12 @@ export const EXCLUDED_FROM_ACCURACY = [
   '0x68d009F251FF3a271477F77aCb704C3b0F32a0c0', // CHAD: my call was worse
   '0x8F341C422e8071424eaEdd4C5600145DE4FA79A6', // $FSTRK: my call was worse
   '0x00240E4cc8e07dAD1ca0167f5A0BA52a8327F45E', // DRAGON: my call was worse
+  '0xDfB20f7297AAD51e883bBA1D21a46deFB097c821', // BJORN: my call delay was worse
+  '0xC37E1F6CCCC16C6B44FF7406Fb4F645C9CcaE39E', // INC: my call delay was worse
+  '0x02EeDc3D0cB09E0450C9ed2917005e9bd22Cf763', // LANDWOLF: my call delay was worse
+  '0x4d147243154DcF40DdE549414200CE49dCaF9f60', // LAO: my call delay was worse
+  '0xd7F218C3f9F42A6fc02A6a213E48DcCdC39508A1', // Win Ai: my call delay was worse
+  '0xF5eA85e512713D69f80Dba8F25c728653fc48524', // HTE: my call delay was worse
+  '0xBbAF29697c6c1F247C7EC8c9610417fCCAfeE61a', // NEAI: my call delay was worse
+  '0x51bb045AEA9531Be97ca4892B1b72D7003Ac4AA3', // AI NFT: my call delay was worse
 ]

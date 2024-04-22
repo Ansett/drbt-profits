@@ -1,5 +1,6 @@
 import type { Call } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
+import type { AccuracyLog } from './types/Log'
 
 export interface DebouncedFunction<Args extends any[], F extends (...args: Args) => any> {
   (this: ThisParameterType<F>, ...args: Args & Parameters<F>): void // Promise<ReturnType<F>>
@@ -170,4 +171,34 @@ export function mergeOrderedTuples(
     if (newValue) item[1] = newValue[1]
   })
   return merged
+}
+
+function mean_absolute_error(accuracy: AccuracyLog[]) {
+  if (!accuracy.length) return 0
+  let sum = 0
+  for (let i = 0; i < accuracy.length; i++) {
+    sum += Math.abs(accuracy[i].realBuyMc - accuracy[i].theoricBuyMc)
+  }
+  return sum / accuracy.length
+}
+function mean_squared_error(accuracy: AccuracyLog[]) {
+  if (!accuracy.length) return 0
+  let sum = 0
+  for (let i = 0; i < accuracy.length; i++) {
+    sum += Math.pow(accuracy[i].realBuyMc - accuracy[i].theoricBuyMc, 2)
+  }
+  return sum / accuracy.length
+}
+function root_mean_squared_error(accuracy: AccuracyLog[]) {
+  if (!accuracy.length) return 0
+  let mse = mean_squared_error(accuracy)
+  return Math.sqrt(mse)
+}
+export function mean_absolute_percentage_error(accuracy: AccuracyLog[]) {
+  if (!accuracy.length) return 0
+  let sum = 0
+  for (let i = 0; i < accuracy.length; i++) {
+    sum += Math.abs((accuracy[i].realBuyMc - accuracy[i].theoricBuyMc) / accuracy[i].realBuyMc)
+  }
+  return (sum / accuracy.length) * 100
 }

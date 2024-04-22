@@ -16,7 +16,8 @@ export type Log = {
   buyTax: number
   supply: number
   delay: number
-  block: number
+  callBlock: number
+  theoricBlock: number
 }
 
 export type AccuracyLog = {
@@ -27,4 +28,7 @@ export type AccuracyLog = {
   realBuyMc: number
   ca: string
   delay: number
+  callBlock: number
+  theoricBlock: number
+  realBlock: number
 }

@@ -2,7 +2,14 @@ import readXlsxFile from 'read-excel-file/web-worker'
 import type { Call, CallDiff, CallExportType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
-import { getSaleDate, prettifyDate, round, sumObjectProperty, uuid } from './lib'
+import {
+  mean_absolute_percentage_error,
+  getSaleDate,
+  prettifyDate,
+  round,
+  sumObjectProperty,
+  uuid,
+} from './lib'
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import {
@@ -343,7 +350,8 @@ async function compute(
       buyTax: call.buyTax,
       supply: call.supply,
       delay: call.delay,
-      block: blockEnd,
+      callBlock: call.block,
+      theoricBlock: blockEnd,
     })
   }
 
@@ -549,6 +557,7 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
       const price = (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - log.buyTax))
       const realBuyMc = log.supply * price
       const theoricBuyMc = log.callMc * (1 + log.slippage / 100)
+
       if (log.xs > 5 && !log.info)
         accuracy.push({
           slippage: round(log.slippage, 0),
@@ -558,6 +567,9 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
           realBuyMc,
           ca: log.ca,
           delay: log.delay,
+          callBlock: log.callBlock,
+          theoricBlock: log.theoricBlock,
+          realBlock: realBuy.block,
         })
     }
   }
@@ -565,17 +577,12 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
   accuracy = accuracy.filter(acc => !EXCLUDED_FROM_ACCURACY.includes(acc.ca))
 
   console.log({
-    globalAccuracy:
-      accuracy.reduce((sum, acc) => sum + acc.relativeError, 0) / accuracy.length + '%',
+    error: mean_absolute_percentage_error(accuracy) + '%',
     ...[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].reduce(
       (obj, delay) => ({
         ...obj,
         ['delay' + delay]:
-          accuracy
-            .filter(acc => acc.delay === delay)
-            .reduce((sum, acc) => sum + acc.relativeError, 0) /
-            accuracy.length +
-          '%',
+          mean_absolute_percentage_error(accuracy.filter(acc => acc.delay === delay)) + '%',
       }),
       {},
     ),

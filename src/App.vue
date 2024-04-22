@@ -241,7 +241,7 @@
             <label for="api-input"
               ><a href="https://auth.alchemy.com/signup" target="_blank">Alchemy</a> API key&nbsp;
               <InfoButton
-                text="In order to simulate more accurate swaps, we can fetch mainnet block transaction info (call blocks +1 and sometimes +2) in order to see how many buyers would front-run you, so we can calculate a realistic slippage, even if far from perfect.<br />Indeed the app doesn't know your wallet or even if you bought that token at all. It's just your priority vs. real transactions.<br/>Register for free on alchemy.com, create an APP, select Mainnet Ethereum, and then copy the API key from that app to paste it in here."
+                text="In order to simulate more accurate swaps, we can fetch mainnet block transaction info (call blocks +1 and sometimes +2) in order to see how many buyers would front-run you, so we can calculate a realistic slippage, even if far from perfect, even if your query might have changed since then and calls delay were different back then.<br />Indeed the app doesn't know your wallet or even if you bought that token at all. It's just your priority vs. real transactions.<br/>Register for free on alchemy.com, create an APP, select Mainnet Ethereum, and then copy the API key from that app to paste it in here."
                 :accent="!state.chainApiKey"
                 class="align-self-start"
             /></label>
@@ -483,68 +483,74 @@
             />
           </div>
 
-          <div v-if="state.takeProfits.length >= 2" class="flex flex-row gap-2 align-items-center">
-            <label for="redisOption">All Xs </label>
-            <div class="flex flex-row">
-              <Button
-                icon="pi pi-chevron-down"
-                size="small"
-                severity="secondary"
-                outlined
-                class="w-2rem"
-                aria-label="Decrement"
-                v-tooltip.top="{
-                  value: `Decrement all Xs targets by ${xsStep}`,
-                  showDelay: 500,
-                }"
-                @click="updateAllTargetXs(false)"
-              />
-              <Button
-                icon="pi pi-chevron-up"
-                size="small"
-                severity="secondary"
-                outlined
-                class="w-2rem"
-                aria-label="Increment"
-                v-tooltip.top="{
-                  value: `Increment all Xs targets by ${xsStep}`,
-                  showDelay: 500,
-                }"
-                @click="updateAllTargetXs(true)"
-              />
+          <template v-if="state.takeProfits.length >= 2">
+            <div class="flex flex-row gap-2 align-items-center">
+              <label for="redisOption">All Xs </label>
+              <div class="flex flex-row">
+                <Button
+                  icon="pi pi-chevron-down"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  class="w-2rem"
+                  aria-label="Decrement"
+                  v-tooltip.top="{
+                    value: `Decrement all Xs targets by ${xsStep}`,
+                    showDelay: 500,
+                  }"
+                  @click="updateAllTargetXs(false)"
+                />
+                <Button
+                  icon="pi pi-chevron-up"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  class="w-2rem"
+                  aria-label="Increment"
+                  v-tooltip.top="{
+                    value: `Increment all Xs targets by ${xsStep}`,
+                    showDelay: 500,
+                  }"
+                  @click="updateAllTargetXs(true)"
+                />
+              </div>
             </div>
-          </div>
 
-          <div v-if="state.takeProfits.length >= 2" class="flex flex-row gap-2 align-items-center">
-            <label for="redisOption">All MC </label>
-            <div class="flex flex-row">
-              <Button
-                icon="pi pi-chevron-down"
-                size="small"
-                severity="secondary"
-                outlined
-                class="w-2rem"
-                aria-label="Decrement"
-                v-tooltip.top="{
-                  value: `Decrement all MC targets by ${mcStep}`,
-                  showDelay: 500,
-                }"
-                @click="updateAllTargetMc(false)"
-              />
-              <Button
-                icon="pi pi-chevron-up"
-                size="small"
-                severity="secondary"
-                outlined
-                class="w-2rem"
-                aria-label="Increment"
-                v-tooltip.top="{
-                  value: `Increment all MC targets by ${mcStep}`,
-                  showDelay: 500,
-                }"
-                @click="updateAllTargetMc(true)"
-              />
+            <div class="flex flex-row gap-2 align-items-center">
+              <label for="redisOption">All MC </label>
+              <div class="flex flex-row">
+                <Button
+                  icon="pi pi-chevron-down"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  class="w-2rem"
+                  aria-label="Decrement"
+                  v-tooltip.top="{
+                    value: `Decrement all MC targets by ${mcStep}`,
+                    showDelay: 500,
+                  }"
+                  @click="updateAllTargetMc(false)"
+                />
+                <Button
+                  icon="pi pi-chevron-up"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  class="w-2rem"
+                  aria-label="Increment"
+                  v-tooltip.top="{
+                    value: `Increment all MC targets by ${mcStep}`,
+                    showDelay: 500,
+                  }"
+                  @click="updateAllTargetMc(true)"
+                />
+              </div>
             </div>
+          </template>
+
+          <div v-else class="text-yellow-300">
+            You should really add more than one target to lower the price impact
           </div>
         </div>
 

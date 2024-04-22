@@ -67,7 +67,7 @@
                 <span class="">Number of calls: </span>
                 <span class="text-primary">{{ nbCalls }}</span>
               </div>
-              <div v-if="noApiKey" class="font-italic text-sm text-yellow-500">
+              <div v-if="noApiKey" class="font-italic text-sm text-yellow-300">
                 (&hairsp;It's recommanded to provide an API key in order to fetch on-chain data for a more realistic slippage simulation&hairsp;)
               </div>
             </div>
@@ -111,6 +111,7 @@ const props = defineProps<{
   font-size: 0.8rem;
   white-space: nowrap;
   background: var(--surface-a);
+  color: var(--yellow-300);
   padding: 1rem;
   font-weight: bold;
   border-radius: 1rem;
