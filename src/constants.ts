@@ -14,7 +14,8 @@ export const getPtNumberInput = (extra = {}) => ({
 })
 
 export const SELL_TAX = 5
-export const ETH_PRICE = 2900
+export const ETH_PRICE = 3350
+export const DEFAULT_GAS_USED = 200000
 export const SELL_GAS_PRICE = 0.01
 export const DAY_DELIMITATION = 9 // in the by-day table, a day is considered to start at 9am UTC
 export const AVERAGE_LP_TO_MC_RATIO = 0.1

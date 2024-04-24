@@ -934,7 +934,7 @@ import LogsTable from './components/LogsTable.vue'
 import TargetFinder from './components/TargetFinder.vue'
 import CaLink from './components/CaLink.vue'
 import TimingFinder from './components/TimingFinder.vue'
-import { getPtNumberInput } from './constants'
+import { DEFAULT_GAS_USED, getPtNumberInput } from './constants'
 import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
 
@@ -1124,7 +1124,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       rug: !!row[indexes.Rug],
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
-      buyGas: (row[indexes.Gas] as number) || 200000,
+      buyGas: (row[indexes.Gas] as number) || DEFAULT_GAS_USED,
       nbSnipes: row[indexes.Snipes] as number,
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,

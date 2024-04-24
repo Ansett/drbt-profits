@@ -121,7 +121,7 @@
               placeholder="Columns"
               selectedItemsLabel="{0} cols"
               :maxSelectedLabels="0"
-                    scrollHeight="300px"
+              scrollHeight="300px"
               class="narrowInput"
               :pt="{
                 root: { class: 'narrowInput' },
@@ -227,9 +227,14 @@
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          <span :class="{ 'text-color-secondary font-italic': data.xs === -99 }">{{
-            prettifyMc(data.ath)
-          }}</span>
+          <span
+            :class="['help', { 'text-color-secondary font-italic': data.xs === -99 }]"
+            v-tooltip.top="{
+              value: data.ath + '',
+              showDelay: 500,
+            }"
+            >{{ prettifyMc(data.ath) }}</span
+          >
         </template></Column
       >
       <Column header="Perf" field="xs" sortable :pt="{ headerTitle: { class: 'text-xs' } }">

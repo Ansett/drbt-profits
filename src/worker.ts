@@ -96,9 +96,10 @@ const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: numbe
   return slippage
 }
 
+// NOTE: Comparing tx cost (used gas * gas price) would be better than comparing just priority, in theory, but it's rarely the case, builders' algo is too complicated, and even worse we don't have the real gas quantity to calculate from (call's value from is not accurate, because it includes approval maybe)
 const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: BlockTx[]): number => {
   const myTokens = invested / call.price
-  const previousTxs = txs.filter(tx => tx.gasPrice >= gweiDelta)
+  const previousTxs = txs.filter(tx => tx.priority >= gweiDelta)
   const tokenBought = myTokens + sumObjectProperty(previousTxs, tx => tx.amount)
 
   const impact = getPriceImpact(call.lp * ETH_PRICE, call.price, tokenBought)

@@ -64,7 +64,7 @@ export async function fetchTxsFromBlock(
       return {
         buyer: uuid(),
         amount: token.amount,
-        gasPrice: 99999999,
+        priority: 99999999,
         block: token.block,
       }
 
@@ -76,7 +76,7 @@ export async function fetchTxsFromBlock(
     return {
       buyer: tx.from,
       amount: token.amount,
-      gasPrice: builderTx ? 99999999 : intGwei(tx.maxPriorityFeePerGas),
+      priority: builderTx ? 99999999 : intGwei(tx.maxPriorityFeePerGas),
       block: token.block,
     }
   })

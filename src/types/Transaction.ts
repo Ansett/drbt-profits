@@ -1,6 +1,6 @@
 export type BlockTx = {
   buyer: string
-  gasPrice: number
+  priority: number
   amount: number
   block: number
 }
