@@ -342,9 +342,9 @@
 
           <!-- TP size -->
           <InputGroup class="flex-1">
-            <InputGroupAddon
-              ><span class="text-xs font-bold">TP{{ index + 1 }}</span></InputGroupAddon
-            >
+            <InputGroupAddon>
+              <i class="pi pi-send target-icon"></i>
+            </InputGroupAddon>
             <InputNumber
               v-model="takeProfit.size"
               :id="'tp-input' + index"
@@ -459,9 +459,11 @@
           </div>
         </div>
 
-        <div
-          class="flex flex-column md:flex-row flex-wrap align-items-start md:align-items-center column-gap-4 row-gap-2"
-        >
+        <div v-if="state.takeProfits.length < 2" class="text-yellow-300">
+          You should really add more than one target to lower the price impact
+        </div>
+
+        <div class="flex flex-row flex-wrap align-items-center column-gap-5 row-gap-2">
           <Button class="my-3 align-self-start" @click="addTarget()">Add a target</Button>
 
           <!-- AUTO REDISTRIBUTE -->
@@ -472,7 +474,7 @@
               binary
               class="flex-shrink-0"
             />
-            <label for="redisOption">Auto redistribute </label>
+            <label for="redisOption">Redistribute </label>
             <InfoButton
               text="If activated, when you add or remove a target, size % for each target is recalculated as an equal share from 100%"
               class="align-self-start"
@@ -545,8 +547,40 @@
             </div>
           </template>
 
-          <div v-else class="text-yellow-300">
-            You should really add more than one target to lower the price impact
+          <!-- Targets import/export -->
+          <div class="flex flex-row gap-2 align-items-center">
+            <FileUpload
+              ref="targetUploader"
+              mode="basic"
+              accept="application/json"
+              chooseLabel="&nbsp;Import"
+              :pt="{
+                chooseButton: {
+                  class: 'p-button-icon-only p-button-secondary p-button-outlined small-button',
+                },
+              }"
+              v-tooltip.top="{
+                value: 'Import targets',
+                showDelay: 500,
+              }"
+              @select="importTargets($event)"
+            >
+              <template #uploadicon>
+                <i class="pi pi-file-import"></i>
+              </template>
+            </FileUpload>
+            <Button
+              aria-label="Export targets"
+              icon="pi pi-file-export"
+              outlined
+              severity="secondary"
+              v-tooltip.top="{
+                value: 'Export targets',
+                showDelay: 500,
+              }"
+              class="small-button"
+              @click="exportTargets()"
+            />
           </div>
         </div>
 
@@ -920,6 +954,8 @@ import {
   prettifyMc,
   round,
   mergeOrderedTuples,
+  downloadDataUrl,
+  getTextFileContent,
 } from './lib'
 import { type CallArchive, type Call, type DiffType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
@@ -943,6 +979,7 @@ const error = ref('')
 const loading = ref<string | boolean>(false)
 const uploading = ref(0)
 const uploader = ref<InstanceType<typeof FileUpload>>()
+const targetUploader = ref<InstanceType<typeof FileUpload>>()
 const showDonation = ref(false)
 const configuringPrios = ref(false)
 const conditionalPrioFields = ref<InstanceType<typeof Sidebar>>()
@@ -1137,14 +1174,12 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 }
 
 const INIT_POSITION = 0.05
-const INIT_TP = {
-  size: 100,
-  xs: 50,
-  withXs: true,
-  mc: 1000000,
-  withMc: true,
-  andLogic: false,
-} as TakeProfit
+// prettier-ignore
+const INIT_TP = [
+  { "size": 33.333333333333336, "xs": 10, "withXs": false, "mc": 1000000, "withMc": true, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 10, "withXs": true, "mc": 1000000, "withMc": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 10000000, "withMc": true, "andLogic": true }
+] as TakeProfit[]
 const INIT_GWEI = 5
 const INIT_PRIO_BY_SNIPES = [
   [-1, 2],
@@ -1156,7 +1191,7 @@ const INIT_PRIO_BY_SNIPES = [
   [30, 10],
   [40, 40],
   [50, 50],
-]
+] as [number, number][]
 const INIT_CONDITIONAL_PRIO = false
 const INIT_MIN_CALLS = 5
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x10', 'x50', 'Tags']
@@ -1180,7 +1215,7 @@ const INIT_AUTO_REDISTRIBUTE = true
 const INIT_PRICE_IMPACT = true
 const state = reactive({
   position: INIT_POSITION,
-  takeProfits: [INIT_TP],
+  takeProfits: INIT_TP,
   gweiDelta: INIT_GWEI,
   prioBySnipes: INIT_PRIO_BY_SNIPES,
   conditionalPrio: INIT_CONDITIONAL_PRIO,
@@ -1241,7 +1276,7 @@ function loadForm() {
   if (!savedState) return
 
   state.position = savedState.position ?? INIT_POSITION
-  state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : [INIT_TP]
+  state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : INIT_TP
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
@@ -1293,7 +1328,7 @@ const redistributeTargets = () => {
 const addTarget = (beforeIndex?: number) => {
   const remainingPct = 100 - sumObjectProperty(state.takeProfits, tp => tp.size)
   const clone = {
-    ...INIT_TP,
+    ...INIT_TP[0],
     ...state.takeProfits[beforeIndex !== undefined ? beforeIndex : state.takeProfits.length - 1],
     size: remainingPct,
   }
@@ -1322,6 +1357,30 @@ const updateAllTargetMc = (inc: boolean) => {
   state.takeProfits.forEach((tp, i) => {
     tp.mc += change
   })
+}
+
+const exportTargets = () => {
+  const data = JSON.stringify(state.takeProfits, null, 2)
+  const dataUrl = window.URL.createObjectURL(new Blob([data], { type: 'application/json' }))
+  downloadDataUrl(dataUrl, 'targets.json')
+}
+const importTargets = async (event: FileUploadSelectEvent) => {
+  const { files } = event
+  if (!files?.length) return
+  const text = await getTextFileContent(files[0])
+  ;(targetUploader.value as any)?.clear()
+
+  try {
+    const targets = JSON.parse(text) as TakeProfit[]
+    state.takeProfits = targets.map(target => ({ ...INIT_TP[0], ...target }))
+    if (state.takeProfits.reduce((sum, tp) => sum + tp.size, 0) > 100) redistributeTargets()
+  } catch (e) {
+    toast.add({
+      severity: 'error',
+      summary: 'Wrong format for targets collection',
+      life: 10000,
+    })
+  }
 }
 
 const getMaxSize = (index: number): number => {
@@ -1432,7 +1491,7 @@ worker.onerror = ({ message }) => {
 
 <style scoped>
 .settingInput {
-  min-width: 10rem;
+  min-width: 11rem;
 }
 .settingInputSmall {
   min-width: 7rem;

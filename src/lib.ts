@@ -202,3 +202,33 @@ export function mean_absolute_percentage_error(accuracy: AccuracyLog[]) {
   }
   return (sum / accuracy.length) * 100
 }
+
+export async function downloadDataUrl(
+  dataUrl: string,
+  filename?: string,
+  open?: boolean,
+): Promise<any> {
+  const link = document.createElement('a')
+  link.href = dataUrl
+  if (open) link.target = '_blank'
+  else link.download = filename || ''
+  document.body.appendChild(link)
+  link.click()
+  await sleep(0)
+  try {
+    document.body.removeChild(link)
+  } catch (e) {}
+  if (filename) window.URL.revokeObjectURL(link.href) // if there is a filename we consider it's an inline data-url (which needs revocation)
+}
+
+export function getTextFileContent(file: File): Promise<string> {
+  return new Promise(resolve => {
+    if (!file) resolve('')
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      resolve(reader.result as string)
+    }
+    reader.readAsText(file)
+  })
+}
