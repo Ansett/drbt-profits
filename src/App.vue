@@ -342,9 +342,9 @@
 
           <!-- TP size -->
           <InputGroup class="flex-1">
-            <InputGroupAddon>
-              <i class="pi pi-send target-icon"></i>
-            </InputGroupAddon>
+            <InputGroupAddon
+              ><span class="text-xs font-bold">TP{{ index + 1 }}</span></InputGroupAddon
+            >
             <InputNumber
               v-model="takeProfit.size"
               :id="'tp-input' + index"
@@ -382,6 +382,7 @@
             <InputGroup>
               <!-- Remove or add target -->
               <InputGroupAddon
+                v-if="takeProfit.withMc && takeProfit.withXs"
                 :class="[
                   'flex flex-column p-0',
                   state.takeProfits.length > 1
@@ -389,25 +390,20 @@
                     : 'justify-content-center',
                 ]"
               >
-                <ToggleButton
+                <SelectButton
                   v-model="takeProfit.andLogic"
-                  onLabel="AND"
-                  offLabel="OR"
+                  :options="[
+                    { name: 'AND', value: true },
+                    { name: 'OR', value: false },
+                  ]"
+                  optionLabel="name"
+                  optionValue="value"
                   :disabled="!takeProfit.withMc || !takeProfit.withXs"
                   aria-label="Logic"
-                  v-tooltip.top="{
-                    value: `Remove this target`,
-                    showDelay: 500,
-                  }"
+                  class="flex flex-row h-full"
                   :pt="{
-                    root: {
-                      class: [
-                        'p-button-text',
-                        !takeProfit.withMc || !takeProfit.withXs
-                          ? 'text-color-secondary'
-                          : 'text-primary',
-                      ],
-                      style: 'border: 0; background: transparent; box-shadow: initial',
+                    button: {
+                      class: ['p-button-sm', 'p-2'],
                     },
                   }"
                 />
@@ -900,6 +896,7 @@ import AccordionTab from 'primevue/accordiontab'
 import Message from 'primevue/message'
 import InputMask from 'primevue/inputmask'
 import InputSwitch from 'primevue/inputswitch'
+import SelectButton from 'primevue/selectbutton'
 import Button from 'primevue/button'
 import Sidebar from 'primevue/sidebar'
 import Checkbox from 'primevue/checkbox'
@@ -911,7 +908,6 @@ import InfoButton from './components/InfoButton.vue'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
 import Dropdown from 'primevue/dropdown'
-import ToggleButton from 'primevue/togglebutton'
 import vTooltip from 'primevue/tooltip'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import {

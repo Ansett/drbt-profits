@@ -344,7 +344,7 @@ async function compute(
         : '',
       invested: round(invested, 3),
       gasPrice: round(gasPrice, 3),
-      gain: round(gain, 1),
+      gain: round(gain, gain < 1 ? 2 : 1),
       hitTp,
       slippage: round(slippage, 3),
       nbSnipes: call.nbSnipes,
