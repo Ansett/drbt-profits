@@ -1110,6 +1110,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'PriorityAVG',
     'LP_CRT',
     'Block',
+    'ETHPrice',
   ])
 
   if (!indexes) return
@@ -1161,6 +1162,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       nbSnipes: row[indexes.Snipes] as number,
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,
+      ethPrice: row[indexes.ETHPrice] as number,
     })
   }
 

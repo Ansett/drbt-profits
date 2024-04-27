@@ -18,6 +18,7 @@ export type Log = {
   delay: number
   callBlock: number
   theoricBlock: number
+  ethPrice: number
 }
 
 export type AccuracyLog = {

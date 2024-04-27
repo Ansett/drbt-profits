@@ -202,6 +202,14 @@ export function mean_absolute_percentage_error(accuracy: AccuracyLog[]) {
   }
   return (sum / accuracy.length) * 100
 }
+export function mean_percentage_error(accuracy: AccuracyLog[]) {
+  if (!accuracy.length) return 0
+  let sum = 0
+  for (let i = 0; i < accuracy.length; i++) {
+    sum += (accuracy[i].realBuyMc - accuracy[i].theoricBuyMc) / accuracy[i].realBuyMc
+  }
+  return (sum / accuracy.length) * 100
+}
 
 export async function downloadDataUrl(
   dataUrl: string,

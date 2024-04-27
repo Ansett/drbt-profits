@@ -57,7 +57,7 @@
         v-model:rows="logsRowCount"
         :totalRecords="filteredLogs.length"
         paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-        :rowsPerPageOptions="[10, 20, 50, 100]"
+        :rowsPerPageOptions="[10, 25, 100]"
       />
     </template>
 
@@ -71,9 +71,9 @@
       :sortOrder="-1"
       sortMode="single"
       :paginator="filteredLogs.length > 20"
-      :rows="rows || 20"
+      :rows="rows || 25"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
-      :rowsPerPageOptions="[10, 20, 50, 100]"
+      :rowsPerPageOptions="[10, 25, 100]"
       :globalFilterFields="['ca', 'name', 'date']"
       v-model:filters="logFilters"
     >
@@ -204,10 +204,12 @@
       >
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2 align-items-center">
-            <span>
-              {{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}
-            </span>
             <span
+              ><span v-if="data.xs <= XS_WORTH_OF_ONCHAIN_DATA" class="text-color-secondary">~</span
+              >{{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}</span
+            >
+            <span
+              v-if="data.xs > XS_WORTH_OF_ONCHAIN_DATA"
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
                 value: 'Entry without slippage',
@@ -293,6 +295,7 @@ import MultiSelect from 'primevue/multiselect'
 import vTooltip from 'primevue/tooltip'
 import InfoButton from './InfoButton.vue'
 import CaLink from './CaLink.vue'
+import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
@@ -311,7 +314,7 @@ const textual = defineModel<boolean>('textual', {
   default: false,
 })
 const logsPage = ref(0)
-const logsRowCount = ref(20)
+const logsRowCount = ref(25)
 
 const profitableFilter = ref(false)
 const filteredLogs = computed(() =>

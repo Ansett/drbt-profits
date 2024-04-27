@@ -4,6 +4,7 @@ import type { AccuracyLog, Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
 import {
   mean_absolute_percentage_error,
+  mean_percentage_error,
   getSaleDate,
   prettifyDate,
   round,
@@ -13,11 +14,12 @@ import {
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import {
-  ETH_PRICE,
   SELL_TAX,
   SELL_GAS_PRICE,
   AVERAGE_LP_TO_MC_RATIO,
   EXCLUDED_FROM_ACCURACY,
+  XS_WORTH_OF_ONCHAIN_DATA,
+  EXTRA_SLIPPAGE,
 } from './constants'
 import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
@@ -78,9 +80,9 @@ onmessage = async function ({ data }) {
 
 const REALISTIC_MAX_XS = 100000
 
-const computeMaxETH = (currentMC: number, supply: number, maxBuy: number) => {
+const computeMaxETH = (currentMC: number, supply: number, maxBuy: number, ethPrice: number) => {
   const supplyBought = maxBuy * supply
-  return ((currentMC / supply) * supplyBought) / ETH_PRICE
+  return ((currentMC / supply) * supplyBought) / ethPrice
 }
 
 const getGasPrice = (call: Call, gweiDelta: number): number =>
@@ -102,7 +104,7 @@ const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: Block
   const previousTxs = txs.filter(tx => tx.priority >= gweiDelta)
   const tokenBought = myTokens + sumObjectProperty(previousTxs, tx => tx.amount)
 
-  const impact = getPriceImpact(call.lp * ETH_PRICE, call.price, tokenBought)
+  const impact = getPriceImpact(call.lp * call.ethPrice, call.price, tokenBought)
 
   return impact
 }
@@ -148,6 +150,8 @@ async function compute(
   const hashes: Record<string, HashInfo> = {}
   const signatures: Record<string, HashInfo> = {}
 
+  await fetchEthPricesIfNeeded()
+
   const gainByDate: Record<string, number> = {}
   const addGain = (date: string, gain: number) => {
     const day = prettifyDate(date, 'date')
@@ -156,15 +160,17 @@ async function compute(
 
   let firstBlockOfPeriod = 0
   let loadingMessageSent = false
-  const estimatedOnChainMins = Math.max(
-    1,
-    Math.round((calls.filter(call => callWorthOnChainData(call)).length * 0.5) / 60),
-  )
 
   for (const call of calls) {
     if (abortSignal.aborted) return {}
 
-    const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy)
+    // before 27 april (ETHPrice introduction)
+    const timestamp = new Date(call.date).getTime()
+    if (timestamp < 1714173400000) {
+      call.ethPrice = getClosestEthPrice(timestamp) || call.ethPrice
+    }
+
+    const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy, call.ethPrice)
     let invested = Math.min(maxBuyETH || position, position)
     if (Number.isNaN(invested)) {
       invested = position
@@ -183,8 +189,8 @@ async function compute(
 
     // we consider tx is done block +2
     const blockStart = call.block + 1
-    // if delay is 6-13s, we consider we buy block+2 instead of block+1
-    const blockEnd = call.block + (call.delay >= 6 && call.delay <= 13 ? 2 : 1)
+    // if delay is 5-12s, we consider we buy block+2 instead of block+1 (delay we actually get is at least +1s from the XLSX delay)
+    const blockEnd = call.block + (call.delay >= 5 && call.delay <= 12 ? 2 : 1)
     firstBlockOfPeriod =
       !firstBlockOfPeriod || blockStart < firstBlockOfPeriod ? blockStart : firstBlockOfPeriod
     const blockNeeded = chainApiKey && callWorthOnChainData(call)
@@ -197,7 +203,7 @@ async function compute(
           loadingMessageSent = true
           postMessage({
             type: 'LOADING',
-            text: `Fetching blocks info, it can take up to ${estimatedOnChainMins}'`,
+            text: `Fetching blocks info, it can take a while`,
           })
         }
         blockTransactions = await fetchTxsFromBlock(
@@ -220,8 +226,8 @@ async function compute(
     }
 
     const slippage = blockTransactions
-      ? getSlippage(call, invested, usedPriority, blockTransactions)
-      : 25
+      ? getSlippage(call, invested, usedPriority, blockTransactions) + EXTRA_SLIPPAGE
+      : 50
     let bestXs = call.xs / (1 + slippage / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
 
@@ -269,7 +275,7 @@ async function compute(
           const salePrice = call.price * reachedTarget
           const saleMc = salePrice * call.supply
           const dollarLp = saleMc * AVERAGE_LP_TO_MC_RATIO
-          const tokensSold = (((invested * ETH_PRICE) / call.price) * tp.size) / 100
+          const tokensSold = (((invested * call.ethPrice) / call.price) * tp.size) / 100
 
           const priceImpact = withPriceImpact
             ? Math.min(100, Math.abs(getPriceImpact(dollarLp, salePrice, tokensSold)))
@@ -353,6 +359,7 @@ async function compute(
       delay: call.delay,
       callBlock: call.block,
       theoricBlock: blockEnd,
+      ethPrice: call.ethPrice,
     })
   }
 
@@ -555,11 +562,11 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
   for (const log of logs) {
     const realBuy = myBuys.find(b => b.ca === log.ca.toLowerCase())
     if (realBuy) {
-      const price = (realBuy.eth * ETH_PRICE) / (realBuy.amount! / (1 - log.buyTax))
+      const price = (realBuy.eth * log.ethPrice) / (realBuy.amount! / (1 - log.buyTax))
       const realBuyMc = log.supply * price
       const theoricBuyMc = log.callMc * (1 + log.slippage / 100)
 
-      if (log.xs > 5 && !log.info)
+      if (log.xs > XS_WORTH_OF_ONCHAIN_DATA)
         accuracy.push({
           slippage: round(log.slippage, 0),
           snipes: log.nbSnipes,
@@ -578,16 +585,21 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
   accuracy = accuracy.filter(acc => !EXCLUDED_FROM_ACCURACY.includes(acc.ca))
 
   console.log({
-    error: mean_absolute_percentage_error(accuracy) + '%',
+    nbTx: accuracy.length,
+    error: mean_absolute_percentage_error(accuracy) + '% ' + mean_percentage_error(accuracy) + '%',
     ...[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].reduce(
       (obj, delay) => ({
         ...obj,
         ['delay' + delay]:
-          mean_absolute_percentage_error(accuracy.filter(acc => acc.delay === delay)) + '%',
+          mean_absolute_percentage_error(accuracy.filter(acc => acc.delay === delay)) +
+          '% ' +
+          mean_percentage_error(accuracy.filter(acc => acc.delay === delay)) +
+          '%',
       }),
       {},
     ),
     worstAccuracy: accuracy.filter(acc => Math.abs(acc.relativeError) >= 100),
+    accuracy,
   })
 
   postMessage({ type: 'SCATTER', accuracy })
@@ -597,7 +609,7 @@ function callIsPostAth(call: Call): boolean {
   return !call.rug && call.date > call.athDate
 }
 function callWorthOnChainData(call: Call): boolean {
-  return !call.rug && !callIsPostAth(call) && call.xs > 5
+  return !call.rug && !callIsPostAth(call) && call.xs > XS_WORTH_OF_ONCHAIN_DATA
 }
 
 function getUsedPriority(
@@ -613,4 +625,37 @@ function getUsedPriority(
     prioBySnipes[thresholdIndex === -1 ? prioBySnipes.length - 1 : Math.max(0, thresholdIndex - 1)]
 
   return appliedThreshold?.[1] ?? gweiDelta
+}
+
+let fetchedEthPrices: [number, number][] | null = null
+
+async function fetchEthPricesIfNeeded() {
+  if (fetchedEthPrices) return
+
+  const now = new Date()
+  const start = new Date()
+  start.setMonth(start.getMonth() - 2)
+  start.setDate(start.getDate() - 1)
+  const fromTimestamp = new Date(start).getTime() / 1000
+  const toTimestamp = new Date(now).getTime() / 1000
+
+  const url = `https://api.coingecko.com/api/v3/coins/ethereum/market_chart/range?vs_currency=usd&from=${fromTimestamp}&to=${toTimestamp}`
+
+  const response = await fetch(url)
+  if (!response.ok) return
+  const { prices } = await response.json()
+
+  fetchedEthPrices = prices
+}
+
+function getClosestEthPrice(timestamp: number): number {
+  if (!fetchedEthPrices) return 0
+
+  let closest: [number, number] | null = null
+  for (const price of fetchedEthPrices) {
+    if (!closest || Math.abs(timestamp - price[0]) < Math.abs(timestamp - closest[0]))
+      closest = price
+  }
+
+  return closest?.[1] || 0
 }

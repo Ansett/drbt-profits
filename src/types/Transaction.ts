@@ -1,3 +1,4 @@
+// NOTE: if a property is changed here, indexed DB data need to be cleared
 export type BlockTx = {
   buyer: string
   priority: number

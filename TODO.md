@@ -1,2 +1,1 @@
-ETH price from XLS
-git push --force --set-upstream origin master
+Later, try to reactivate conditional blockEnd to see if accuracy per delay improves

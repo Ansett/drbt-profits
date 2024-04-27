@@ -74,11 +74,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
-import { ETH_PRICE, SELL_GAS_PRICE, SELL_TAX } from '@/constants'
+import { SELL_GAS_PRICE, SELL_TAX } from '@/constants'
 import type { ComputationResult } from '@/types/ComputationResult'
-import type { Call } from '@/types/Call'
 import { round } from '@/lib'
 import InfoButton from './InfoButton.vue'
 

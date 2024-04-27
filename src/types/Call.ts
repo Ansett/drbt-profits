@@ -22,6 +22,7 @@ export type Call = {
   nbSnipes: number
   lp: number
   block: number
+  ethPrice: number
 }
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'

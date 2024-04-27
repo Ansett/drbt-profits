@@ -38,6 +38,7 @@ export async function fetchTxsFromBlock(
     alchemy.core.getAssetTransfers({
       fromBlock: blockStartHex,
       toBlock: blockEndHex,
+      // withMetadata: true, // true to get metadata.blockTimestamp
       contractAddresses: [ca],
       category: withBuilderInfo
         ? [AssetTransfersCategory.ERC20, AssetTransfersCategory.INTERNAL]
