@@ -203,7 +203,7 @@ async function compute(
           loadingMessageSent = true
           postMessage({
             type: 'LOADING',
-            text: `Fetching blocks info, it can take a while`,
+            text: `Fetching blocks data, it can take a while`,
           })
         }
         blockTransactions = await fetchTxsFromBlock(
