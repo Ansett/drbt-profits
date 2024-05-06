@@ -1,19 +1,19 @@
 diff --git a/node_modules/read-excel-file/modules/read/parseCellValue.js b/node_modules/read-excel-file/modules/read/parseCellValue.js
-index 80920a7..f8049ec 100644
+index 98a6523..ad13a79 100644
 --- a/node_modules/read-excel-file/modules/read/parseCellValue.js
 +++ b/node_modules/read-excel-file/modules/read/parseCellValue.js
-@@ -38,10 +38,12 @@ export default function parseCellValue(value, type, _ref) {
+@@ -37,9 +37,12 @@ export default function parseCellValue(value, type, _ref) {
+     case 'inlineStr':
        value = getInlineStringValue();
- 
        if (value === undefined) {
 -        throw new Error("Unsupported \"inline string\" cell value structure: ".concat(getInlineStringXml()));
 +        value = ''
 +        // throw new Error("Unsupported \"inline string\" cell value structure: ".concat(getInlineStringXml()));
-+      } else {
++      } else 
++      {
 +        value = parseString(value, options);
        }
- 
 -      value = parseString(value, options);
        break;
+ 
      // XLSX tends to store string values as "shared" (indexed) ones.
-     // "Shared" strings is a way for an Excel editor to reduce

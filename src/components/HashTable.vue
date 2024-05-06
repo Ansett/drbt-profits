@@ -6,7 +6,7 @@
       sortField="allCalls.length"
       dataKey="id"
       :sortOrder="-1"
-      sortMode="single"
+      sortMode="multiple"
       size="small"
       :globalFilterFields="['id', 'tags']"
       v-model:filters="filters"
@@ -57,6 +57,11 @@
               @click="filters.global.value = null"
             />
           </InputGroup>
+          <InfoButton
+            :text="`<code>ctrl/command</click> click on column headers to multi-sort`"
+            direction="bottom"
+            class="align-self-center mr-2"
+          />
         </div>
       </template>
 
@@ -233,6 +238,7 @@ import { useToast } from 'primevue/usetoast'
 import { FilterMatchMode } from 'primevue/api'
 import { prettifyDate, round } from '../lib'
 import CaLink from './CaLink.vue'
+import InfoButton from './InfoButton.vue'
 
 const TAG_SEPARATOR = ', '
 

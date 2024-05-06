@@ -1,0 +1,13 @@
+diff --git a/node_modules/primevue/datatable/datatable.esm.js b/node_modules/primevue/datatable/datatable.esm.js
+index 99dd163..fd67cf9 100644
+--- a/node_modules/primevue/datatable/datatable.esm.js
++++ b/node_modules/primevue/datatable/datatable.esm.js
+@@ -4337,6 +4337,8 @@ var script = {
+       return data;
+     },
+     multisortField: function multisortField(data1, data2, index) {
++      if (!this.d_multiSortMeta[index]) return 0
++
+       var value1 = ObjectUtils.resolveFieldData(data1, this.d_multiSortMeta[index].field);
+       var value2 = ObjectUtils.resolveFieldData(data2, this.d_multiSortMeta[index].field);
+       var comparer = ObjectUtils.localeComparator();

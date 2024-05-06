@@ -69,7 +69,7 @@
       size="small"
       :sortField="initialSort || 'date'"
       :sortOrder="-1"
-      sortMode="single"
+      sortMode="multiple"
       :paginator="filteredLogs.length > 20"
       :rows="rows || 25"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
@@ -141,7 +141,12 @@
               class="narrowInput text-color-secondary"
               @click="logFilters.global.value = null"
             />
-          </InputGroup></div
+          </InputGroup>
+          <InfoButton
+            :text="`<code>ctrl/command</click> click on column headers to multi-sort`"
+            direction="bottom"
+            class="align-self-center mr-2"
+          /></div
       ></template>
 
       <Column field="date" header="Date" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
