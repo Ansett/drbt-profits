@@ -155,6 +155,9 @@
               v-model:textual="state.textLogs"
               v-model:selectedColumns="state.logsColumns"
               withDisplaySwitch
+              withActions
+              @ignore="ignoreCa"
+              @rug="onRug"
             />
           </AccordionTab>
 
@@ -750,28 +753,7 @@
           </div>
         </div>
 
-        <div class="flex flex-column md:flex-row flex-wrap gap-3">
-          <!-- MIN CALLS -->
-          <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum calls count to show hashes/signatures</label>
-            <InputGroup>
-              <InputGroupAddon>
-                <i class="pi pi-megaphone"></i>
-              </InputGroupAddon>
-              <InputNumber
-                v-model="state.minCallsForHash"
-                id="mincalls-input"
-                showButtons
-                buttonLayout="stacked"
-                :min="1"
-                :step="10"
-                :pt="getPtNumberInput()"
-                class="settingInput"
-              />
-            </InputGroup>
-          </div>
-        </div>
-        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3">
+        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3 mt-1">
           <!-- PRICE IMPACT -->
           <div class="flex flex-row gap-2 align-items-center">
             <Checkbox
@@ -804,18 +786,6 @@
               class="align-self-start"
             />
           </div>
-        </div>
-        <!-- Blacklist -->
-        <div class="flex flex-column gap-2">
-          <label for="blacklist-input"
-            >Ignored CAs <span class="text-xs">(&hairsp;comma-separated&hairsp;)</span></label
-          >
-          <InputGroup>
-            <InputGroupAddon>
-              <i class="pi pi-asterisk"></i>
-            </InputGroupAddon>
-            <InputText v-model="state.blackList" id="blacklist-input" class="settingInput" />
-          </InputGroup>
         </div>
       </div>
     </div>
@@ -1017,15 +987,11 @@ watch(
 )
 
 const hashes = ref<Record<string, HashInfo>>({})
-const hashesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash),
-)
+const hashesWithTags = computed<HashInfo[]>(() => addTagsToHashes(hashes.value, localTags.value))
 const signatures = ref<Record<string, HashInfo>>({})
 const signaturesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash),
+  addTagsToHashes(signatures.value, localTags.value),
 )
-
-const blackListArray = computed(() => state.blackList.split(',').map(ca => ca.trim()))
 
 const archives = ref<CallArchive[]>([])
 const current = ref<CallArchive | null>(null)
@@ -1036,34 +1002,34 @@ const removeArchive = (index: number) => {
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
 const filteredCalls = computed<Call[]>(() =>
-  calls.value.filter(call => {
-    if (blackListArray.value.includes(call.ca)) return false
+  calls.value
+    .filter(call => {
+      // filtering period
+      if (selection.startDate) {
+        const time = selection.startHour?.match(/\d\d:\d\d/) ? selection.startHour : '00:00'
+        const fullStart = `${selection.startDate}T${time}:00.000Z`
+        if (call.date < fullStart) return false
+      }
+      if (selection.endDate) {
+        const time = selection.endHour?.match(/\d\d:\d\d/) ? selection.endHour : '00:00'
+        const fullEnd = `${selection.endDate}T${time}:00.000Z`
+        if (call.date > fullEnd) return false
+      }
 
-    // filtering period
-    if (selection.startDate) {
-      const time = selection.startHour?.match(/\d\d:\d\d/) ? selection.startHour : '00:00'
-      const fullStart = `${selection.startDate}T${time}:00.000Z`
-      if (call.date < fullStart) return false
-    }
-    if (selection.endDate) {
-      const time = selection.endHour?.match(/\d\d:\d\d/) ? selection.endHour : '00:00'
-      const fullEnd = `${selection.endDate}T${time}:00.000Z`
-      if (call.date > fullEnd) return false
-    }
+      // filtering trading hours and days
+      if (state.withHours && state.week.some(active => !active)) {
+        const date = new Date(call.date)
+        const callDay = date.getUTCDay()
+        if (state.week[callDay]) return true
+        else if (state.week[callDay] === false) return false
+        // when null: costom hours
+        const callHour = date.getUTCHours()
+        return state.hours[callDay][callHour]
+      }
 
-    // filtering trading hours and days
-    if (state.withHours && state.week.some(active => !active)) {
-      const date = new Date(call.date)
-      const callDay = date.getUTCDay()
-      if (state.week[callDay]) return true
-      else if (state.week[callDay] === false) return false
-      // when null: costom hours
-      const callHour = date.getUTCHours()
-      return state.hours[callDay][callHour]
-    }
-
-    return true
-  }),
+      return true
+    })
+    .map(call => ({ ...call, ignored: state.blackList.includes(call.ca) })),
 )
 
 const getHeaderIndexes = <T extends string>(
@@ -1163,6 +1129,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,
       ethPrice: row[indexes.ETHPrice] as number,
+      ignored: false,
     })
   }
 
@@ -1221,7 +1188,6 @@ const state = reactive({
   gweiDelta: INIT_GWEI,
   prioBySnipes: INIT_PRIO_BY_SNIPES,
   conditionalPrio: INIT_CONDITIONAL_PRIO,
-  minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
   logsColumns: INIT_LOGS_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
@@ -1233,7 +1199,7 @@ const state = reactive({
   hours: INIT_HOURS,
   autoRedistributeTargets: INIT_AUTO_REDISTRIBUTE,
   withPriceImpact: INIT_PRICE_IMPACT,
-  blackList: '',
+  blackList: [] as string[],
 })
 
 const selection = reactive({
@@ -1282,7 +1248,6 @@ function loadForm() {
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
-  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
   state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
@@ -1294,12 +1259,35 @@ function loadForm() {
   state.hours = savedState.hours ?? INIT_HOURS
   state.autoRedistributeTargets = savedState.autoRedistributeTargets ?? INIT_AUTO_REDISTRIBUTE
   state.withPriceImpact = savedState.withPriceImpact ?? INIT_PRICE_IMPACT
-  state.blackList = savedState.blackList ?? ''
+  state.blackList = savedState.blackList
+    ? typeof savedState.blackList === 'string'
+      ? savedState.blackList.split(',').map(ca => ca.trim())
+      : savedState.blackList
+    : []
 }
 onMounted(() => {
   loadForm()
   initialized.value = true
 })
+
+const ignoreCa = (ca: string, isIgnored: boolean) => {
+  if (isIgnored) state.blackList.push(ca)
+  else state.blackList = state.blackList.filter(_ca => _ca !== ca)
+}
+const onRug = (ca: string, isRug: boolean) => {
+  const call = calls.value.find(call => call.ca === ca)
+  if (!call) return
+
+  call.rug = isRug
+  const command = `/setrug ${call.ca} ${isRug ? '1' : '0'}`
+  navigator.clipboard.writeText(command)
+  toast.add({
+    severity: 'success',
+    summary: 'Copied rug command',
+    detail: command,
+    life: 3000,
+  })
+}
 
 const computedPrioBySnipes = computed(() =>
   state.conditionalPrio ? JSON.parse(JSON.stringify(state.prioBySnipes)) : null,

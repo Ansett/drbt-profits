@@ -20,6 +20,7 @@ export const DAY_DELIMITATION = 9 // in the by-day table, a day is considered to
 export const AVERAGE_LP_TO_MC_RATIO = 0.1
 export const XS_WORTH_OF_ONCHAIN_DATA = 5 // at least 5x to fetch data
 export const EXTRA_SLIPPAGE = 10
+export const MIN_CALLS_FOR_HASHES = 5
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
 export const BUILDER_ADDYS = [

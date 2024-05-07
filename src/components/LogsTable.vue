@@ -262,11 +262,17 @@
       </Column>
       <Column field="gain" header="Gain" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
-          <span v-if="data.gain <= 0">{{ data.gain }}</span>
+          <template v-if="data.gain <= 0">
+            <span>{{ data.gain }}</span>
+            <Tag v-if="data.ignored" value="ignored" severity="secondary" />
+          </template>
           <span v-else class="flex column-gap-2 align-items-center">
-            <span class="font-bold text-cyan-300">{{ '+' + data.gain }}</span>
+            <span :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']">{{
+              '+' + data.gain
+            }}</span>
+            <Tag v-if="data.ignored" value="ignored" severity="secondary" />
             <span
-              v-if="data.hitTp.length"
+              v-else-if="data.hitTp.length"
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
                 value: data.hitTp.join(' & '),
@@ -276,6 +282,11 @@
               (&hairsp;{{ data.hitTp.length }}&hairsp;)
             </span>
           </span>
+        </template>
+      </Column>
+      <Column v-if="withActions">
+        <template #body="{ data }">
+          <MenuButton :ref="data.ca" :actions="getActions(data)" />
         </template>
       </Column>
     </DataTable>
@@ -300,6 +311,7 @@ import MultiSelect from 'primevue/multiselect'
 import vTooltip from 'primevue/tooltip'
 import InfoButton from './InfoButton.vue'
 import CaLink from './CaLink.vue'
+import MenuButton from './MenuButton.vue'
 import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
@@ -309,10 +321,12 @@ const props = defineProps<{
   textual?: boolean
   initialSort?: string
   withDisplaySwitch?: boolean
+  withActions?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'whatever'): void
+  (e: 'ignore', ca: string, state: boolean): void
+  (e: 'rug', ca: string, state: boolean): void
 }>()
 
 const textual = defineModel<boolean>('textual', {
@@ -338,6 +352,39 @@ const exportLogs = () => logTable.value?.exportCSV()
 const logFilters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
 })
+
+const getActions = (log: Log) => [
+  log.xs === -99
+    ? {
+        label: 'Not rug',
+        icon: 'pi pi-thumbs-up',
+        command: () => {
+          emit('rug', log.ca, false)
+        },
+      }
+    : {
+        label: 'Rug',
+        icon: 'pi pi-thumbs-down',
+        command: () => {
+          emit('rug', log.ca, true)
+        },
+      },
+  log.ignored
+    ? {
+        label: 'Not ignored',
+        icon: 'pi pi-eye',
+        command: () => {
+          emit('ignore', log.ca, false)
+        },
+      }
+    : {
+        label: 'Ignored',
+        icon: 'pi pi-eye-slash',
+        command: () => {
+          emit('ignore', log.ca, true)
+        },
+      },
+]
 </script>
 
 <style scoped>

@@ -11,6 +11,7 @@ export type Log = {
   info: string
   hitTp: string[]
   slippage: number
+  ignored: boolean
   /* for accuracy check */
   nbSnipes: number
   buyTax: number

@@ -23,6 +23,7 @@ export type Call = {
   lp: number
   block: number
   ethPrice: number
+  ignored: boolean
 }
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'

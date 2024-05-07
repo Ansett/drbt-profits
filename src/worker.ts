@@ -185,7 +185,9 @@ async function compute(
     const usedPriority = getUsedPriority(call, gweiDelta, prioBySnipes)
     const gasPrice = getGasPrice(call, usedPriority)
     let gain = -invested - gasPrice
-    addGain(call.date, gain)
+    if (!call.ignored) {
+      addGain(call.date, gain)
+    }
 
     // we consider tx is done block +2
     const blockStart = call.block + 1
@@ -293,7 +295,9 @@ async function compute(
             SELL_GAS_PRICE
 
           gain += profit
-          addGain(getSaleDate(call, saleMc), profit)
+          if (!call.ignored) {
+            addGain(getSaleDate(call, saleMc), profit)
+          }
           remainingPosition -= tp.size
           hitTp.push('TP' + (tpIndex + 1))
         }
@@ -307,8 +311,12 @@ async function compute(
       if (bestXs >= 10) counters.x10++
     }
 
-    finalETH += gain
-    if (finalETH < drawdown) drawdown = round(finalETH)
+    if (!call.ignored) {
+      finalETH += gain
+    }
+    if (finalETH < drawdown) {
+      drawdown = round(finalETH)
+    }
 
     // Regrouping hashes
     if (call.hashF) {
@@ -353,6 +361,7 @@ async function compute(
       gain: round(gain, gain < 1 ? 2 : 1),
       hitTp,
       slippage: round(slippage, 3),
+      ignored: call.ignored,
       nbSnipes: call.nbSnipes,
       buyTax: call.buyTax,
       supply: call.supply,
@@ -384,7 +393,7 @@ async function compute(
   }
 
   return {
-    finalETH: round(finalETH),
+    finalETH: finalETH ? round(finalETH) : finalETH, // keep undefined value for abort controller
     drawdown: round(drawdown),
     // find the minimum value in all drawdowns
     worstDrawdown: drawdownByDate.reduce((prev, cur) => (cur[1] < prev[1] ? cur : prev), ['', 0]),
@@ -485,7 +494,6 @@ async function findTarget(
     )
 
     if (finalETH === undefined) {
-      console.log('abort 2')
       return null // aborted
     }
 

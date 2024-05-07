@@ -1,3 +1,4 @@
+import { MIN_CALLS_FOR_HASHES } from './constants'
 import type { Call } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog } from './types/Log'
@@ -112,11 +113,10 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
 export function addTagsToHashes(
   hashes: Record<string, HashInfo>,
   tags: Record<string, string[]> | null,
-  minCallsCount: number,
 ) {
   // Show only hashes with some calls, and sort calls by Xs and rug status
   const bigHashes = Object.keys(hashes).reduce((arr, h) => {
-    if (hashes[h].allCalls.length >= minCallsCount) {
+    if (hashes[h].allCalls.length >= MIN_CALLS_FOR_HASHES) {
       hashes[h].allCalls.sort((a, b) =>
         !a.rug && b.rug ? -1 : a.rug && !b.rug ? 1 : a.xs > b.xs ? -1 : a.xs < b.xs ? 1 : 0,
       )
