@@ -10,6 +10,7 @@ import {
   round,
   sumObjectProperty,
   uuid,
+  getRowForExport,
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
@@ -519,13 +520,13 @@ function mergeRows(
   leftRows.splice(0, 1)
   rightRows.splice(0, 1)
 
-  const onlyLeft = [transformRow(headers)]
-  const onlyRight = [transformRow(headers)]
-  const inBoth = [transformRow(headers)]
-  const all = [transformRow(headers)]
+  const onlyLeft = [getRowForExport(headers)]
+  const onlyRight = [getRowForExport(headers)]
+  const inBoth = [getRowForExport(headers)]
+  const all = [getRowForExport(headers)]
 
   for (const leftRow of leftRows) {
-    const transformedRow = transformRow(leftRow)
+    const transformedRow = getRowForExport(leftRow)
     all.push(transformedRow)
 
     if (rightRows.every(rightRow => rightRow[caColumn] !== leftRow[caColumn])) {
@@ -534,7 +535,7 @@ function mergeRows(
   }
 
   for (const rightRow of rightRows) {
-    const transformedRow = transformRow(rightRow)
+    const transformedRow = getRowForExport(rightRow)
     if (leftRows.every(leftRow => leftRow[caColumn] !== rightRow[caColumn])) {
       onlyRight.push(transformedRow)
       all.push(transformedRow)
@@ -549,18 +550,6 @@ function mergeRows(
     Intersection: inBoth,
     Merge: all,
   }
-}
-
-function transformRow(row: (string | number)[]): {
-  value: string | number
-  format?: string
-}[] {
-  return row.map(cell => ({
-    value: cell,
-    format:
-      // stringification before worker post has transformed Date to string, so passing along a format for the XLSX export
-      typeof cell === 'string' && cell.includes('.000Z') ? 'yyyy/mm/dd hh:mm:ss' : '',
-  }))
 }
 
 async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[], apiKey: string) {

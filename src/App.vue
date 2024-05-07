@@ -47,6 +47,19 @@
           @select="onUpload($event)"
         >
           <template #empty>
+            <!-- XLSX download button -->
+            <Button
+              v-if="selectedFile"
+              aria-label="XLSX download"
+              outlined
+              icon="pi pi-download"
+              v-tooltip.bottom="{
+                value: 'Download XLSX with updated rug statuses',
+                showDelay: 500,
+              }"
+              class="xlsxButton"
+              @click="downloadUpdatedXlsx"
+            />
             <ProgressSpinner
               v-if="uploading"
               class="absolute top-50 left-50"
@@ -926,6 +939,9 @@ import {
   mergeOrderedTuples,
   downloadDataUrl,
   getTextFileContent,
+  transformMergedRows,
+  downloadRowsXlsx,
+  getRowForExport,
 } from './lib'
 import { type CallArchive, type Call, type DiffType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
@@ -1275,11 +1291,18 @@ const ignoreCa = (ca: string, isIgnored: boolean) => {
   else state.blackList = state.blackList.filter(_ca => _ca !== ca)
 }
 const onRug = (ca: string, isRug: boolean) => {
-  const call = calls.value.find(call => call.ca === ca)
-  if (!call) return
+  for (const archive of archives.value) {
+    const call = archive.calls.find(call => call.ca === ca)
+    if (!call) return
+    call.rug = isRug
 
-  call.rug = isRug
-  const command = `/setrug ${call.ca} ${isRug ? '1' : '0'}`
+    const indexes = getHeaderIndexes(archive.rows[0], ['CA', 'Rug'])!
+    const row = archive.rows.find(row => row[indexes.CA] === ca)
+    if (!row) return
+    row[indexes.Rug] = isRug ? '1' : '0'
+  }
+
+  const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
   navigator.clipboard.writeText(command)
   toast.add({
     severity: 'success',
@@ -1377,6 +1400,12 @@ const getMaxSize = (index: number): number => {
   const otherTps = [...state.takeProfits]
   otherTps.splice(index, 1)
   return 100 - sumObjectProperty(otherTps, tp => tp.size)
+}
+
+const downloadUpdatedXlsx = async () => {
+  if (!current.value) return
+  const rows = current.value.rows.map(getRowForExport)
+  await downloadRowsXlsx(rows, `${current.value.fileName.replace('.xlsx', '')} updated`)
 }
 
 const incStartDate = (inc = 1) => {
@@ -1513,5 +1542,11 @@ worker.onerror = ({ message }) => {
 .target-parent:focus .target-remove,
 .target-parent:active .target-remove {
   opacity: 1;
+}
+
+.xlsxButton {
+  position: absolute;
+  right: 1rem;
+  top: -70px;
 }
 </style>

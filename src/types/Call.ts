@@ -32,6 +32,13 @@ export type CallDiff = {
   status: DiffType
 }
 
+export type RowsForExport = {
+  value: string | number | Date
+  format?: string // if date
+  fontWeight?: 'bold'
+  align?: 'left' | 'center' | 'right'
+}[][]
+
 export type CallArchive = {
   fileName: string
   calls: Call[]

@@ -1,5 +1,6 @@
+import writeXlsxFile from 'write-excel-file'
 import { MIN_CALLS_FOR_HASHES } from './constants'
-import type { Call } from './types/Call'
+import type { Call, CallArchive, CallExportType, RowsForExport } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog } from './types/Log'
 
@@ -239,4 +240,54 @@ export function getTextFileContent(file: File): Promise<string> {
     }
     reader.readAsText(file)
   })
+}
+
+export function getRowForExport(row: (string | number | Date)[]): {
+  value: string | number
+  format?: string
+}[] {
+  return row.map(cell => ({
+    value: typeof cell === 'object' ? cell.toString() : cell,
+    format:
+      // stringification before worker post has transformed Date to string, so passing along a format for the XLSX export
+      typeof cell === 'string' && cell.includes('.000Z') ? 'yyyy/mm/dd hh:mm:ss' : '',
+  }))
+}
+
+function formatRowsForExport(rows: RowsForExport) {
+  for (const index in rows) {
+    for (const cell of rows[index]) {
+      // header
+      if (index === '0') {
+        cell.fontWeight = 'bold'
+        cell.align = 'center'
+      } else {
+        // recreate Date from string so it can be converted properly in XLSX
+        if (cell.format?.startsWith('yyyy')) cell.value = new Date(cell.value)
+      }
+    }
+  }
+}
+
+async function downloadBlob(blob: Blob, title: CallExportType) {
+  const link = document.createElement('a')
+  link.href = window.URL.createObjectURL(blob)
+  link.download = `${title}.xlsx`
+  document.body.appendChild(link)
+  link.click()
+  await sleep(0)
+  try {
+    document.body.removeChild(link)
+  } catch (e) {}
+  window.URL.revokeObjectURL(link.href)
+}
+
+export async function downloadRowsXlsx(rows: RowsForExport, title: string) {
+  formatRowsForExport(rows)
+  const blob = await writeXlsxFile(rows, {
+    stickyRowsCount: 1,
+    fontFamily: 'Calibri',
+    fontSize: 11,
+  })
+  downloadBlob(blob, title as CallExportType)
 }

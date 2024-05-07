@@ -208,7 +208,7 @@ import Button from 'primevue/button'
 import SplitButton from 'primevue/splitbutton'
 import vTooltip from 'primevue/tooltip'
 import { type CallDiff, type CallArchive, type DiffType } from '@/types/Call'
-import { sleep } from '@/lib'
+import { downloadRowsXlsx, sleep } from '@/lib'
 import Worker from '@/worker?worker'
 import Statistics from './Statistics.vue'
 import type { ComputationResult } from '@/types/ComputationResult'
@@ -334,15 +334,8 @@ worker.onmessage = async ({ data }) => {
       common.loading = false
     }
   } else if (data.type === 'MERGE') {
-    transformMergedRows(data.rows)
-    const blob = await writeXlsxFile(data.rows, {
-      stickyRowsCount: 1,
-      fontFamily: 'Calibri',
-      fontSize: 11,
-    })
-
+    await downloadRowsXlsx(data.rows, data.title)
     loadingDiffs.value = false
-    downloadBlob(blob, data.title as CallExportType)
   }
 }
 
@@ -366,24 +359,6 @@ function extractDiff() {
   })
 }
 
-const exportingXlsx = () => {}
-const exportOptions = [
-  // {
-  //   label: "Export all merged calls",
-  //   icon: "pi pi-list",
-  //   command: () => {
-  //     const list = getIdsString();
-  //     navigator.clipboard.writeText(list);
-  //     toast.add({
-  //       severity: "success",
-  //       summary: "Copied list of IDs to clipboard",
-  //       detail: list.length > 100 ? list.substring(0, 100) + "..." : list,
-  //       life: 5000,
-  //     });
-  //   },
-  // }
-]
-
 async function downloadRows(title: CallExportType) {
   loadingDiffs.value = true
   worker.postMessage({
@@ -393,41 +368,6 @@ async function downloadRows(title: CallExportType) {
     caColumn: left.archive.caColumn,
     title,
   })
-}
-
-function transformMergedRows(
-  rows: {
-    value: string | number | Date
-    format?: string // if date
-    fontWeight?: 'bold'
-    align?: 'left' | 'center' | 'right'
-  }[][],
-) {
-  for (const index in rows) {
-    for (const cell of rows[index]) {
-      // header
-      if (index === '0') {
-        cell.fontWeight = 'bold'
-        cell.align = 'center'
-      } else {
-        // recreate Date from string so it can be converted properly in XLSX
-        if (cell.format?.startsWith('yyyy')) cell.value = new Date(cell.value)
-      }
-    }
-  }
-}
-
-async function downloadBlob(blob: Blob, title: CallExportType) {
-  const link = document.createElement('a')
-  link.href = window.URL.createObjectURL(blob)
-  link.download = `${title}.xlsx`
-  document.body.appendChild(link)
-  link.click()
-  await sleep(0)
-  try {
-    document.body.removeChild(link)
-  } catch (e) {}
-  window.URL.revokeObjectURL(link.href)
 }
 
 watch(
