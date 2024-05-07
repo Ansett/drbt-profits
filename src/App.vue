@@ -298,8 +298,8 @@
               <label for="conditional-prio" class="text-xs">Conditionnal</label>
               <InputSwitch v-model="state.conditionalPrio" inputId="conditional-prio" />
             </div>
-            <!-- FIXME: clog -->
             <Button
+              v-if="state.conditionalPrio"
               icon="pi pi-cog"
               text
               aria-label="Configure conditional priorities"
