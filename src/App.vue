@@ -766,7 +766,28 @@
           </div>
         </div>
 
-        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3 mt-1">
+        <div class="flex flex-column md:flex-row flex-wrap gap-3">
+          <!-- MIN CALLS -->
+          <div class="flex flex-column gap-2">
+            <label for="mincalls-input">Minimum calls count to show hashes/signatures</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-megaphone"></i>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.minCallsForHash"
+                id="mincalls-input"
+                showButtons
+                buttonLayout="stacked"
+                :min="0"
+                :step="5"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+        </div>
+        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3">
           <!-- PRICE IMPACT -->
           <div class="flex flex-row gap-2 align-items-center">
             <Checkbox
@@ -1003,10 +1024,12 @@ watch(
 )
 
 const hashes = ref<Record<string, HashInfo>>({})
-const hashesWithTags = computed<HashInfo[]>(() => addTagsToHashes(hashes.value, localTags.value))
+const hashesWithTags = computed<HashInfo[]>(() =>
+  addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash),
+)
 const signatures = ref<Record<string, HashInfo>>({})
 const signaturesWithTags = computed<HashInfo[]>(() =>
-  addTagsToHashes(signatures.value, localTags.value),
+  addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash),
 )
 
 const archives = ref<CallArchive[]>([])
@@ -1204,6 +1227,7 @@ const state = reactive({
   gweiDelta: INIT_GWEI,
   prioBySnipes: INIT_PRIO_BY_SNIPES,
   conditionalPrio: INIT_CONDITIONAL_PRIO,
+  minCallsForHash: INIT_MIN_CALLS,
   hashColumns: INIT_HASH_COLUMNS,
   logsColumns: INIT_LOGS_COLUMNS,
   textLogs: INIT_TEXT_LOGS,
@@ -1264,6 +1288,7 @@ function loadForm() {
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
+  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
   state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
