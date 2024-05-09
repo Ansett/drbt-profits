@@ -49,7 +49,7 @@
           <template #empty>
             <!-- XLSX download button -->
             <Button
-              v-if="selectedFile"
+              v-if="selectedFile && updatedSomeRug"
               aria-label="XLSX download"
               outlined
               icon="pi pi-download"
@@ -1242,6 +1242,8 @@ const state = reactive({
   blackList: [] as string[],
 })
 
+const updatedSomeRug = ref(false)
+
 const selection = reactive({
   startDate: '',
   startHour: '',
@@ -1320,6 +1322,7 @@ const onRug = (ca: string, isRug: boolean) => {
     const call = archive.calls.find(call => call.ca === ca)
     if (!call) return
     call.rug = isRug
+    updatedSomeRug.value = true
 
     const indexes = getHeaderIndexes(archive.rows[0], ['CA', 'Rug'])!
     const row = archive.rows.find(row => row[indexes.CA] === ca)
