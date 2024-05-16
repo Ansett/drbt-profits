@@ -7,7 +7,7 @@
       :multiSortMeta="[{ field: 'allCalls.length', order: -1 }]"
       sortMode="multiple"
       size="small"
-      :globalFilterFields="['id', 'tags']"
+      :globalFilterFields="search"
       v-model:filters="filters"
       v-model:selection="selection"
       :paginator="lines.length > 20"
@@ -46,7 +46,7 @@
             </InputGroupAddon>
             <InputText
               v-model="filters.global.value"
-              placeholder="Tag or ID search"
+              placeholder="ID, tag, CA or name search"
               class="narrowInput"
             />
             <Button
@@ -343,6 +343,13 @@ const exportOptions = [
     },
   },
 ]
+
+const search = [
+  'id',
+  'tags',
+  (data: HashInfo) => data.allCalls.map(c => c.name).join(' '), // search by call name
+  (data: HashInfo) => data.allCalls.map(c => c.ca).join(' '), // search by call CA
+] as unknown as string[]
 
 const exporting = () => exportOptions[0].command()
 
