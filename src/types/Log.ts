@@ -12,6 +12,7 @@ export type Log = {
   hitTp: string[]
   slippage: number
   ignored: boolean
+  flag: 'ignored' | '' // to allow search
   /* for accuracy check */
   nbSnipes: number
   buyTax: number

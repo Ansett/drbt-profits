@@ -363,6 +363,7 @@ async function compute(
       hitTp,
       slippage: round(slippage, 3),
       ignored: call.ignored,
+      flag: call.ignored ? 'ignored' : '',
       nbSnipes: call.nbSnipes,
       buyTax: call.buyTax,
       supply: call.supply,

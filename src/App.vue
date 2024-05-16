@@ -960,7 +960,6 @@ import {
   mergeOrderedTuples,
   downloadDataUrl,
   getTextFileContent,
-  transformMergedRows,
   downloadRowsXlsx,
   getRowForExport,
 } from './lib'
@@ -1041,34 +1040,32 @@ const removeArchive = (index: number) => {
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
 const filteredCalls = computed<Call[]>(() =>
-  calls.value
-    .filter(call => {
-      // filtering period
-      if (selection.startDate) {
-        const time = selection.startHour?.match(/\d\d:\d\d/) ? selection.startHour : '00:00'
-        const fullStart = `${selection.startDate}T${time}:00.000Z`
-        if (call.date < fullStart) return false
-      }
-      if (selection.endDate) {
-        const time = selection.endHour?.match(/\d\d:\d\d/) ? selection.endHour : '00:00'
-        const fullEnd = `${selection.endDate}T${time}:00.000Z`
-        if (call.date > fullEnd) return false
-      }
+  calls.value.filter(call => {
+    // filtering period
+    if (selection.startDate) {
+      const time = selection.startHour?.match(/\d\d:\d\d/) ? selection.startHour : '00:00'
+      const fullStart = `${selection.startDate}T${time}:00.000Z`
+      if (call.date < fullStart) return false
+    }
+    if (selection.endDate) {
+      const time = selection.endHour?.match(/\d\d:\d\d/) ? selection.endHour : '00:00'
+      const fullEnd = `${selection.endDate}T${time}:00.000Z`
+      if (call.date > fullEnd) return false
+    }
 
-      // filtering trading hours and days
-      if (state.withHours && state.week.some(active => !active)) {
-        const date = new Date(call.date)
-        const callDay = date.getUTCDay()
-        if (state.week[callDay]) return true
-        else if (state.week[callDay] === false) return false
-        // when null: costom hours
-        const callHour = date.getUTCHours()
-        return state.hours[callDay][callHour]
-      }
+    // filtering trading hours and days
+    if (state.withHours && state.week.some(active => !active)) {
+      const date = new Date(call.date)
+      const callDay = date.getUTCDay()
+      if (state.week[callDay]) return true
+      else if (state.week[callDay] === false) return false
+      // when null: costom hours
+      const callHour = date.getUTCHours()
+      return state.hours[callDay][callHour]
+    }
 
-      return true
-    })
-    .map(call => ({ ...call, ignored: state.blackList.includes(call.ca) })),
+    return true
+  }),
 )
 
 const getHeaderIndexes = <T extends string>(
@@ -1168,7 +1165,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,
       ethPrice: row[indexes.ETHPrice] as number,
-      ignored: false,
+      ignored: state.blackList.includes(ca),
     })
   }
 
@@ -1316,12 +1313,18 @@ onMounted(() => {
 const ignoreCa = (ca: string, isIgnored: boolean) => {
   if (isIgnored) state.blackList.push(ca)
   else state.blackList = state.blackList.filter(_ca => _ca !== ca)
+
+  for (const archive of archives.value) {
+    archive.calls = archive.calls.map(call => ({
+      ...call,
+      ignored: ca === call.ca ? isIgnored : call.ignored,
+    }))
+  }
 }
+
 const onRug = (ca: string, isRug: boolean) => {
   for (const archive of archives.value) {
-    const call = archive.calls.find(call => call.ca === ca)
-    if (!call) return
-    call.rug = isRug
+    archive.calls = archive.calls.map(call => ({ ...call, rug: ca === call.ca ? isRug : call.rug }))
     updatedSomeRug.value = true
 
     const indexes = getHeaderIndexes(archive.rows[0], ['CA', 'Rug'])!
@@ -1440,17 +1443,17 @@ const incStartDate = (inc = 1) => {
   const base = selection.startDate || filteredCalls.value[0]?.date || ''
   if (!base) return
   const offset = selection.startDate ? inc : 0
-  const current = new Date(base)
-  current.setDate(current.getDate() + offset)
-  selection.startDate = current.toISOString().split('T')[0]
+  const currentDate = new Date(base)
+  currentDate.setDate(currentDate.getDate() + offset)
+  selection.startDate = currentDate.toISOString().split('T')[0]
 }
 const incEndDate = (inc = 1) => {
   const base = selection.endDate || filteredCalls.value[filteredCalls.value.length - 1]?.date || ''
   if (!base) return
   const offset = selection.endDate ? inc : 1
-  const current = new Date(base)
-  current.setDate(current.getDate() + offset)
-  selection.endDate = current.toISOString().split('T')[0]
+  const currentDate = new Date(base)
+  currentDate.setDate(currentDate.getDate() + offset)
+  selection.endDate = currentDate.toISOString().split('T')[0]
 }
 
 const runCompute = async () => {

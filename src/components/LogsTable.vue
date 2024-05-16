@@ -67,14 +67,13 @@
       :value="filteredLogs"
       dataKey="ca"
       size="small"
-      :sortField="initialSort || 'date'"
-      :sortOrder="-1"
+      :multiSortMeta="[{ field: initialSort || 'date', order: -1 }]"
       sortMode="multiple"
       :paginator="filteredLogs.length > 20"
       :rows="rows || 25"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
       :rowsPerPageOptions="[10, 25, 100]"
-      :globalFilterFields="['ca', 'name', 'date']"
+      :globalFilterFields="['ca', 'name', 'date', 'flag']"
       v-model:filters="logFilters"
     >
       <template #empty> No calls </template>
@@ -264,13 +263,13 @@
         <template #body="{ data }">
           <template v-if="data.gain <= 0">
             <span>{{ data.gain }}</span>
-            <Tag v-if="data.ignored" value="ignored" severity="secondary" />
+            <Tag v-if="data.flag" :value="data.flag" severity="secondary" />
           </template>
           <span v-else class="flex column-gap-2 align-items-center">
             <span :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']">{{
               '+' + data.gain
             }}</span>
-            <Tag v-if="data.ignored" value="ignored" severity="secondary" />
+            <Tag v-if="data.flag" :value="data.flag" severity="secondary" />
             <span
               v-else-if="data.hitTp.length"
               class="text-sm text-color-secondary nowrap help"
