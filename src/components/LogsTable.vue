@@ -261,10 +261,10 @@
       </Column>
       <Column field="gain" header="Gain" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
-          <template v-if="data.gain <= 0">
+          <span v-if="data.gain <= 0" class="flex column-gap-2 align-items-center">
             <span>{{ data.gain }}</span>
             <Tag v-if="data.flag" :value="data.flag" severity="secondary" />
-          </template>
+          </span>
           <span v-else class="flex column-gap-2 align-items-center">
             <span :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']">{{
               '+' + data.gain
