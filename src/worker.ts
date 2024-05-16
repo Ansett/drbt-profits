@@ -320,7 +320,7 @@ async function compute(
     }
 
     // Regrouping hashes
-    if (call.hashF) {
+    if (call.hashF && !call.ignored) {
       if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF)
       hashes[call.hashF].allCalls.push(call)
       if (call.rug) hashes[call.hashF].rugs++
@@ -332,7 +332,7 @@ async function compute(
     }
 
     // Regrouping function 4bytes signatures
-    if (call.fList) {
+    if (call.fList && !call.ignored) {
       for (const id of call.fList.split(',')) {
         if (!signatures[id]) signatures[id] = initHash(id)
         signatures[id].allCalls.push(call)
