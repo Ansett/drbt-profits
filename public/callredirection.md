@@ -41,42 +41,23 @@ I highly suggest to install and connect the mobile app. Use `/get_app` to get th
 /forward add banana CALLS_GROUP -> TEST_GROUP
 ```
 
-### Creating transformations:
+### Creating transformation:
+Paste this multi-line command in one go and press enter:
 ```
-/replace add 0_extraction_regex .*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.* -> \1&D\2&S\3
-```
-```
-/replace add 1_gwei_regex &D0\sdays\s00:00:[012]\d& -> &
-```
-```
-/replace add 2_gwei_regex &D.* -> @GWEI_FOR_BLOCK4+:3
-```
-```
-/replace add 3_gwei_regex &S0?$ -> @GWEI_FOR_0_SNIPE:5
-```
-```
-/replace add 4_gwei_regex &S1$ -> @GWEI_FOR_1_SNIPE:3
-```
-```
-/replace add 5_gwei_regex &S\d$ -> @GWEI_FOR_2-9_SNIPES:5
-```
-```
-/replace add 6_gwei_regex &S1\d$ -> @GWEI_FOR_10-19_SNIPES:5
-```
-```
-/replace add 7_gwei_regex &S2\d$ -> @GWEI_FOR_20-29_SNIPES:15
-```
-```
-/replace add 8_gwei_regex &S3\d$ -> @GWEI_FOR_30-39_SNIPES:15
-```
-```
-/replace add 9_gwei_regex &S4\d$ -> @GWEI_FOR_40-49_SNIPES:15
-```
-```
-/replace add 10_gwei_regex &S.*$ -> @GWEI_FOR_50+_SNIPES:20
-```
-```
-/replace add 11_command_regex (.+?)@GWEI.+?:([\d.]+) -> /scrapev2 --address=\1 --gwei=\2 --numWallets=1 --ethAmount=0.05 --antiRug=1 --fof=0 --slippage=0.0 --tipAmount=0.0 --buyTaxLimit=30 --sellTaxLimit=70 --minLiq=500 --maxLiq=0.0 --title=DRBT --isSnipe=0 --isBuy=1 --isBundleBackup=0 --backupTip=0.0 --isMaxTxOrRevert=0 --isTransferOnBlacklist=1 --link=https://t.me/c/@DeFiRobot_Dev_Bot/1
+/replace add call_power [[ALL_IN_ONE]] -> .*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
+&D0\sdays\s00:00:[012]\d&=&
+&D0\sdays\s00:00:[012]\d&=&
+&D.*=@GWEI_FOR_BLOCK4+:3
+&S0?$=@GWEI_FOR_0_SNIPE:5
+&S1$=@GWEI_FOR_1_SNIPE:3
+&S\d$=@GWEI_FOR_2-9_SNIPES:5
+&S1\d$=@GWEI_FOR_10-19_SNIPES:5
+&S2\d$=@GWEI_FOR_20-29_SNIPES:15
+&S3\d$=@GWEI_FOR_30-39_SNIPES:15
+&S4\d$=@GWEI_FOR_40-49_SNIPES:15
+&S.*$=@GWEI_FOR_50+_SNIPES:20
+(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:https://t.me/c/@DeFiRobot_Dev_Bot/1
+":","="
 ```
 
 ### Linking transformations:
@@ -86,12 +67,7 @@ I highly suggest to install and connect the mobile app. Use `/get_app` to get th
 - *banana*
 - *Advanced Configuration*
 - *Replace*
-- Select `0_extraction_regex`
-
-Do this again for all replacers (1_gwei_regex, ...) in the **right order**.
-
-It's way easier to go on the **mobile app** under *banana* > *Replace* to activate everything.
-
+- Select `call_power`
 
 ### Testing:
 If you didn't get any error message when configuring, you can test if it works:
@@ -108,24 +84,22 @@ You can then **edit the redirection to forward to Banana**:
 
 
 ### Adjust values to your liking:
-The values in my example above are indeed all just random values and are not thought through at all. You should use your own values.
+The values gwei, limits an other scrapping values are just examples. You should use your own values.
   
 To edit the buy order values it's way easier to use the **mobile app** :
 - *Replace* menu
-- Select any `gwei_regex` or `10_command_regex`
+- Select `call_power`
 - *Edit Replace*
 - Edit values in *New Words Replace* field 
   - Adjust **gwei delta** amounts after the colon on each `GWEI_FOR_...` line
   - **Buy parameters** and conditions like `--numWallets`, `--ethAmount`, `--buyTaxLimit` and such
 
-You can also edit the *Replaces* in the TG bot:
+You can also edit the *Replace* in the TG bot:
 - Go to `/replace`
 - *Show All*
-- Select any `gwei_regex` or `10_command_regex`
+- Select any `call_power`
 - *Edit Replacement Text*
-- Paste the new replacement text (that's what follow the -> arrow in commands from "Creating transformations" section)
-
-**Do not delete any replace rules**, because when you re-add them the order is messed up and it won't work. If you do, you'll have to delete all rules and re-add them.
+- Paste the new replacement text (that's what follow the -> arrow in the long replace command from "Creating transformation" section)
 
 ### Stopping redirection:
 
@@ -180,7 +154,7 @@ CALLS_GROUP - TEST_GROUP
 -> after pressing Enter, paste all those lines in one go, adjust values and press Enter:
 ```
 .*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
-&D0\sdays\s00:00:[01]\d&=&
+&D0\sdays\s00:00:[012]\d&=&
 &D.*=@GWEI_FOR_BLOCK4+:3
 &S0?$=@GWEI_FOR_0_SNIPE:5
 &S1$=@GWEI_FOR_1_SNIPE:3
@@ -212,7 +186,7 @@ CALLS_GROUP - BANANA_BOT
 
 
 ### Adjust values to your liking:
-The values in my example above are indeed all just random values and are not thought through at all. You should use your own values.
+The values gwei, limits an other scrapping values are just examples. You should use your own values.
 
 To edit the buy order values, follow the steps of "Setting up transformations" section while editing the values before validating the big paste:
 - Adjust **gwei delta** amounts after the colon on each `GWEI_FOR_...` line
