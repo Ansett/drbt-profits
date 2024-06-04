@@ -82,7 +82,6 @@ You can then **edit the redirection to forward to Banana**:
   - *Edit Target Chat*
   - Paste the BANANA_BOT numeric ID you noted earlier
 
-
 ### Adjust values to your liking:
 The values gwei, limits an other scrapping values are just examples. You should use your own values.
   
