@@ -19,8 +19,9 @@ export const SELL_GAS_PRICE = 0.01
 export const DAY_DELIMITATION = 9 // in the by-day table, a day is considered to start at 9am UTC
 export const AVERAGE_LP_TO_MC_RATIO = 0.1
 export const XS_WORTH_OF_ONCHAIN_DATA = 5 // at least 5x to fetch data
-export const EXTRA_SLIPPAGE = 10
 export const MIN_CALLS_FOR_HASHES = 5
+
+export const WRAPPED_ETH_ADDY = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'.toLowerCase()
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
 export const BUILDER_ADDYS = [

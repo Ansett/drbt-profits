@@ -20,7 +20,6 @@ import {
   AVERAGE_LP_TO_MC_RATIO,
   EXCLUDED_FROM_ACCURACY,
   XS_WORTH_OF_ONCHAIN_DATA,
-  EXTRA_SLIPPAGE,
 } from './constants'
 import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
@@ -101,13 +100,17 @@ const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: numbe
 
 // NOTE: Comparing tx cost (used gas * gas price) would be better than comparing just priority, in theory, but it's rarely the case, builders' algo is too complicated, and even worse we don't have the real gas quantity to calculate from (call's value from is not accurate, because it includes approval maybe)
 const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: BlockTx[]): number => {
-  const myTokens = invested / call.price
   const previousTxs = txs.filter(tx => tx.priority >= gweiDelta)
-  const tokenBought = myTokens + sumObjectProperty(previousTxs, tx => tx.amount)
+  const lastTx = previousTxs.at(-1)
+  const lastPrice = lastTx?.priceETH ? lastTx.priceETH * call.ethPrice : call.price
 
-  const impact = getPriceImpact(call.lp * call.ethPrice, call.price, tokenBought)
+  const myTokens = invested / call.price
+  const myPriceImpact = getPriceImpact(call.lp * call.ethPrice, lastPrice, myTokens)
 
-  return impact
+  const newPrice = lastPrice * (1 + myPriceImpact / 100)
+  const totalImpact = (newPrice / call.price - 1) * 100
+
+  return totalImpact
 }
 
 async function compute(
@@ -209,13 +212,7 @@ async function compute(
             text: `Fetching blocks data, it can take a while`,
           })
         }
-        blockTransactions = await fetchTxsFromBlock(
-          blockStart,
-          blockEnd,
-          call.ca,
-          chainApiKey,
-          call.delay <= 13,
-        )
+        blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
         if (blockTransactions)
           await storeBlockDataInStore(call.ca, blockStart, blockEnd, blockTransactions)
       }
@@ -229,7 +226,7 @@ async function compute(
     }
 
     const slippage = blockTransactions
-      ? getSlippage(call, invested, usedPriority, blockTransactions) + EXTRA_SLIPPAGE
+      ? getSlippage(call, invested, usedPriority, blockTransactions)
       : 50
     let bestXs = call.xs / (1 + slippage / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs

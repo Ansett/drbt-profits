@@ -9,7 +9,7 @@ import {
 } from 'alchemy-sdk'
 import { round, sleep, uuid } from './lib'
 import type { BlockTx, TokenTransfer } from './types/Transaction'
-import { BUILDER_ADDYS } from './constants'
+import { BUILDER_ADDYS, WRAPPED_ETH_ADDY } from './constants'
 
 const BANANA = '0x3328F7f4A1D1C57c35df56bBf0c9dCAFCA309C49'
 
@@ -25,61 +25,76 @@ export async function fetchTxsFromBlock(
   blockEnd: number,
   ca: string,
   apiKey = '',
-  withBuilderInfo = false,
 ): Promise<null | BlockTx[]> {
-  await sleep(1)
+  await sleep(100)
 
   const blockStartHex = Utils.hexlify(blockStart)
   const blockEndHex = Utils.hexlify(blockEnd)
 
   const alchemy = getAlchemy(apiKey)
 
-  const [tokens, block] = await Promise.all([
-    alchemy.core.getAssetTransfers({
-      fromBlock: blockStartHex,
-      toBlock: blockEndHex,
-      // withMetadata: true, // true to get metadata.blockTimestamp
-      contractAddresses: [ca],
-      category: withBuilderInfo
-        ? [AssetTransfersCategory.ERC20, AssetTransfersCategory.INTERNAL]
-        : [AssetTransfersCategory.ERC20],
-    }),
+  const [tokenTransfers, block] = await Promise.all([
+    fetchPaginatedTransfers(pageKey =>
+      alchemy.core.getAssetTransfers({
+        fromBlock: blockStartHex,
+        toBlock: blockEndHex,
+        // withMetadata: true, // true to get metadata.blockTimestamp
+        contractAddresses: [ca, WRAPPED_ETH_ADDY],
+        category: [AssetTransfersCategory.ERC20, AssetTransfersCategory.INTERNAL],
+        pageKey,
+      }),
+    ),
     alchemy.core.getBlockWithTransactions(blockEndHex),
   ]).catch(e => {
     return [null, null]
   })
-  if (!tokens || !block) return null
+  if (!tokenTransfers || !block) return null
 
-  // There are several token transfers because of taxes, we regroup and sum al of them into a single one for each parent tx
+  // There are several token transfers because of taxes, we regroup and sum all of them into a single one for each parent tx
   const tokensReceived = regroupSameTokenTxs(
-    tokens.transfers.filter(tk => tk.category === AssetTransfersCategory.ERC20),
+    tokenTransfers.filter(
+      tk =>
+        tk.category === AssetTransfersCategory.ERC20 &&
+        tk.rawContract.address?.toLowerCase() === ca.toLowerCase(),
+    ),
   )
 
-  const internalTxs = tokens.transfers.filter(tk => tk.category === AssetTransfersCategory.INTERNAL)
+  const internalTxs = tokenTransfers.filter(tk => tk.category === AssetTransfersCategory.INTERNAL)
 
   const buys = tokensReceived.map(token => {
-    // Get parent transaction corresponding to the token transfer
-    const tx = block.transactions.find(tx => tx.hash === token.hash)
-    // no tx when dealing for block < blockEnd
-    if (!tx)
-      return {
-        buyer: uuid(),
-        amount: token.amount,
-        priority: 99999999,
-        block: token.block,
-      }
+    // Get parent transaction corresponding to the token transfer (no tx when dealing with block < blockEnd)
+    const transaction = block.transactions.find(tx => tx.hash === token.hash)
+    const buyer = transaction?.from
 
-    // Get internal transaction corresponding to the token transfer
+    const dexPayment = tokenTransfers.find(
+      tk =>
+        tk.hash.toLowerCase() === token.hash.toLowerCase() &&
+        tk.rawContract.address?.toLowerCase() === WRAPPED_ETH_ADDY,
+    )
+
+    const botPayment = internalTxs.find(
+      tx =>
+        tx.hash.toLowerCase() === token.hash.toLowerCase() &&
+        tx.to?.toLowerCase() === WRAPPED_ETH_ADDY,
+    )
+    if (!dexPayment && !botPayment) console.warn('NOT payment TX for ', ca)
+    const paidETH = dexPayment?.value || botPayment?.value || 0.1111111111
+
     const builderTx = internalTxs.find(
-      tx => tx.hash === token.hash && tx.to && BUILDER_ADDYS.includes(tx.to),
+      tx =>
+        tx.hash.toLowerCase() === token.hash.toLowerCase() &&
+        tx.to &&
+        BUILDER_ADDYS.includes(tx.to),
     )
 
     return {
-      buyer: tx.from,
+      buyer: buyer || uuid(),
       amount: token.amount,
-      priority: builderTx ? 99999999 : intGwei(tx.maxPriorityFeePerGas),
+      paidETH,
+      priceETH: paidETH / token.amount,
+      priority: builderTx || !buyer ? 99999999 : intGwei(transaction.maxPriorityFeePerGas),
       block: token.block,
-    }
+    } as BlockTx
   })
 
   // remove double tx, most likely a sandwich bot

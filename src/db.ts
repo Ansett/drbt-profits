@@ -14,7 +14,7 @@ const blockStore = 'blocks'
 // https://web.dev/articles/indexeddb?hl=fr
 
 const compoundId = (ca: string, blockStart: number, blockEnd: number) =>
-  `${ca}-${blockStart}-${blockEnd}`
+  `v2-${ca}-${blockStart}-${blockEnd}`
 
 export async function createBlockStore() {
   return openDB<MyDB>(dbName, dbVersion, {

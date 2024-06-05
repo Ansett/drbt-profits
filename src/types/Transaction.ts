@@ -3,6 +3,8 @@ export type BlockTx = {
   buyer: string
   priority: number
   amount: number
+  paidETH: number
+  priceETH: number
   block: number
 }
 
