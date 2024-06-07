@@ -151,7 +151,7 @@ CALLS_GROUP - TEST_GROUP
 ```
 -> after pressing Enter, paste all those lines in one go, adjust values and press Enter:
 ```
-.*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
+.*?address\/(0x\w+).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
 &D0\sdays\s00:00:[012]\d&=&
 &D.*=@GWEI_FOR_BLOCK4+:3
 &S0?$=@GWEI_FOR_0_SNIPE:5
