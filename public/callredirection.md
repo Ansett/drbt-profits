@@ -44,8 +44,7 @@ I highly suggest to install and connect the mobile app. Use `/get_app` to get th
 ### Creating transformation:
 Paste this multi-line command in one go and press enter:
 ```
-/replace add call_power [[ALL_IN_ONE]] -> .*?address\/(\w+)\b.*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
-&D0\sdays\s00:00:[012]\d&=&
+/replace add call_power [[ALL_IN_ONE]] -> .*?address\/(\w+).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\\1&D\\2&S\\3
 &D0\sdays\s00:00:[012]\d&=&
 &D.*=@GWEI_FOR_BLOCK4+:3
 &S0?$=@GWEI_FOR_0_SNIPE:5
@@ -56,7 +55,7 @@ Paste this multi-line command in one go and press enter:
 &S3\d$=@GWEI_FOR_30-39_SNIPES:15
 &S4\d$=@GWEI_FOR_40-49_SNIPES:15
 &S.*$=@GWEI_FOR_50+_SNIPES:20
-(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:https://t.me/c/@DeFiRobot_Dev_Bot/1
+(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\\1 --gwei:\\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:t.me/DeFiRobot_Dev_Bot
 ":","="
 ```
 
@@ -163,7 +162,7 @@ CALLS_GROUP - TEST_GROUP
 &S3\d$=@GWEI_FOR_30-39_SNIPES:15
 &S4\d$=@GWEI_FOR_40-49_SNIPES:15
 &S.*$=@GWEI_FOR_50+_SNIPES:20
-(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:https://t.me/c/@DeFiRobot_Dev_Bot/1
+(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:t.me/DeFiRobot_Dev_Bot
 ":","="
 ```
 -> When asked for "Transformation Changes Preview", just type "x", enter, and click Correct
