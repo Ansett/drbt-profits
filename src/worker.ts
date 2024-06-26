@@ -154,8 +154,6 @@ async function compute(
   const hashes: Record<string, HashInfo> = {}
   const signatures: Record<string, HashInfo> = {}
 
-  await fetchEthPricesIfNeeded()
-
   const gainByDate: Record<string, number> = {}
   const addGain = (date: string, gain: number) => {
     const day = prettifyDate(date, 'date')
@@ -167,12 +165,6 @@ async function compute(
 
   for (const call of calls) {
     if (abortSignal.aborted) return {}
-
-    // before 27 april (ETHPrice introduction)
-    const timestamp = new Date(call.date).getTime()
-    if (timestamp < 1714173400000) {
-      call.ethPrice = getClosestEthPrice(timestamp) || call.ethPrice
-    }
 
     const maxBuyETH = computeMaxETH(call.callMc, call.supply, call.maxBuy, call.ethPrice)
     let invested = Math.min(maxBuyETH || position, position)
@@ -620,37 +612,4 @@ function getUsedPriority(
     prioBySnipes[thresholdIndex === -1 ? prioBySnipes.length - 1 : Math.max(0, thresholdIndex - 1)]
 
   return appliedThreshold?.[1] ?? gweiDelta
-}
-
-let fetchedEthPrices: [number, number][] | null = null
-
-async function fetchEthPricesIfNeeded() {
-  if (fetchedEthPrices) return
-
-  const now = new Date()
-  const start = new Date()
-  start.setMonth(start.getMonth() - 2)
-  start.setDate(start.getDate() - 1)
-  const fromTimestamp = new Date(start).getTime() / 1000
-  const toTimestamp = new Date(now).getTime() / 1000
-
-  const url = `https://api.coingecko.com/api/v3/coins/ethereum/market_chart/range?vs_currency=usd&from=${fromTimestamp}&to=${toTimestamp}`
-
-  const response = await fetch(url)
-  if (!response.ok) return
-  const { prices } = await response.json()
-
-  fetchedEthPrices = prices
-}
-
-function getClosestEthPrice(timestamp: number): number {
-  if (!fetchedEthPrices) return 0
-
-  let closest: [number, number] | null = null
-  for (const price of fetchedEthPrices) {
-    if (!closest || Math.abs(timestamp - price[0]) < Math.abs(timestamp - closest[0]))
-      closest = price
-  }
-
-  return closest?.[1] || 0
 }
