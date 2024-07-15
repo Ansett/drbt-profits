@@ -477,7 +477,7 @@
           </div>
         </div>
 
-        <div v-if="state.takeProfits.length < 2" class="text-yellow-300">
+        <div v-if="activeTakeProfitCount < 3" class="text-yellow-300">
           You should really add more than one target to lower the price impact
         </div>
 
@@ -1320,6 +1320,10 @@ onMounted(() => {
   loadForm()
   initialized.value = true
 })
+
+const activeTakeProfitCount = computed(
+  () => state.takeProfits.filter(tp => tp.withMc || tp.withXs).length,
+)
 
 const ignoreCa = (ca: string, isIgnored: boolean) => {
   if (isIgnored) state.blackList.push(ca)
