@@ -477,8 +477,8 @@
           </div>
         </div>
 
-        <div v-if="activeTakeProfitCount < 3" class="text-yellow-300">
-          You should really add more than one target to lower the price impact
+        <div v-if="activeTakeProfitCount <= 2" class="text-yellow-300">
+          You should really add more than 2 target to lower price impact
         </div>
 
         <div class="flex flex-row flex-wrap align-items-center column-gap-5 row-gap-2">
