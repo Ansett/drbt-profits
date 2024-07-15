@@ -1,0 +1,109 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+a,
+a:visited {
+  color: var(--text-color);
+}
+a:visited {
+  text-decoration: none !important;
+}
+
+p {
+  margin: 0;
+}
+
+input {
+  min-width: 4rem;
+}
+
+ul {
+  list-style-type: none;
+}
+.p-tooltip ul,
+ul.bullets {
+  list-style-type: disc;
+}
+.p-tooltip {
+  max-width: 27rem;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--text-color);
+  background: var(--surface-ground);
+  transition: color 0.5s, background-color 0.5s;
+  line-height: 1.6;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 1rem;
+  margin: 0;
+  --scrollbar-width: 15px !important;
+}
+
+.link {
+  cursor: pointer;
+  color: var(--primary-color);
+}
+.link:hover,
+.link:focus {
+  text-decoration: underline;
+}
+
+.hoverlink {
+  text-decoration: none;
+  cursor: pointer;
+}
+.hoverlink:hover,
+.hoverlink:focus {
+  text-decoration: underline;
+  color: var(--primary-color) !important;
+}
+
+.iconButton {
+  cursor: pointer;
+  color: var(--primary-color);
+}
+
+.inlineIcon {
+  vertical-align: middle;
+  height: 20px;
+}
+
+.p-panel {
+  max-width: 94vw;
+}
+
+.narrowInput {
+  height: 2.5rem;
+  line-height: 1;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.flex-br {
+  flex-basis: 100%;
+  height: 0;
+  display: block;
+}
+
+.small-button {
+  height: 2.5rem;
+}
+
+.icon-with-title {
+  font-size: 2.25rem;
+}
+
+.help {
+  cursor: help;
+}
