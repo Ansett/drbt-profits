@@ -51,7 +51,7 @@
           content: { class: 'py-1 pl-3 border-y-none border-right-none border-left-1', style: 'margin-left: 7px' },
         }">
           <template #header>
-            <div class="text-lg white-space-nowrap">Number of calls: <span class="text-primary">{{ nbCalls }}</span></div>
+            <div class="text-lg font-normal white-space-nowrap">Number of calls: <span class="text-primary">{{ nbCalls }}</span></div>
           </template>
 
             <div class="text-sm white-space-nowrap">
