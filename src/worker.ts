@@ -250,23 +250,37 @@ async function compute(
 
       for (const tp of takeProfits) {
         const targetXsDirect = tp.withXs ? tp.xs : 0
+        const targetXsFromEth = tp.withEth ? reducedXs(tp.eth / invested, feeInXs, buyTaxInXs) : 0
         const targetXsFromMc = tp.withMc ? (bestXs / call.ath) * tp.mc : 0
-        const bothTargets = !!targetXsDirect && !!targetXsFromMc
+        const allTargets = [targetXsDirect, targetXsFromEth, targetXsFromMc].filter(v => v > 0)
 
         const reachedXsTarget = reducedBestXs >= targetXsDirect ? targetXsDirect : 0
+        const reachedEthTarget = reducedBestXs >= targetXsFromEth ? targetXsFromEth : 0
         const reachedMcTarget =
           reducedXs(bestXs, false, false) >= targetXsFromMc ? targetXsFromMc : 0
-        const reachedTarget =
-          tp.andLogic && bothTargets
-            ? reachedXsTarget && reachedMcTarget
-              ? Math.max(reachedXsTarget, reachedMcTarget)
+        const allReachedTargets = [reachedXsTarget, reachedEthTarget, reachedMcTarget].filter(
+          v => v > 0,
+        )
+        const reachedTarget = allReachedTargets.length
+          ? tp.andLogic
+            ? allReachedTargets.length === allTargets.length
+              ? Math.max(...allReachedTargets)
               : 0
-            : reachedXsTarget || reachedMcTarget
-            ? bothTargets && reachedXsTarget && reachedMcTarget
-              ? Math.min(reachedXsTarget, reachedMcTarget)
-              : reachedXsTarget || reachedMcTarget
-            : 0
+            : Math.min(...allReachedTargets)
+          : 0
         const reachedTargetIsFromMc = reachedTarget === reachedMcTarget
+
+        // if (call.ca === '0x07DDaCf367f0d40bd68B4b80b4709A37BDC9F847')
+        console.warn({
+          targetXsDirect,
+          reachedXsTarget,
+          targetXsFromEth,
+          reachedEthTarget,
+          targetXsFromMc,
+          reachedMcTarget,
+          allTargets: allReachedTargets,
+          reachedTarget,
+        })
 
         const xsMultiplicator = unreducedXs(
           reachedTarget,

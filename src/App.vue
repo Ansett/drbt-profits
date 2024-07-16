@@ -215,7 +215,7 @@
 
       <div
         class="flex flex-column mx-1 xl:mx-4 my-2 gap-3 lg:gap-4"
-        style="max-width: min(95vw, 50rem)"
+        style="max-width: min(95vw, 60rem)"
       >
         <div class="flex flex-row flex-wrap gap-3 lg:gap-4">
           <!-- POSITION -->
@@ -230,10 +230,8 @@
                 id="position-input"
                 showButtons
                 buttonLayout="stacked"
-                suffix=" ETH"
+                suffix=" Ξ"
                 :min="0.005"
-                :minFractionDigits="1"
-                :maxFractionDigits="3"
                 mode="decimal"
                 :step="0.005"
                 :pt="getPtNumberInput()"
@@ -326,27 +324,7 @@
           <label :for="'tp-input' + index" class="min-w-full"
             >Take profit target {{ index + 1 }}
             <span class="text-xs"
-              >(&hairsp;{{
-                !takeProfit.size || (!takeProfit.withXs && !takeProfit.withMc)
-                  ? 'deactivated'
-                  : `selling ${
-                      takeProfit.size === INITIAL_TP_SIZE_CODE
-                        ? 'enough to get back initial investment'
-                        : round(takeProfit.size) + '%'
-                    } when${
-                      takeProfit.withXs && takeProfit.withMc
-                        ? takeProfit.andLogic
-                          ? ' both'
-                          : ' either'
-                        : ''
-                    } ${takeProfit.withXs ? `${takeProfit.xs}x` : ''}${
-                      takeProfit.withXs && takeProfit.withMc
-                        ? takeProfit.andLogic
-                          ? ' AND '
-                          : ' OR '
-                        : ''
-                    }${takeProfit.withMc ? `${prettifyMc(takeProfit.mc)} mc` : ''}`
-              }}&hairsp;)</span
+              >(&hairsp;{{ getTakeProfitDescription(takeProfit) }}&hairsp;)</span
             >
           </label>
 
@@ -357,7 +335,7 @@
             </InputGroupAddon>
             <div
               v-if="takeProfit.size === INITIAL_TP_SIZE_CODE"
-              class="settingInputSmall flex flex-row align-items-center p-3 border-1 border-solid surface-border border-round-right"
+              class="flex flex-row align-items-center p-3 border-1 border-solid surface-border border-round-right"
             >
               Initial
             </div>
@@ -394,37 +372,27 @@
               <Checkbox v-model="takeProfit.withXs" binary />
             </InputGroupAddon>
           </InputGroup>
+          <!-- TP ETH -->
+          <InputGroup class="flex-1">
+            <InputNumber
+              v-model="takeProfit.eth"
+              showButtons
+              buttonLayout="stacked"
+              style="height: 4rem"
+              suffix=" Ξ"
+              :min="0"
+              :step="0.5"
+              :disabled="!takeProfit.withEth"
+              class="settingInputSmall"
+              :pt="getPtNumberInput()"
+            />
+            <InputGroupAddon>
+              <Checkbox v-model="takeProfit.withEth" binary />
+            </InputGroupAddon>
+          </InputGroup>
           <div class="flex flex-row flex-1 gap-2">
             <!-- TP MC -->
             <InputGroup>
-              <!-- Remove or add target -->
-              <InputGroupAddon
-                v-if="takeProfit.withMc && takeProfit.withXs"
-                :class="[
-                  'flex flex-column p-0',
-                  state.takeProfits.length > 1
-                    ? 'justify-content-evenly'
-                    : 'justify-content-center',
-                ]"
-              >
-                <SelectButton
-                  v-model="takeProfit.andLogic"
-                  :options="[
-                    { name: 'AND', value: true },
-                    { name: 'OR', value: false },
-                  ]"
-                  optionLabel="name"
-                  optionValue="value"
-                  :disabled="!takeProfit.withMc || !takeProfit.withXs"
-                  aria-label="Logic"
-                  class="flex flex-row h-full"
-                  :pt="{
-                    button: {
-                      class: ['p-button-sm', 'p-2'],
-                    },
-                  }"
-                />
-              </InputGroupAddon>
               <InputNumber
                 v-model="takeProfit.mc"
                 showButtons
@@ -441,6 +409,24 @@
                 <Checkbox v-model="takeProfit.withMc" binary />
               </InputGroupAddon>
             </InputGroup>
+            <!-- logic -->
+            <SelectButton
+              v-model="takeProfit.andLogic"
+              :options="[
+                { name: 'AND', value: true },
+                { name: 'OR', value: false },
+              ]"
+              optionLabel="name"
+              optionValue="value"
+              :disabled="!isMultiTakeProfit(takeProfit)"
+              aria-label="Logic"
+              class="flex flex-row h-full p-0"
+              :pt="{
+                button: {
+                  class: ['p-button-sm', 'p-2'],
+                },
+              }"
+            />
             <!-- Remove or add target -->
             <div
               :class="[
@@ -1187,10 +1173,10 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 const INIT_POSITION = 0.05
 // prettier-ignore
 const INIT_TP = [
-  { "size": INITIAL_TP_SIZE_CODE, "xs": 10, "withXs": false, "mc": 1000000, "withMc": false, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 50, "withXs": true, "mc": 1000000, "withMc": false, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 50, "withXs": false, "mc": 1000000, "withMc": true, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 10000000, "withMc": true, "andLogic": false }
+  { "size": INITIAL_TP_SIZE_CODE, "xs": 10, "withXs": false, "mc": 1000000, "withMc": false, "eth": 0.5, "withEth": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 50, "withXs": true, "mc": 1000000, "withMc": false, "eth": 2.5, "withEth": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 50, "withXs": false, "mc": 1000000, "withMc": true, "eth": 5, "withEth": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 10000000, "withMc": true, "eth": 5, "withEth": false, "andLogic": false }
 ] as TakeProfit[]
 const INIT_GWEI = 5
 const INIT_PRIO_BY_SNIPES = [
@@ -1293,7 +1279,7 @@ function loadForm() {
 
   state.position = savedState.position ?? INIT_POSITION
   state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : INIT_TP
-  if (state.takeProfits[0].size !== INITIAL_TP_SIZE_CODE) state.takeProfits.unshift(INIT_TP[0])
+  fixTakeProfits(state.takeProfits)
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
@@ -1377,6 +1363,38 @@ const toggleHours = (dayIndex: number) => {
   }
 }
 
+function fixTakeProfits(tps: TakeProfit[]) {
+  // add taking-initial TP
+  if (tps[0].size !== INITIAL_TP_SIZE_CODE) tps.unshift(INIT_TP[0])
+  for (const tp of tps) {
+    if (tp.eth === undefined) {
+      tp.eth = 0
+      tp.withEth = false
+    }
+  }
+}
+
+const isMultiTakeProfit = (tp: TakeProfit): boolean =>
+  [tp.withXs, tp.withEth, tp.withMc].filter(Boolean).length >= 2
+
+const getTakeProfitDescription = (takeProfit: TakeProfit): string => {
+  const parts = [
+    takeProfit.withXs ? `${takeProfit.xs}x` : '',
+    takeProfit.withEth ? `${takeProfit.eth}Ξ` : '',
+    takeProfit.withMc ? `${prettifyMc(takeProfit.mc)} mc` : '',
+  ].filter(Boolean)
+  if (!takeProfit.size || !parts.length) return 'deactivated'
+
+  const multiParts = parts.length > 1
+  const joinedParts = parts.join(takeProfit.andLogic ? ' AND ' : ' OR ')
+
+  return `selling ${
+    takeProfit.size === INITIAL_TP_SIZE_CODE
+      ? 'enough to get back initial investment'
+      : round(takeProfit.size) + '%'
+  } when${multiParts ? (takeProfit.andLogic ? ' all' : ' either') : ''} ${joinedParts}`
+}
+
 const redistributeTargets = () => {
   if (!state.autoRedistributeTargets) return
   const size = 100 / state.takeProfits.length
@@ -1432,6 +1450,7 @@ const importTargets = async (event: FileUploadSelectEvent) => {
   try {
     const targets = JSON.parse(text) as TakeProfit[]
     state.takeProfits = targets.map(target => ({ ...INIT_TP[0], ...target }))
+    fixTakeProfits(state.takeProfits)
     if (state.takeProfits.reduce((sum, tp) => sum + tp.size, 0) > 100) redistributeTargets()
   } catch (e) {
     toast.add({
@@ -1555,11 +1574,11 @@ worker.onerror = ({ message }) => {
 </script>
 
 <style scoped>
-.settingInput {
-  min-width: 11rem;
+.settingInput :deep(input) {
+  min-width: 8rem;
 }
-.settingInputSmall {
-  min-width: 7rem;
+.settingInputSmall :deep(input) {
+  min-width: 5rem;
 }
 .flex-50 {
   flex: 1 1 50%;
