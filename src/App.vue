@@ -1345,7 +1345,7 @@ function fixTakeProfits(tps: TakeProfit[]) {
   if (tps[0].size !== INITIAL_TP_SIZE_CODE) tps.unshift(INIT_TP[0])
   for (const tp of tps) {
     if (tp.eth === undefined) {
-      tp.eth = 0
+      tp.eth = 1
       tp.withEth = false
     }
   }
