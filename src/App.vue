@@ -381,7 +381,7 @@
               style="height: 4rem"
               suffix=" Ξ"
               :min="0"
-              :step="0.5"
+              :step="ethStep"
               :disabled="!takeProfit.withEth"
               class="settingInputSmall"
               :pt="getPtNumberInput()"
@@ -418,6 +418,7 @@
               ]"
               optionLabel="name"
               optionValue="value"
+              :allowEmpty="false"
               :disabled="!isMultiTakeProfit(takeProfit)"
               aria-label="Logic"
               class="flex flex-row h-full p-0"
@@ -487,67 +488,42 @@
 
           <template v-if="state.takeProfits.length >= 2">
             <div class="flex flex-row gap-2 align-items-center">
-              <label for="redisOption">All Xs </label>
-              <div class="flex flex-row">
-                <Button
-                  icon="pi pi-chevron-down"
-                  size="small"
-                  severity="secondary"
-                  outlined
-                  class="w-2rem"
-                  aria-label="Decrement"
-                  v-tooltip.top="{
-                    value: `Decrement all Xs targets by ${xsStep}`,
-                    showDelay: 500,
-                  }"
-                  @click="updateAllTargetXs(false)"
-                />
-                <Button
-                  icon="pi pi-chevron-up"
-                  size="small"
-                  severity="secondary"
-                  outlined
-                  class="w-2rem"
-                  aria-label="Increment"
-                  v-tooltip.top="{
-                    value: `Increment all Xs targets by ${xsStep}`,
-                    showDelay: 500,
-                  }"
-                  @click="updateAllTargetXs(true)"
-                />
-              </div>
-            </div>
-
-            <div class="flex flex-row gap-2 align-items-center">
-              <label for="redisOption">All MC </label>
-              <div class="flex flex-row">
-                <Button
-                  icon="pi pi-chevron-down"
-                  size="small"
-                  severity="secondary"
-                  outlined
-                  class="w-2rem"
-                  aria-label="Decrement"
-                  v-tooltip.top="{
-                    value: `Decrement all MC targets by ${mcStep}`,
-                    showDelay: 500,
-                  }"
-                  @click="updateAllTargetMc(false)"
-                />
-                <Button
-                  icon="pi pi-chevron-up"
-                  size="small"
-                  severity="secondary"
-                  outlined
-                  class="w-2rem"
-                  aria-label="Increment"
-                  v-tooltip.top="{
-                    value: `Increment all MC targets by ${mcStep}`,
-                    showDelay: 500,
-                  }"
-                  @click="updateAllTargetMc(true)"
-                />
-              </div>
+              <Dropdown
+                v-model="incAllTargetKind"
+                :options="['All Xs', 'All Ξ', 'All MC']"
+                class="flex-none"
+                :pt="{
+                  root: { class: 'narrowInput' },
+                  label: { class: 'narrowInput' },
+                  item: { class: 'pr-5' },
+                }"
+              />
+              <Button
+                icon="pi pi-chevron-down"
+                size="small"
+                severity="secondary"
+                outlined
+                class="w-2rem"
+                aria-label="Decrement"
+                v-tooltip.top="{
+                  value: `${incAllTargetKind} targets will decrease by ${stepForAllKind[incAllTargetKind]}`,
+                  showDelay: 500,
+                }"
+                @click="updateAllTarget(false)"
+              />
+              <Button
+                icon="pi pi-chevron-up"
+                size="small"
+                severity="secondary"
+                outlined
+                class="w-2rem"
+                aria-label="Increment"
+                v-tooltip.top="{
+                  value: `${incAllTargetKind} targets will increase by ${stepForAllKind[incAllTargetKind]}`,
+                  showDelay: 500,
+                }"
+                @click="updateAllTarget(true)"
+              />
             </div>
           </template>
 
@@ -907,7 +883,7 @@
 </template>
 
 <script setup lang="ts">
-// https://primevue.org/icons/#list
+// https://v3.primevue.org/dropdown
 // https://primeflex.org/flexdirection
 // https://fonts.google.com/icons?selected=Material+Symbols+Outlined:thumb_up:FILL@0;wght@400;GRAD@0;opsz@24&icon.set=Material+Symbols&icon.style=Outlined
 import { useToast } from 'primevue/usetoast'
@@ -965,7 +941,8 @@ import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
 
 const xsStep = 5
-const mcStep = 100000
+const mcStep = 500000
+const ethStep = 0.5
 
 const redirect = computed<boolean>(() => window.location.hostname === 'drbt-profits.onrender.com')
 
@@ -1379,9 +1356,9 @@ const isMultiTakeProfit = (tp: TakeProfit): boolean =>
 
 const getTakeProfitDescription = (takeProfit: TakeProfit): string => {
   const parts = [
-    takeProfit.withXs ? `${takeProfit.xs}x` : '',
-    takeProfit.withEth ? `${takeProfit.eth}Ξ` : '',
-    takeProfit.withMc ? `${prettifyMc(takeProfit.mc)} mc` : '',
+    takeProfit.withXs ? `price ${takeProfit.xs}x` : '',
+    takeProfit.withEth ? `initial bag worth ${takeProfit.eth}Ξ` : '',
+    takeProfit.withMc ? `market cap reaches ${prettifyMc(takeProfit.mc)}` : '',
   ].filter(Boolean)
   if (!takeProfit.size || !parts.length) return 'deactivated'
 
@@ -1392,7 +1369,7 @@ const getTakeProfitDescription = (takeProfit: TakeProfit): string => {
     takeProfit.size === INITIAL_TP_SIZE_CODE
       ? 'enough to get back initial investment'
       : round(takeProfit.size) + '%'
-  } when${multiParts ? (takeProfit.andLogic ? ' all' : ' either') : ''} ${joinedParts}`
+  } when${multiParts ? (takeProfit.andLogic ? '' : ' either') : ''} ${joinedParts}`
 }
 
 const redistributeTargets = () => {
@@ -1423,16 +1400,19 @@ const removeTarget = (index: number) => {
   redistributeTargets()
 }
 
-const updateAllTargetXs = (inc: boolean) => {
-  const change = (inc ? 1 : -1) * xsStep
-  state.takeProfits.forEach((tp, i) => {
-    tp.xs += change
-  })
+const incAllTargetKind = ref<'All Xs' | 'All Ξ' | 'All MC'>('All Xs')
+const stepForAllKind = {
+  'All Xs': xsStep,
+  'All Ξ': ethStep,
+  'All MC': mcStep,
 }
-const updateAllTargetMc = (inc: boolean) => {
-  const change = (inc ? 1 : -1) * mcStep
+
+const updateAllTarget = (inc: boolean) => {
+  const change = (inc ? 1 : -1) * stepForAllKind[incAllTargetKind.value]
+  const property =
+    incAllTargetKind.value === 'All Xs' ? 'xs' : incAllTargetKind.value === 'All MC' ? 'mc' : 'eth'
   state.takeProfits.forEach((tp, i) => {
-    tp.mc += change
+    tp[property] = Math.max(0, tp[property] + change)
   })
 }
 
@@ -1574,12 +1554,6 @@ worker.onerror = ({ message }) => {
 </script>
 
 <style scoped>
-.settingInput :deep(input) {
-  min-width: 8rem;
-}
-.settingInputSmall :deep(input) {
-  min-width: 5rem;
-}
 .flex-50 {
   flex: 1 1 50%;
 }

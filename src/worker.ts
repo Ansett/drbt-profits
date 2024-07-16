@@ -270,18 +270,6 @@ async function compute(
           : 0
         const reachedTargetIsFromMc = reachedTarget === reachedMcTarget
 
-        // if (call.ca === '0x07DDaCf367f0d40bd68B4b80b4709A37BDC9F847')
-        console.warn({
-          targetXsDirect,
-          reachedXsTarget,
-          targetXsFromEth,
-          reachedEthTarget,
-          targetXsFromMc,
-          reachedMcTarget,
-          allTargets: allReachedTargets,
-          reachedTarget,
-        })
-
         const xsMultiplicator = unreducedXs(
           reachedTarget,
           feeInXs && !reachedTargetIsFromMc,
@@ -495,9 +483,10 @@ async function findTarget(
   abortSignal: AbortSignal,
 ): Promise<ComputationForTarget[] | null> {
   const withMc = targetStart.withMc
+  const withXs = targetStart.withXs
   let currentTP = { ...targetStart }
   const inc = (): boolean => {
-    const prop = withMc ? 'mc' : 'xs'
+    const prop = withMc ? 'mc' : withXs ? 'xs' : 'eth'
     currentTP[prop] += increment
     return currentTP[prop] > end
   }
@@ -530,7 +519,7 @@ async function findTarget(
       finalETH,
       drawdown,
       worstDrawdown,
-      target: withMc ? `$${currentTP.mc}` : `${currentTP.xs}x`,
+      target: withMc ? `$${currentTP.mc}` : withXs ? `${currentTP.xs}x` : `${currentTP.eth} Ξ`,
     })
 
     ended = inc()

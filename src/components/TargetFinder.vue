@@ -6,15 +6,22 @@
       style="width: 99px; height: 99px; transform: translate(-50%, 50px); z-index: 2"
     />
 
-    <div class="flex flex-column md:flex-row md:align-items-center px-3 pt-3 gap-5">
-      <div class="flex-none flex flex-row align-items-center gap-3">
-        <InputSwitch v-model="withXs" inputId="targetOption" />
-        <label for="targetOption">{{ withXs ? 'Xs targets' : 'MC targets' }}</label>
-      </div>
+    <div class="flex flex-column md:flex-row md:align-items-center px-3 pt-3 gap-3">
+      <Dropdown
+        v-model="selectedtargetKind"
+        :options="targetKinds"
+        placeholder="Targeting"
+        class="flex-none"
+        :pt="{
+          root: { class: 'narrowInput' },
+          label: { class: 'narrowInput' },
+          item: { class: 'pr-5' },
+        }"
+      />
       <InputGroup>
         <InputGroupAddon>Increment by</InputGroupAddon>
         <InputNumber
-          v-if="withXs"
+          v-if="selectedtargetKind === 'Xs targets'"
           key="xInc"
           v-model="xIncrement"
           label="increment"
@@ -27,12 +34,24 @@
           class="settingInputSmall"
         />
         <InputNumber
-          v-else
+          v-else-if="selectedtargetKind === 'MC targets'"
           key="mcInc"
           v-model="mcIncrement"
           showButtons
           buttonLayout="stacked"
           prefix="$"
+          :min="100000"
+          :step="100000"
+          :pt="getPtNumberInput()"
+          class="settingInput"
+        />
+        <InputNumber
+          v-else
+          key="ethInc"
+          v-model="ethIncrement"
+          showButtons
+          buttonLayout="stacked"
+          suffix=" Ξ"
           :min="100000"
           :step="100000"
           :pt="getPtNumberInput()"
@@ -46,7 +65,7 @@
       <InputGroup>
         <InputGroupAddon>From</InputGroupAddon>
         <InputNumber
-          v-if="withXs"
+          v-if="selectedtargetKind === 'Xs targets'"
           key="xFrom"
           v-model="xTargetStart"
           showButtons
@@ -58,7 +77,7 @@
           class="settingInputSmall"
         />
         <InputNumber
-          v-else
+          v-else-if="selectedtargetKind === 'MC targets'"
           key="mcFrom"
           v-model="mcTargetStart"
           showButtons
@@ -69,13 +88,25 @@
           :pt="getPtNumberInput()"
           class="settingInput"
         />
+        <InputNumber
+          v-else
+          key="ethFrom"
+          v-model="ethTargetStart"
+          showButtons
+          buttonLayout="stacked"
+          suffix=" Ξ"
+          :min="0.1"
+          :step="0.5"
+          :pt="getPtNumberInput()"
+          class="settingInput"
+        />
       </InputGroup>
       <InputGroup>
         <InputGroupAddon>To</InputGroupAddon>
         <InputNumber
-          v-if="withXs"
+          v-if="selectedtargetKind === 'Xs targets'"
           key="xTo"
-          v-model="xTargetEnd"
+          v-model="xTargetStart"
           showButtons
           buttonLayout="stacked"
           suffix="x"
@@ -85,14 +116,26 @@
           class="settingInputSmall"
         />
         <InputNumber
-          v-else
+          v-else-if="selectedtargetKind === 'MC targets'"
           key="mcTo"
           v-model="mcTargetEnd"
           showButtons
           buttonLayout="stacked"
           prefix="$"
-          :min="20000"
+          :min="mcTargetStart"
           :step="100000"
+          :pt="getPtNumberInput()"
+          class="settingInput"
+        />
+        <InputNumber
+          v-else
+          key="ethTo"
+          v-model="ethTargetEnd"
+          showButtons
+          buttonLayout="stacked"
+          suffix=" Ξ"
+          :min="ethTargetStart"
+          :step="0.5"
           :pt="getPtNumberInput()"
           class="settingInput"
         />
@@ -160,12 +203,12 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import InputSwitch from 'primevue/inputswitch'
 import type { Call } from '@/types/Call'
 import { getPtNumberInput } from '@/constants'
 import Worker from '../worker?worker'
 import type { ComputationShortResult } from '@/types/ComputationResult'
 import { debounce } from '@/lib'
+import type { TakeProfit } from '@/types/TakeProfit'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
@@ -180,13 +223,18 @@ const props = defineProps<{
   }
 }>()
 
-const withXs = ref(false)
+const xIncrement = ref(10)
 const xTargetStart = ref(50)
-const mcTargetStart = ref(1000000)
-const xTargetEnd = ref(150)
-const mcTargetEnd = ref(50000000)
-const xIncrement = ref(5)
-const mcIncrement = ref(5000000)
+const xTargetEnd = ref(300)
+const mcIncrement = ref(1000000)
+const mcTargetStart = ref(500000)
+const mcTargetEnd = ref(25000000)
+const ethIncrement = ref(1)
+const ethTargetStart = ref(0.5)
+const ethTargetEnd = ref(25)
+
+const targetKinds = ['Xs targets', 'ETH targets', 'MC targets']
+const selectedtargetKind = ref<'Xs targets' | 'ETH targets' | 'MC targets'>('MC targets')
 
 const loading = ref(false)
 const compute = () => {
@@ -201,17 +249,29 @@ const compute = () => {
     feeInXs: props.data.feeInXs,
     chainApiKey: props.data.chainApiKey,
     withPriceImpact: false,
-    increment: withXs.value ? xIncrement.value : mcIncrement.value,
-    end: withXs.value ? xTargetEnd.value : mcTargetEnd.value,
+    increment:
+      selectedtargetKind.value === 'Xs targets'
+        ? xIncrement.value
+        : selectedtargetKind.value === 'MC targets'
+        ? mcIncrement.value
+        : ethIncrement.value,
+    end:
+      selectedtargetKind.value === 'Xs targets'
+        ? xTargetEnd.value
+        : selectedtargetKind.value === 'MC targets'
+        ? mcTargetEnd.value
+        : ethTargetEnd.value,
     targetStart: JSON.parse(
       JSON.stringify({
         size: 100,
         xs: xTargetStart.value,
-        withXs: withXs.value,
+        withXs: selectedtargetKind.value === 'Xs targets',
         mc: mcTargetStart.value,
-        withMc: !withXs.value,
+        withMc: selectedtargetKind.value === 'MC targets',
+        eth: ethTargetStart.value,
+        withEth: selectedtargetKind.value === 'ETH targets',
         andLogic: false,
-      }),
+      } as TakeProfit),
     ),
   })
 }
@@ -251,21 +311,19 @@ watch(
     () => props.data.buyTaxInXs,
     () => props.data.feeInXs,
     () => props.data.chainApiKey,
-    withXs,
+    selectedtargetKind,
     xTargetStart,
     mcTargetStart,
+    ethTargetStart,
     xTargetEnd,
     mcTargetEnd,
+    ethTargetEnd,
     xIncrement,
     mcIncrement,
+    ethIncrement,
   ],
   () => {
     debouncedCompute()
   },
 )
 </script>
-
-<style scoped>
-/* */
-</style>
-@/types/ComputationResult
