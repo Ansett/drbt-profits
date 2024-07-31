@@ -9,7 +9,7 @@
     <!-- FUNDS -->
     <div class="text-2xl flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
-      v-if="info"
+        v-if="info"
         :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag or contract's max buy, minus tax, gas price (calculated from current+delta gwei) and, optionally, estimated slippage from on-chain data.</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price, ${SELL_TAX}% tax and, optinally, price impact, are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li><li>Each sale's date is guessed from sale MC vs. ATH MC ratio: on a 1 month 4m MC token, selling at 1m means selling after 1 week.</li></ul>`"
         direction="right"
       />
@@ -20,7 +20,7 @@
     <!-- DRAWDOWN -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
-      v-if="info"
+        v-if="info"
         :text="`<ul><li>Overall drawdown: the lowest the wallet has fallen to, starting from 0 ETH, during the whole period.<li>Worst drawdown: the lowest the wallet has fallen to if you began your strategy at the worst time during the selected period (${worstDrawdown[0]} in this case).<li>You need at the very least double the worst drawndown value your wallet to sustain the strategy.</li></ul>`"
         direction="right"
       />
@@ -34,6 +34,7 @@
     <!-- RATIO -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
+        v-if="info"
         :text="`Might help you to see if drawdown increases more than profits, and it stops being worth it`"
         direction="right"
       />
