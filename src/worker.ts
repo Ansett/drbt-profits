@@ -11,6 +11,7 @@ import {
   sumObjectProperty,
   uuid,
   getRowForExport,
+  sleep,
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
@@ -209,16 +210,18 @@ async function compute(
           })
         }
         blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
-        if (blockTransactions)
-          await storeBlockDataInStore(call.ca, blockStart, blockEnd, blockTransactions)
       }
     }
 
     if (!blockTransactions && blockNeeded) {
-      postMessage({
-        type: 'WARNING',
-        text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX a bit later.',
-      })
+      // retry one more time
+      await sleep(2000)
+      blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
+      if (!blockTransactions)
+        postMessage({
+          type: 'WARNING',
+          text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX a bit later.',
+        })
     }
 
     const slippage = blockTransactions

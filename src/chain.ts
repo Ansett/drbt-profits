@@ -10,6 +10,7 @@ import {
 import { round, sleep, uuid } from './lib'
 import type { BlockTx, TokenTransfer } from './types/Transaction'
 import { BUILDER_ADDYS, CURRENT_CACHED_BLOCK_VERSION, WRAPPED_ETH_ADDY } from './constants'
+import { storeBlockDataInStore } from './db'
 
 const BANANA = '0x3328F7f4A1D1C57c35df56bBf0c9dCAFCA309C49'
 
@@ -104,7 +105,9 @@ export async function fetchTxsFromBlock(
     .filter(Boolean) as BlockTx[]
 
   // remove double tx, most likely a sandwich bot
-  return buys.filter(buy => buys.filter(b => b.buyer === buy.buyer).length === 1)
+  const cleanedTxs = buys.filter(buy => buys.filter(b => b.buyer === buy.buyer).length === 1)
+
+  await storeBlockDataInStore(ca, blockStart, blockEnd, cleanedTxs)
 }
 
 function regroupSameTokenTxs<T extends AssetTransfersResult[]>(txs: T): TokenTransfer[] {
