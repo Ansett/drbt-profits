@@ -29,7 +29,7 @@
       <span class="text-color-secondary text-xs"> overall </span>
       <span class="font-bold text-primary">{{ worstDrawdown[1] }}</span>
       <span class="text-color-secondary text-xs"> at worst </span>
-      <span v-if="!info" class="text-color-secondary text-xs font-italic"> from {{ worstDrawdown[0] }}</span>
+      <span v-if="!info && worstDrawdown[0]" class="text-color-secondary text-xs font-italic"> from {{ worstDrawdown[0] }}</span>
     </div>
     <!-- DRAWDOWN RATIO -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
