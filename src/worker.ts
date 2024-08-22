@@ -212,7 +212,7 @@ async function compute(
         blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
         if (!blockTransactions) {
           // retry one more time
-          await sleep(2000)
+          await sleep(3000)
           blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
         }
       }
