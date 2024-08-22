@@ -136,6 +136,7 @@
               info
               :finalETH="finalETH"
               :drawdown="drawdown"
+              :volume="volume"
               :worstDrawdown="worstDrawdown"
               :counters="counters"
               :nbCalls="filteredCalls.length"
@@ -1235,14 +1236,18 @@ const showAccuracy = ref(false)
 const initialized = ref(false)
 const finalETH = ref(0)
 const drawdown = ref(0)
+const volume = ref(0)
 const worstDrawdown = ref<[string, number]>(['', 0])
 const counters = ref({
   rug: 0,
   unrealistic: 0,
   postAth: 0,
   x100: 0,
-  x50: 0,
-  x10: 0,
+    x50: 0,
+    x20: 0,
+    x10: 0,
+    x5: 0,
+    x2: 0,
 })
 
 const STATE_STORAGE_KEY = 'state-c'
@@ -1529,6 +1534,7 @@ worker.onmessage = ({ data }) => {
   } else if (data.type === 'COMPUTE') {
     finalETH.value = data.finalETH
     drawdown.value = data.drawdown
+    volume.value = data.volume
     worstDrawdown.value = data.worstDrawdown
     counters.value = data.counters
     logs.value = data.logs

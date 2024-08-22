@@ -161,6 +161,7 @@ async function compute(
 
   let firstBlockOfPeriod = 0
   let loadingMessageSent = false
+  let volume = 0
 
   for (const call of calls) {
     if (abortSignal.aborted) return {}
@@ -179,6 +180,7 @@ async function compute(
 
     const usedPriority = getUsedPriority(call, gweiDelta, prioBySnipes)
     const gasPrice = getGasPrice(call, usedPriority)
+    volume += invested + gasPrice
     let gain = -invested - gasPrice
     if (!call.ignored) {
       addGain(call.date, gain)
@@ -414,6 +416,7 @@ async function compute(
     drawdown: round(drawdown),
     // find the minimum value in all drawdowns
     worstDrawdown: drawdownByDate.reduce((prev, cur) => (cur[1] < prev[1] ? cur : prev), ['', 0]),
+    volume: round(volume, 1),
     counters,
     logs,
     hashes,

@@ -31,17 +31,42 @@
       <span class="text-color-secondary text-xs"> at worst </span>
       <span v-if="!info" class="text-color-secondary text-xs font-italic"> from {{ worstDrawdown[0] }}</span>
     </div>
-    <!-- RATIO -->
+    <!-- DRAWDOWN RATIO -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
         v-if="info"
-        :text="`Might help you to see if drawdown increases more than profits, and it stops being worth it`"
+        :text="`Might help you to see if worst drawdown increases more than profits, and it stops being worth it`"
         direction="right"
       />
       <span class="">Profit/drawdown ratio: </span>
       <span class="text-primary">{{
         worstDrawdown[1]
           ? round(finalETH / Math.abs(worstDrawdown[1]), 2)
+          : 0
+      }}</span>
+    </div>
+    <!-- VOLUME -->
+    <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
+      <InfoButton
+        v-if="info"
+        :text="`Total spent, including gas cost`"
+        direction="right"
+      />
+      Volume:
+      <span class="text-primary">{{ volume || 0 }}</span>
+      <span class="text-color-secondary"> ETH</span>
+    </div>
+    <!-- VOLUME RATIO -->
+    <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
+      <InfoButton
+        v-if="info"
+        :text="`Might help you to gauge spending efficiency`"
+        direction="right"
+      />
+      <span class="">Profit/volume ratio: </span>
+      <span class="text-primary">{{
+        volume
+          ? round(finalETH / volume, 2)
           : 0
       }}</span>
     </div>
@@ -108,6 +133,7 @@ const props = defineProps<{
   loading: boolean | string
   finalETH: number
   drawdown: number
+  volume: number
   worstDrawdown: [string, number]
   counters: ComputationResult['counters']
   info?: boolean
