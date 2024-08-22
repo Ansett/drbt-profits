@@ -210,18 +210,19 @@ async function compute(
           })
         }
         blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
+        if (!blockTransactions) {
+          // retry one more time
+          await sleep(2000)
+          blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
+        }
       }
     }
 
     if (!blockTransactions && blockNeeded) {
-      // retry one more time
-      await sleep(2000)
-      blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
-      if (!blockTransactions)
-        postMessage({
-          type: 'WARNING',
-          text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX a bit later.',
-        })
+      postMessage({
+        type: 'WARNING',
+        text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX a bit later.',
+      })
     }
 
     const slippage = blockTransactions
