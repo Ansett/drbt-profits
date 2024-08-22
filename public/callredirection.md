@@ -55,8 +55,12 @@ Paste this multi-line command in one go and press enter:
 &S3\d$=@GWEI_FOR_30-39_SNIPES:15
 &S4\d$=@GWEI_FOR_40-49_SNIPES:15
 &S.*$=@GWEI_FOR_50+_SNIPES:20
-(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\\1 --gwei:\\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:t.me/DeFiRobot_Dev_Bot
+(.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\\1 --gwei:\\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --isTransferOnBlacklist:1 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --slippage:0.0 --isBuy:1 --isSnipe:0 --fof:0 --isBundleBackup:0 --tipAmount:0.0 --backupTip:0.0 --isMaxTxOrRevert:1 --title:DRBT --link:t.me/DeFiRobot_Dev_Bot
 ":","="
+```
+Or, if you want a fixed GWEI delta, paste this instead:
+```
+/replace add call_regex .*?address\/(\w+)\b.* -> /scrapev2 --address=\1 --gwei=10 --numWallets=1 --ethAmount=0.05 --antiRug=1 --isTransferOnBlacklist=1 --buyTaxLimit=30 --sellTaxLimit=70 --minLiq=500 --maxLiq=0.0 --slippage=0.0 --isBuy=1 --isSnipe=0 --fof=0 --isBundleBackup=0 --tipAmount=0.0 --backupTip=0.0 --isMaxTxOrRevert=1 --title=DRBT --link=t.me/DeFiRobot_Dev_Bot
 ```
 
 ### Linking transformations:
@@ -66,7 +70,7 @@ Paste this multi-line command in one go and press enter:
 - *banana*
 - *Advanced Configuration*
 - *Replace*
-- Select `call_power`
+- Select `call_power` (or `call_regex`)
 
 ### Testing:
 If you didn't get any error message when configuring, you can test if it works:
