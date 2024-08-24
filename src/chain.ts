@@ -106,8 +106,8 @@ export async function fetchTxsFromBlock(
 
   // remove double tx, most likely a sandwich bot
   const cleanedTxs = buys.filter(buy => buys.filter(b => b.buyer === buy.buyer).length === 1)
-
   await storeBlockDataInStore(ca, blockStart, blockEnd, cleanedTxs)
+  return cleanedTxs
 }
 
 function regroupSameTokenTxs<T extends AssetTransfersResult[]>(txs: T): TokenTransfer[] {
