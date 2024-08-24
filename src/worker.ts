@@ -221,7 +221,7 @@ async function compute(
     if (!blockTransactions && blockNeeded) {
       postMessage({
         type: 'WARNING',
-        text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX a bit later.',
+        text: 'Some block data could not be retrieved, so calculated slippage will be less acurate. Try to re-import the XLSX.',
       })
     }
 
