@@ -159,6 +159,7 @@
               v-model:selectedColumns="state.logsColumns"
               withDisplaySwitch
               withActions
+              :screener-url="state.screenerUrl"
               @ignore="ignoreCa"
               @rug="onRug"
               @exportXlsx="exportXlsx"
@@ -196,6 +197,7 @@
               :lines="hashesWithTags"
               filter-template="~HashF.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
+              :screener-url="state.screenerUrl"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -207,6 +209,7 @@
               :lines="signaturesWithTags"
               filter-template="~FList.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
+              :screener-url="state.screenerUrl"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -733,7 +736,7 @@
 
         <div class="flex flex-column md:flex-row flex-wrap gap-3">
           <!-- MIN CALLS -->
-          <div class="flex flex-column gap-2">
+          <div class="flex flex-column gap-2 flex-1">
             <label for="mincalls-input">Minimum calls count to show hashes/signatures</label>
             <InputGroup>
               <InputGroupAddon>
@@ -746,6 +749,21 @@
                 buttonLayout="stacked"
                 :min="0"
                 :step="5"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+          <!-- DEX URL -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="screener-input">Screener URL</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-chart-line"></i>
+              </InputGroupAddon>
+              <InputText
+                v-model.trim="state.screenerUrl"
+                id="screener-input"
                 :pt="getPtNumberInput()"
                 class="settingInput"
               />
@@ -839,6 +857,7 @@
       v-model:logsColumns="state.logsColumns"
       :archives="archives"
       :current="current"
+      :screener-url="state.screenerUrl"
       :computingParams="{
         position: state.position,
         gweiDelta: state.gweiDelta,
@@ -870,11 +889,17 @@
       </p>
       <ul class="bullets">
         <li>
-          <CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet />
+          <CaLink
+            ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9"
+            wallet
+          />
           (Ethereum, Polygon, Base, Avalanche)
         </li>
         <li>
-          <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet />
+          <CaLink
+            ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL"
+            wallet
+          />
           (Solana)
         </li>
       </ul>
@@ -937,7 +962,12 @@ import LogsTable from './components/LogsTable.vue'
 import TargetFinder from './components/TargetFinder.vue'
 import CaLink from './components/CaLink.vue'
 import TimingFinder from './components/TimingFinder.vue'
-import { DEFAULT_GAS_USED, getPtNumberInput, INITIAL_TP_SIZE_CODE } from './constants'
+import {
+  DEFAULT_GAS_USED,
+  DEFAULT_SCREENER_URL,
+  getPtNumberInput,
+  INITIAL_TP_SIZE_CODE,
+} from './constants'
 import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
 
@@ -1190,6 +1220,7 @@ const INIT_HOURS = [
 const INIT_AUTO_REDISTRIBUTE = true
 const INIT_PRICE_IMPACT = true
 const INIT_FULL_STATS = true
+const INIT_SCREENER_URL = DEFAULT_SCREENER_URL
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -1210,6 +1241,7 @@ const state = reactive({
   withPriceImpact: INIT_PRICE_IMPACT,
   blackList: [] as string[],
   showFullStats: INIT_FULL_STATS,
+  screenerUrl: INIT_SCREENER_URL,
 })
 
 const updatedSomeRug = ref(false)
@@ -1243,11 +1275,11 @@ const counters = ref({
   unrealistic: 0,
   postAth: 0,
   x100: 0,
-    x50: 0,
-    x20: 0,
-    x10: 0,
-    x5: 0,
-    x2: 0,
+  x50: 0,
+  x20: 0,
+  x10: 0,
+  x5: 0,
+  x2: 0,
 })
 
 const STATE_STORAGE_KEY = 'state-c'
@@ -1278,6 +1310,7 @@ function loadForm() {
   state.autoRedistributeTargets = savedState.autoRedistributeTargets ?? INIT_AUTO_REDISTRIBUTE
   state.withPriceImpact = savedState.withPriceImpact ?? INIT_PRICE_IMPACT
   state.showFullStats = savedState.showFullStats ?? INIT_FULL_STATS
+  state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
   state.blackList = savedState.blackList
     ? typeof savedState.blackList === 'string'
       ? savedState.blackList.split(',').map(ca => ca.trim())

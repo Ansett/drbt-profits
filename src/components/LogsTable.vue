@@ -28,7 +28,7 @@
             bought </span
           ><span class="font-bold">{{ log.invested }}</span>
           <span class="text-color-secondary"> of </span>
-          <CaLink :name="log.name + ''" :ca="log.ca" />
+          <CaLink :name="log.name + ''" :ca="log.ca" :screener-url="screenerUrl" />
           <br />
           <span class="text-color-secondary"> did </span>
           <span v-if="log.xs === -99" class="text-orange-400">RUG</span>
@@ -176,7 +176,7 @@
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          <CaLink :name="data.name" :ca="data.ca" />
+          <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
         </template>
       </Column>
       <Column
@@ -334,6 +334,7 @@ const props = defineProps<{
   initialSort?: string
   withDisplaySwitch?: boolean
   withActions?: boolean
+  screenerUrl?: string
 }>()
 
 const emit = defineEmits<{

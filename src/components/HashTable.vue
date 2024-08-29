@@ -190,7 +190,7 @@
         </Column>
         <Column sortable field="name" header="CA">
           <template #body="{ data }">
-            <CaLink :name="data.name" :ca="data.ca" />
+            <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
           </template>
         </Column>
         <Column sortable :field="d => (d.rug ? -1 : d.xs)" header="Perf">
@@ -243,6 +243,7 @@ const TAG_SEPARATOR = ', '
 const props = defineProps<{
   lines: HashInfo[]
   filterTemplate: string
+  screenerUrl?: string
 }>()
 const emit = defineEmits<{
   (e: 'removeTag', hash: string, index: number): void

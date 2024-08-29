@@ -81,6 +81,7 @@
             v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
+            :screener-url="screenerUrl"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
           />
@@ -115,6 +116,7 @@
             v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
+            :screener-url="screenerUrl"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
           />
@@ -148,6 +150,7 @@
             v-model:selectedColumns="logsColumns"
             :rows="10"
             initialSort="xs"
+            :screener-url="screenerUrl"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
           />
@@ -196,6 +199,7 @@ type DiffPart = {
 const props = defineProps<{
   archives: CallArchive[]
   current: CallArchive
+  screenerUrl?: string
   computingParams: {
     position: number
     gweiDelta: number

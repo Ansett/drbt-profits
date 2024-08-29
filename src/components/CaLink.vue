@@ -30,38 +30,42 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import { useToast } from "primevue/usetoast";
-import vTooltip from "primevue/tooltip";
+import { computed } from 'vue'
+import { useToast } from 'primevue/usetoast'
+import vTooltip from 'primevue/tooltip'
+import { DEFAULT_SCREENER_URL } from '@/constants'
 
 const props = defineProps<{
-  ca: string;
-  name?: string;
-  wallet?: boolean;
-}>();
+  ca: string
+  name?: string
+  wallet?: boolean
+  screenerUrl?: string
+}>()
 
-const truncatedCa = computed(
-  () => props.ca.slice(0, 5) + "..." + props.ca.slice(-4)
-);
+const truncatedCa = computed(() => props.ca.slice(0, 5) + '...' + props.ca.slice(-4))
 
-const toast = useToast();
+const toast = useToast()
 const copyCA = () => {
-  navigator.clipboard.writeText(props.ca);
+  navigator.clipboard.writeText(props.ca)
   toast.add({
-    severity: "success",
-    summary:
-      `Copied ${props.name ? props.name + " " : ""}address to clipboard: ` +
-      props.ca,
+    severity: 'success',
+    summary: `Copied ${props.name ? props.name + ' ' : ''}address to clipboard: ` + props.ca,
     life: 3000,
-  });
-};
+  })
+}
+
+const validScreenerUrl = computed(() => {
+  if (!props.screenerUrl) return DEFAULT_SCREENER_URL
+
+  let url = props.screenerUrl
+  if (url.slice(-1) !== '/') url += '/'
+  if (!url.startsWith('https://') && !url.startsWith('http://')) url = 'https://' + url
+
+  return url
+})
 
 const openChart = (ca: string) => {
-  const win = window.open(
-    "https://dexscreener.com/ethereum/" + ca,
-    "_blank",
-    ""
-  );
-  if (win) win.opener = null;
-};
+  const win = window.open(validScreenerUrl.value + ca, '_blank', '')
+  if (win) win.opener = null
+}
 </script>
