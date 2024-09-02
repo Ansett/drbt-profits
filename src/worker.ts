@@ -107,7 +107,7 @@ const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: Block
   const newPrice = lastPrice * (1 + myPriceImpact / 100)
   const totalImpact = (newPrice / call.price - 1) * 100
 
-  return totalImpact
+  return Math.max(0, totalImpact)
 }
 
 async function compute(
