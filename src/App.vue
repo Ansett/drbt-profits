@@ -889,17 +889,11 @@
       </p>
       <ul class="bullets">
         <li>
-          <CaLink
-            ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9"
-            wallet
-          />
+          <CaLink ca="0xc6939FeC2cb696B6A4f7CD6fE8070f0C16eB85d9" wallet />
           (Ethereum, Polygon, Base, Avalanche)
         </li>
         <li>
-          <CaLink
-            ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL"
-            wallet
-          />
+          <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet />
           (Solana)
         </li>
       </ul>

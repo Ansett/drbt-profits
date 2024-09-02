@@ -13,15 +13,20 @@ import ToastService from 'primevue/toastservice'
 import { createApp } from 'vue'
 import App from './App.vue'
 
-Bugsnag.start({
-  apiKey: import.meta.env.VITE_BUGSNAP_API,
-  plugins: [new BugsnagPluginVue()],
-})
-const bugsnagVue = Bugsnag.getPlugin('vue')!
-
 const app = createApp(App)
-app.use(bugsnagVue)
 app.use(PrimeVue)
 app.use(ToastService)
 // app.use(DialogService);
+
+if (typeof Bugsnag !== 'undefined') {
+  Bugsnag.start({
+    apiKey: import.meta.env.VITE_BUGSNAP_API,
+    plugins: [new BugsnagPluginVue()],
+    autoTrackSessions: false,
+    collectUserIp: false,
+  })
+  const bugsnagVue = Bugsnag.getPlugin('vue')!
+  app.use(bugsnagVue)
+}
+
 app.mount('#app')
