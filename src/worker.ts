@@ -200,7 +200,9 @@ async function compute(
       blockTransactions = await getBlockDataFromStore(call.ca, blockStart, blockEnd)
       if (
         !blockTransactions ||
-        (blockTransactions.length && blockTransactions[0].version !== CURRENT_CACHED_BLOCK_VERSION)
+        (blockTransactions.length &&
+          blockTransactions[0].version !== CURRENT_CACHED_BLOCK_VERSION) ||
+        blockTransactions.some(tx => !tx.amount) // 0 amount due to lack of decimals data in TX data. TODO: remove this later
       ) {
         if (!loadingMessageSent) {
           loadingMessageSent = true
@@ -209,11 +211,23 @@ async function compute(
             text: `Fetching blocks data, it can take a while`,
           })
         }
-        blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
+        blockTransactions = await fetchTxsFromBlock(
+          blockStart,
+          blockEnd,
+          call.ca,
+          call.decimals,
+          chainApiKey,
+        )
         if (!blockTransactions) {
           // retry one more time
           await sleep(3000)
-          blockTransactions = await fetchTxsFromBlock(blockStart, blockEnd, call.ca, chainApiKey)
+          blockTransactions = await fetchTxsFromBlock(
+            blockStart,
+            blockEnd,
+            call.ca,
+            call.decimals,
+            chainApiKey,
+          )
         }
       }
     }

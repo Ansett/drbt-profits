@@ -24,6 +24,7 @@ export type Call = {
   block: number
   ethPrice: number
   ignored: boolean
+  decimals: number
 }
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'

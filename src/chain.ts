@@ -25,6 +25,7 @@ export async function fetchTxsFromBlock(
   blockStart: number,
   blockEnd: number,
   ca: string,
+  decimals: number,
   apiKey = '',
 ): Promise<null | BlockTx[]> {
   await sleep(100)
@@ -58,11 +59,12 @@ export async function fetchTxsFromBlock(
         tk.category === AssetTransfersCategory.ERC20 &&
         tk.rawContract.address?.toLowerCase() === ca.toLowerCase(),
     ),
+    decimals,
   )
-
   const internalTxs = tokenTransfers.filter(tk => tk.category === AssetTransfersCategory.INTERNAL)
 
   const buys = tokensReceived
+    .filter(token => token.amount)
     .map(token => {
       // Get parent transaction corresponding to the token transfer (no tx when dealing with block < blockEnd)
       const transaction = block.transactions.find(tx => tx.hash === token.hash)
@@ -110,11 +112,14 @@ export async function fetchTxsFromBlock(
   return cleanedTxs
 }
 
-function regroupSameTokenTxs<T extends AssetTransfersResult[]>(txs: T): TokenTransfer[] {
+function regroupSameTokenTxs<T extends AssetTransfersResult[]>(
+  txs: T,
+  decimals: number,
+): TokenTransfer[] {
   let order = 1
 
   const sumAmountByCa = txs.reduce((acc, tx) => {
-    const amount = tx.value || 0
+    const amount = tx.value || hexToInt(tx.rawContract.value) / Math.pow(10, decimals) || 0
     if (!acc[tx.hash]) {
       acc[tx.hash] = {
         order,
@@ -137,7 +142,7 @@ function regroupSameTokenTxs<T extends AssetTransfersResult[]>(txs: T): TokenTra
 }
 
 function hexToInt(hex: any) {
-  return parseInt(hex)
+  return hex ? parseInt(hex) : 0
 }
 
 function intGwei(hexGas?: BigNumber): number {

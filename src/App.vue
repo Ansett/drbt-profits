@@ -1107,6 +1107,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'LP_CRT',
     'Block',
     'ETHPrice',
+    'Decimals'
   ])
 
   if (!indexes) return
@@ -1160,6 +1161,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       block: row[indexes.Block] as number,
       ethPrice: indexes.ETHPrice > -1 ? (row[indexes.ETHPrice] as number) : 3500,
       ignored: state.blackList.includes(ca),
+      decimals: row[indexes.Decimals] as number || 18
     })
   }
 
