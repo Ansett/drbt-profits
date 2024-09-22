@@ -1108,7 +1108,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'Block',
     'ETHPrice',
     'Decimals',
-    'LPVersion'
+    'LPVersion',
   ])
 
   if (!indexes) return
@@ -1186,16 +1186,16 @@ const INIT_TP = [
 ] as TakeProfit[]
 const INIT_GWEI = 5
 const INIT_PRIO_BY_SNIPES = [
-  [-1, 2],
-  [-3, 5],
+  [-1, 3],
+  [-3, 4],
   [0, 2],
   [1, 2],
-  [2, 4],
-  [10, 5],
-  [20, 10],
-  [30, 10],
-  [40, 40],
-  [50, 50],
+  [2, 5],
+  [10, 6],
+  [20, 7],
+  [30, 8],
+  [40, 9],
+  [50, 10],
 ] as [number, number][]
 const INIT_CONDITIONAL_PRIO = false
 const INIT_MIN_CALLS = 5
