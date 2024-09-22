@@ -44,24 +44,29 @@ I highly suggest to use the mobile (use `/get_app`) or the [web](https://web.aut
 ### Creating transformation:
 Paste this multi-line command in one go and press enter:
 ```
-/replace add call_power [[ALL_IN_ONE]] -> .*?address\/(\w+).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\\1&D\\2&S\\3
+/replace add call_power [[ALL_IN_ONE]] -> .*?address\/(\w+).*?LP:.*?V(\d).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Bribes.*?(\d+))?.*=\\1&V\\2&D\\3&S\\4
 &D0\sdays\s00:00:[012]\d&=&
+&V2&=&
 &D.*=@GWEI_FOR_BLOCK4+:3
-&S0?$=@GWEI_FOR_0_SNIPE:5
-&S1$=@GWEI_FOR_1_SNIPE:3
-&S\d$=@GWEI_FOR_2-9_SNIPES:5
-&S1\d$=@GWEI_FOR_10-19_SNIPES:5
-&S2\d$=@GWEI_FOR_20-29_SNIPES:15
-&S3\d$=@GWEI_FOR_30-39_SNIPES:15
-&S4\d$=@GWEI_FOR_40-49_SNIPES:15
-&S.*$=@GWEI_FOR_50+_SNIPES:20
+&V3.*=@GWEI_FOR_UNI_V3:4
+&S0?$=@GWEI_FOR_0_BRIBE:2
+&S1$=@GWEI_FOR_1_BRIBE:2
+&S\d$=@GWEI_FOR_2-9_BRIBES:5
+&S1\d$=@GWEI_FOR_10-19_BRIBES:6
+&S2\d$=@GWEI_FOR_20-29_BRIBES:7
+&S3\d$=@GWEI_FOR_30-39_BRIBES:8
+&S4\d$=@GWEI_FOR_40-49_BRIBES:9
+&S.*$=@GWEI_FOR_50+_BRIBES:10
 (.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\\1 --gwei:\\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --isTransferOnBlacklist:1 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --slippage:0.0 --isBuy:1 --isSnipe:0 --fof:0 --isBundleBackup:0 --tipAmount:0.0 --backupTip:0.0 --isMaxTxOrRevert:1 --title:DRBT --link:t.me/DeFiRobot_Dev_Bot
 ":","="
 ```
+(The name must end with _power)
+
 Or, if you want a fixed GWEI delta, paste this instead:
 ```
 /replace add call_regex .*?address\/(\w+)\b.* -> /scrapev2 --address=\1 --gwei=10 --numWallets=1 --ethAmount=0.05 --antiRug=1 --isTransferOnBlacklist=1 --buyTaxLimit=30 --sellTaxLimit=70 --minLiq=500 --maxLiq=0.0 --slippage=0.0 --isBuy=1 --isSnipe=0 --fof=0 --isBundleBackup=0 --tipAmount=0.0 --backupTip=0.0 --isMaxTxOrRevert=1 --title=DRBT --link=t.me/DeFiRobot_Dev_Bot
 ```
+(The name must end with _regex)
 
 ### Linking transformations:
 
@@ -155,17 +160,19 @@ CALLS_GROUP - TEST_GROUP
 ```
 -> after pressing Enter, paste all those lines in one go, adjust values and press Enter:
 ```
-.*?address\/(0x\w+).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Snipes.*?(\d+))?.*=\1&D\2&S\3
+.*?address\/(\w+).*?LP:.*?V(\d).*?Since\sLaunch.*?(\d+\sdays\s\d\d:\d\d:\d\d)(?:.*?Bribes.*?(\d+))?.*=\1&V\2&D\3&S\4
 &D0\sdays\s00:00:[012]\d&=&
+&V2&=&
 &D.*=@GWEI_FOR_BLOCK4+:3
-&S0?$=@GWEI_FOR_0_SNIPE:5
-&S1$=@GWEI_FOR_1_SNIPE:3
-&S\d$=@GWEI_FOR_2-9_SNIPES:5
-&S1\d$=@GWEI_FOR_10-19_SNIPES:5
-&S2\d$=@GWEI_FOR_20-29_SNIPES:15
-&S3\d$=@GWEI_FOR_30-39_SNIPES:15
-&S4\d$=@GWEI_FOR_40-49_SNIPES:15
-&S.*$=@GWEI_FOR_50+_SNIPES:20
+&V3.*=@GWEI_FOR_UNI_V3:4
+&S0?$=@GWEI_FOR_0_BRIBE:2
+&S1$=@GWEI_FOR_1_BRIBE:2
+&S\d$=@GWEI_FOR_2-9_BRIBES:5
+&S1\d$=@GWEI_FOR_10-19_BRIBES:6
+&S2\d$=@GWEI_FOR_20-29_BRIBES:7
+&S3\d$=@GWEI_FOR_30-39_BRIBES:8
+&S4\d$=@GWEI_FOR_40-49_BRIBES:9
+&S.*$=@GWEI_FOR_50+_BRIBES:10
 (.+?)@GWEI.+?:([\d.]+)=/scrapev2 --address:\1 --gwei:\2 --numWallets:1 --ethAmount:0.05 --antiRug:1 --fof:0 --slippage:0.0 --tipAmount:0.0 --buyTaxLimit:30 --sellTaxLimit:70 --minLiq:500 --maxLiq:0.0 --title:DRBT --isSnipe:0 --isBuy:1 --isBundleBackup:0 --backupTip:0.0 --isMaxTxOrRevert:1 --isTransferOnBlacklist:1 --link:t.me/DeFiRobot_Dev_Bot
 ":","="
 ```

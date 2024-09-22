@@ -613,6 +613,7 @@ function getUsedPriority(
 ): number {
   if (!prioBySnipes) return gweiDelta
   if (call.delay >= 30) return prioBySnipes.find(p => p[0] === -1)?.[1] || gweiDelta
+  if (call.lpVersion === 3) return prioBySnipes.find(p => p[0] === -3)?.[1] || gweiDelta
 
   const thresholdIndex = prioBySnipes.findIndex(p => p[0] > call.nbSnipes)
   const appliedThreshold =

@@ -1107,7 +1107,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'LP_CRT',
     'Block',
     'ETHPrice',
-    'Decimals'
+    'Decimals',
+    'LPVersion'
   ])
 
   if (!indexes) return
@@ -1161,7 +1162,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       block: row[indexes.Block] as number,
       ethPrice: indexes.ETHPrice > -1 ? (row[indexes.ETHPrice] as number) : 3500,
       ignored: state.blackList.includes(ca),
-      decimals: row[indexes.Decimals] as number || 18
+      decimals: (row[indexes.Decimals] as number) || 18,
+      lpVersion: (row[indexes.LPVersion] as number) || 2,
     })
   }
 
@@ -1185,6 +1187,7 @@ const INIT_TP = [
 const INIT_GWEI = 5
 const INIT_PRIO_BY_SNIPES = [
   [-1, 2],
+  [-3, 5],
   [0, 2],
   [1, 2],
   [2, 4],
@@ -1360,6 +1363,7 @@ const computedPrioBySnipes = computed(() =>
 )
 const getPrioTitle = (snipes: number) => {
   if (snipes === -1) return `(call block 4 or later)`
+  if (snipes === -3) return `(Uniswap V3)`
   const index = state.prioBySnipes.findIndex(p => p[0] === snipes)
   const nextThreshold = state.prioBySnipes[index + 1]
   if (!nextThreshold) return `more than ${snipes} snipes`
