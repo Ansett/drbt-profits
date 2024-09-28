@@ -813,7 +813,7 @@
       :visible="!!configuringPrios"
       position="right"
       :modal="false"
-      header="Used gas priority based on number of snipes"
+      header="Used gas priority based on number of bribes"
       :dismissable="false"
       :pt="{
         root: {
@@ -1100,7 +1100,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'FList',
     'GWEI',
     'Gas',
-    'Snipes',
+    'Bribes',
     'PriorityMin',
     'PriorityMax',
     'PriorityAVG',
@@ -1157,7 +1157,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
       buyGas: (row[indexes.Gas] as number) || DEFAULT_GAS_USED,
-      nbSnipes: row[indexes.Snipes] as number,
+      nbBribes: row[indexes.Bribes] as number,
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,
       ethPrice: indexes.ETHPrice > -1 ? (row[indexes.ETHPrice] as number) : 3500,
