@@ -72,6 +72,7 @@
             :finalETH="left.stats.finalETH"
             :drawdown="left.stats.drawdown"
             :worstDrawdown="left.stats.worstDrawdown"
+            :volume="common.stats.volume"
             :counters="left.stats.counters"
             :nbCalls="left.stats.logs.length"
           />
@@ -107,6 +108,7 @@
             :finalETH="right.stats.finalETH"
             :drawdown="right.stats.drawdown"
             :worstDrawdown="right.stats.worstDrawdown"
+            :volume="common.stats.volume"
             :counters="right.stats.counters"
             :nbCalls="right.stats.logs.length"
           />
@@ -141,6 +143,7 @@
             :finalETH="common.stats.finalETH"
             :drawdown="common.stats.drawdown"
             :worstDrawdown="common.stats.worstDrawdown"
+            :volume="common.stats.volume"
             :counters="common.stats.counters"
             :nbCalls="common.stats.logs.length"
           />
@@ -227,6 +230,7 @@ const getDefaultStats = () =>
     finalETH: 0,
     drawdown: 0,
     worstDrawdown: ['', 0],
+    volume: 0,
     counters: {
       rug: 0,
       unrealistic: 0,
