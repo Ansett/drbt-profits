@@ -5,6 +5,7 @@ export type ComputationShortResult = {
   finalETH: number
   drawdown: number
   worstDrawdown: [string, number]
+  volume: number
 }
 
 export type ComputationForTarget = ComputationShortResult & {
