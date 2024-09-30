@@ -14,7 +14,7 @@ export type Log = {
   ignored: boolean
   flag: 'ignored' | '' // to allow search
   /* for accuracy check */
-  nbSnipes: number
+  nbBribes: number
   buyTax: number
   supply: number
   delay: number
@@ -25,7 +25,7 @@ export type Log = {
 
 export type AccuracyLog = {
   slippage: number
-  snipes: number
+  bribes: number
   relativeError: number // in %
   theoricBuyMc: number
   realBuyMc: number

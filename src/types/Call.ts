@@ -19,7 +19,7 @@ export type Call = {
   hashF: string
   gwei: number
   buyGas: number
-  nbSnipes: number
+  nbBribes: number
   lp: number
   block: number
   ethPrice: number

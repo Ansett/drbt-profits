@@ -269,7 +269,7 @@
           <div class="flex flex-row align-items-end">
             <div class="flex flex-column gap-2">
               <label for="gwei-input"
-                >Priority (GWEI delta) {{ state.conditionalPrio ? 'based on snipes' : '' }}</label
+                >Priority (GWEI delta) {{ state.conditionalPrio ? 'based on bribes' : '' }}</label
               >
               <InputGroup>
                 <InputGroupAddon>
@@ -295,7 +295,7 @@
             <!-- CONDITIONAL PRIO SWITCH -->
             <div
               v-tooltip.top="{
-                value: `Priority based on snipes`,
+                value: `Priority based on bribes`,
                 showDelay: 500,
               }"
               class="flex flex-column gap-1 mb-3 align-items-center ml-4 mr-2"
@@ -1361,14 +1361,14 @@ const onRug = (ca: string, isRug: boolean) => {
 const computedPrioBySnipes = computed(() =>
   state.conditionalPrio ? JSON.parse(JSON.stringify(state.prioBySnipes)) : null,
 )
-const getPrioTitle = (snipes: number) => {
-  if (snipes === -1) return `(call block 4 or later)`
-  if (snipes === -3) return `(Uniswap V3)`
-  const index = state.prioBySnipes.findIndex(p => p[0] === snipes)
+const getPrioTitle = (bribes: number) => {
+  if (bribes === -1) return `(call block 4 or later)`
+  if (bribes === -3) return `(Uniswap V3)`
+  const index = state.prioBySnipes.findIndex(p => p[0] === bribes)
   const nextThreshold = state.prioBySnipes[index + 1]
-  if (!nextThreshold) return `more than ${snipes} snipes`
-  if (nextThreshold[0] === snipes + 1) return `${snipes} snipe${snipes > 1 ? 's' : ''}`
-  return `between ${snipes} and ${nextThreshold[0] - 1} snipes`
+  if (!nextThreshold) return `more than ${bribes} bribes`
+  if (nextThreshold[0] === bribes + 1) return `${bribes} bribe${bribes > 1 ? 's' : ''}`
+  return `between ${bribes} and ${nextThreshold[0] - 1} bribes`
 }
 
 const toggleHours = (dayIndex: number) => {

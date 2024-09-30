@@ -6,10 +6,12 @@
 
 a,
 a:visited {
+  text-decoration: none;
   color: var(--text-color);
 }
-a:visited {
-  text-decoration: none !important;
+a:hover,
+a:active {
+  text-decoration: underline;
 }
 
 p {

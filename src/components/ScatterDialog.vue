@@ -65,12 +65,12 @@ const dataset = computed(() =>
             })),
         },
         // {
-        //   name: 'Accuracy by snipes',
+        //   name: 'Accuracy by bribes',
         //   values: cleanedData.value
         //     // .filter(d => d.delay < 30)
         //     .map(d => ({
         //       x: d.delay,
-        //       y: d.snipes,
+        //       y: d.bribes,
         //       name: d.ca,
         //     })),
         // },

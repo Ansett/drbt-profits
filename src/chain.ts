@@ -171,7 +171,7 @@ export async function fetchAllBuysFrom(addy: string, firstBlock: number, apiKey 
     }),
   )
 
-  // only needed for snipes afaik
+  // only needed for bribes afaik
   const reimbursmentTransfers = await fetchPaginatedTransfers(pageKey =>
     alchemy.core.getAssetTransfers({
       fromBlock,

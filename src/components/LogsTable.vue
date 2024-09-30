@@ -181,13 +181,18 @@
       </Column>
       <Column
         v-if="selectedColumns.includes('Block')"
-        field="block"
-        header="block"
+        field="theoricBlock"
+        header="Block"
         sortable
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          <a :href="'https://etherscan.io/block/' + data.block" target="_blank">{{ data.block }}</a>
+          <span class="nowrap text-color-secondary"
+            >(+{{ data.theoricBlock - data.callBlock }})
+          </span>
+          <a :href="'https://etherscan.io/block/' + data.theoricBlock" target="_blank">{{
+            data.theoricBlock
+          }}</a>
         </template>
       </Column>
       <Column

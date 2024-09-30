@@ -399,7 +399,7 @@ async function compute(
       slippage: round(slippage, 3),
       ignored: call.ignored,
       flag: call.ignored ? 'ignored' : '',
-      nbSnipes: call.nbSnipes,
+      nbBribes: call.nbBribes,
       buyTax: call.buyTax,
       supply: call.supply,
       delay: call.delay,
@@ -563,7 +563,7 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
       if (log.xs > XS_WORTH_OF_ONCHAIN_DATA)
         accuracy.push({
           slippage: round(log.slippage, 0),
-          snipes: log.nbSnipes,
+          bribes: log.nbBribes,
           relativeError: ((realBuyMc - theoricBuyMc) / theoricBuyMc) * 100,
           theoricBuyMc,
           realBuyMc,
@@ -615,7 +615,7 @@ function getUsedPriority(
   if (call.delay >= 30) return prioBySnipes.find(p => p[0] === -1)?.[1] || gweiDelta
   if (call.lpVersion === 3) return prioBySnipes.find(p => p[0] === -3)?.[1] || gweiDelta
 
-  const thresholdIndex = prioBySnipes.findIndex(p => p[0] > call.nbSnipes)
+  const thresholdIndex = prioBySnipes.findIndex(p => p[0] > call.nbBribes)
   const appliedThreshold =
     prioBySnipes[thresholdIndex === -1 ? prioBySnipes.length - 1 : Math.max(0, thresholdIndex - 1)]
 
