@@ -1412,7 +1412,7 @@ const getTakeProfitDescription = (takeProfit: TakeProfit): string => {
 
 const redistributeTargets = () => {
   if (!state.autoRedistributeTargets) return
-  const size = 100 / state.takeProfits.length
+  const size = 100 / (state.takeProfits.length - 1) // not counting "initial" target
   state.takeProfits.forEach(target => {
     if (target.size !== INITIAL_TP_SIZE_CODE && target.size !== size) target.size = size
   })
