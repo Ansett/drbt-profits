@@ -1153,7 +1153,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       delay: row[indexes.LaunchedDelay] as number,
       fList: row[indexes.FList] as string,
       maxBuy: ((row[indexes.MaxBuyPRCT] as number) || 100) / 100,
-      rug: !!row[indexes.Rug],
+      rug: !!row[indexes.Rug] || state.rugs.includes(ca),
       hashF: row[indexes.HashF] as string,
       gwei: row[indexes.GWEI] as number,
       buyGas: (row[indexes.Gas] as number) || DEFAULT_GAS_USED,
@@ -1239,6 +1239,7 @@ const state = reactive({
   autoRedistributeTargets: INIT_AUTO_REDISTRIBUTE,
   withPriceImpact: INIT_PRICE_IMPACT,
   blackList: [] as string[],
+  rugs: [] as string[],
   showFullStats: INIT_FULL_STATS,
   screenerUrl: INIT_SCREENER_URL,
 })
@@ -1315,6 +1316,7 @@ function loadForm() {
       ? savedState.blackList.split(',').map(ca => ca.trim())
       : savedState.blackList
     : []
+  state.rugs = savedState.rugs|| []
 }
 onMounted(() => {
   loadForm()
@@ -1338,6 +1340,9 @@ const ignoreCa = (ca: string, isIgnored: boolean) => {
 }
 
 const onRug = (ca: string, isRug: boolean) => {
+  if (isRug) state.rugs.push(ca)
+  else state.rugs = state.rugs.filter(_ca => _ca !== ca)
+
   for (const archive of archives.value) {
     archive.calls = archive.calls.map(call => ({ ...call, rug: ca === call.ca ? isRug : call.rug }))
     updatedSomeRug.value = true
