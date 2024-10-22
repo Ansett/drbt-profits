@@ -737,7 +737,7 @@
         <div class="flex flex-column md:flex-row flex-wrap gap-3">
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2 flex-1">
-            <label for="mincalls-input">Minimum calls count to show hashes/signatures</label>
+            <label for="mincalls-input">Minimum calls count to show hashes/sigs</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-megaphone"></i>
@@ -1316,7 +1316,7 @@ function loadForm() {
       ? savedState.blackList.split(',').map(ca => ca.trim())
       : savedState.blackList
     : []
-  state.rugs = savedState.rugs|| []
+  state.rugs = savedState.rugs || []
 }
 onMounted(() => {
   loadForm()

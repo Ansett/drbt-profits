@@ -23,6 +23,7 @@ import {
   XS_WORTH_OF_ONCHAIN_DATA,
   CURRENT_CACHED_BLOCK_VERSION,
   INITIAL_TP_SIZE_CODE,
+  ESTIMATED_TIME_FOR_ALCHEMY,
 } from './constants'
 import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
@@ -161,8 +162,11 @@ async function compute(
   }
 
   let firstBlockOfPeriod = 0
-  let loadingMessageSent = false
   let volume = 0
+
+  if (chainApiKey) {
+    await postLoadingMessage(calls)
+  }
 
   for (const call of calls) {
     if (abortSignal.aborted) return {}
@@ -187,10 +191,7 @@ async function compute(
       addGain(call.date, gain)
     }
 
-    // we consider tx is done block +2
-    const blockStart = call.block + 1
-    // if delay is 5-12s, we consider we buy block+2 instead of block+1 (delay we actually get is at least +1s from the XLSX delay)
-    const blockEnd = call.block + (call.delay >= 5 && call.delay <= 12 ? 2 : 1)
+    const { blockStart, blockEnd } = getBlockStartAndEnd(call)
     firstBlockOfPeriod =
       !firstBlockOfPeriod || blockStart < firstBlockOfPeriod ? blockStart : firstBlockOfPeriod
     const blockNeeded = chainApiKey && callWorthOnChainData(call)
@@ -198,19 +199,7 @@ async function compute(
 
     if (blockNeeded) {
       blockTransactions = await getBlockDataFromStore(call.ca, blockStart, blockEnd)
-      if (
-        !blockTransactions ||
-        (blockTransactions.length &&
-          blockTransactions[0].version !== CURRENT_CACHED_BLOCK_VERSION) ||
-        blockTransactions.some(tx => !tx.amount) // 0 amount due to lack of decimals data in TX data. TODO: remove this later
-      ) {
-        if (!loadingMessageSent) {
-          loadingMessageSent = true
-          postMessage({
-            type: 'LOADING',
-            text: `Fetching blocks data, it can take a while`,
-          })
-        }
+      if (!blockTransactions) {
         blockTransactions = await fetchTxsFromBlock(
           blockStart,
           blockEnd,
@@ -440,6 +429,34 @@ async function compute(
     hashes,
     signatures,
   }
+}
+
+function getBlockStartAndEnd(call: Call) {
+  const blockStart = call.block + 1
+  // if delay is 5-12s, we consider we buy block+2 instead of block+1 (delay we actually get is at least +1s from the XLSX delay)
+  const blockEnd = call.block + (call.delay >= 5 && call.delay <= 12 ? 2 : 1)
+
+  return { blockStart, blockEnd }
+}
+
+async function postLoadingMessage(calls: Call[]) {
+  let callsCounter = 0
+  for (const call of calls) {
+    if (!callWorthOnChainData(call)) continue
+
+    const { blockStart, blockEnd } = getBlockStartAndEnd(call)
+    const blockTransactions = await getBlockDataFromStore(call.ca, blockStart, blockEnd)
+    if (!blockTransactions) callsCounter++
+  }
+  if (!callsCounter) return
+
+  const estimation = round((callsCounter * ESTIMATED_TIME_FOR_ALCHEMY) / 60, 0)
+  postMessage({
+    type: 'LOADING',
+    text:
+      `Fetching on-chain data` +
+      (estimation > 1 ? `, it could take up to ${estimation} mins the first time` : ''),
+  })
 }
 
 function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {

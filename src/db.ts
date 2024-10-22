@@ -1,5 +1,6 @@
 import { openDB, type DBSchema } from 'idb'
 import type { BlockTx } from './types/Transaction'
+import { CURRENT_CACHED_BLOCK_VERSION } from './constants'
 
 interface MyDB extends DBSchema {
   blocks: {
@@ -43,5 +44,13 @@ export async function getBlockDataFromStore(
 ): Promise<BlockTx[] | undefined> {
   const db = await openDB<MyDB>(dbName, dbVersion)
   const entry = await db.get(blockStore, compoundId(ca, blockStart, blockEnd))
-  return entry
+  return areBlockTxsInvalid(entry) ? undefined : entry
+}
+
+function areBlockTxsInvalid(txs: BlockTx[] | undefined): boolean {
+  return (
+    !txs ||
+    (txs.length && txs[0].version !== CURRENT_CACHED_BLOCK_VERSION) ||
+    txs.some(tx => !tx.amount)
+  ) // 0 amount due to lack of decimals data in TX data. TODO: remove this later
 }
