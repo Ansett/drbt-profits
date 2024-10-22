@@ -455,7 +455,7 @@ async function postLoadingMessage(calls: Call[]) {
     type: 'LOADING',
     text:
       `Fetching on-chain data` +
-      (estimation > 1 ? `, it could take up to ${estimation} mins the first time` : ''),
+      (estimation >= 1 ? `, it could take up to ${estimation} mins the first time` : ''),
   })
 }
 
