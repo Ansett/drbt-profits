@@ -373,7 +373,7 @@ async function compute(
       date: prettifyDate(call.date),
       ca: call.ca,
       name: call.name,
-      xs: call.rug ? -99 : round(bestXs, 1),
+      xs: call.rug ? -99 : round(reducedBestXs, 1),
       ath: call.ath,
       callMc: call.callMc,
       info: unrealistic
@@ -455,7 +455,9 @@ async function postLoadingMessage(calls: Call[]) {
     type: 'LOADING',
     text:
       `Fetching on-chain data` +
-      (estimation >= 1 ? `, it could take up to ${estimation} mins the first time` : ''),
+      (estimation >= 1
+        ? `, it could take up to ${estimation} min${estimation > 1 ? 's' : ''} the first time`
+        : ''),
   })
 }
 
