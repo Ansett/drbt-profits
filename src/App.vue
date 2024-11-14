@@ -244,7 +244,7 @@
               />
             </InputGroup>
           </div>
-          <!-- API KEY -->
+          <!-- ALCHEMY API KEY -->
           <div class="flex-grow-1 flex flex-column gap-2">
             <label for="api-input"
               ><a href="https://auth.alchemy.com/signup" target="_blank">Alchemy</a> API key&nbsp;
@@ -734,7 +734,7 @@
           </div>
         </div>
 
-        <div class="flex flex-column md:flex-row flex-wrap gap-3">
+        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end">
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2 flex-1">
             <label for="mincalls-input">Minimum calls count to show hashes/sigs</label>
@@ -764,6 +764,26 @@
               <InputText
                 v-model.trim="state.screenerUrl"
                 id="screener-input"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+          <!-- DRBT API -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="drbt-input"
+              >DRBT API key&nbsp;
+              <InfoButton
+                text="In order to automatically set or unset token rug status in DRBT database when clicking Rug action in the call logs, enter the API key provided by DRBT. Otherwise you'll have to manually paste the /rug command into community group"
+                class="align-self-start"
+            /></label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-key"></i>
+              </InputGroupAddon>
+              <InputText
+                v-model.trim="state.drbtApiKey"
+                id="drbt-input"
                 :pt="getPtNumberInput()"
                 class="settingInput"
               />
@@ -946,6 +966,7 @@ import {
   getTextFileContent,
   downloadRowsXlsx,
   getRowsCorrespondingToLogs,
+  drbtSetRug,
 } from './lib'
 import { type CallArchive, type Call, type DiffType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
@@ -1233,6 +1254,7 @@ const state = reactive({
   buyTaxInXs: INIT_BUY_TAX_IN_XS,
   feeInXs: INIT_FEE_IN_XS,
   chainApiKey: '',
+  drbtApiKey: '',
   withHours: INIT_WITH_HOURS,
   week: INIT_WEEK,
   hours: INIT_HOURS,
@@ -1304,6 +1326,7 @@ function loadForm() {
   state.buyTaxInXs = savedState.buyTaxInXs ?? INIT_BUY_TAX_IN_XS
   state.feeInXs = savedState.feeInXs ?? INIT_FEE_IN_XS
   state.chainApiKey = savedState.chainApiKey ?? ''
+  state.drbtApiKey = savedState.drbtApiKey ?? ''
   state.withHours = savedState.withHours ?? INIT_WITH_HOURS
   state.week = savedState.week ?? INIT_WEEK
   state.hours = savedState.hours ?? INIT_HOURS
@@ -1353,14 +1376,19 @@ const onRug = (ca: string, isRug: boolean) => {
     row[indexes.Rug] = isRug ? '1' : '0'
   }
 
-  const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
-  navigator.clipboard.writeText(command)
-  toast.add({
-    severity: 'success',
-    summary: 'Copied rug command',
-    detail: command,
-    life: 3000,
-  })
+  if (state.drbtApiKey) {
+    drbtSetRug(ca, isRug, state.drbtApiKey, toast)
+  } else {
+    // Rug command to clipboard
+    const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
+    navigator.clipboard.writeText(command)
+    toast.add({
+      severity: 'success',
+      summary: 'Copied rug command',
+      detail: command,
+      life: 3000,
+    })
+  }
 }
 
 const computedPrioBySnipes = computed(() =>

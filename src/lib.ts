@@ -2,6 +2,7 @@ import writeXlsxFile from 'write-excel-file'
 import type { Call, CallArchive, CallExportType, RowsForExport } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog, Log } from './types/Log'
+import type { ToastServiceMethods } from 'primevue/toastservice'
 
 type ExportedRows = {
   value: string | number
@@ -312,4 +313,44 @@ export function getRowsCorrespondingToLogs(
   const filtered = logs ? merged.filter(row => logs.some(log => log.ca === row[caColumn])) : merged
 
   return [getRowForExport(headers), ...filtered.map(getRowForExport)]
+}
+
+export async function drbtSetRug(
+  ca: string,
+  state: boolean,
+  apiKey: string,
+  toast: ToastServiceMethods,
+) {
+  const params = new URLSearchParams({ ca, rug_state: state.toString() }).toString()
+  const url = `https://defirobot.org/DRBT/SetRug?${params}`
+
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+  })
+    .then(async response => {
+      if (!response.ok) {
+        const errorMessage = await response.text() // Get error message text from response
+        throw new Error(`Error ${response.status}: ${errorMessage}`) // Throw the error
+      }
+
+      const data = response.json()
+      toast.add({
+        severity: 'success',
+        summary: `${status ? 'Classified' : 'Unclassified'} has rug`,
+        detail: `${address} has been ${status ? 'added to' : 'removed from'} DRBT rugs database`,
+        life: 3000,
+      })
+    })
+    .catch(error => {
+      toast.add({
+        severity: 'error',
+        summary: 'Failed to call DRBT rug API',
+        detail: error.message ?? error.toString(),
+        life: 3000,
+      })
+    })
 }
