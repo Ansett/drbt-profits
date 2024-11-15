@@ -315,12 +315,7 @@ export function getRowsCorrespondingToLogs(
   return [getRowForExport(headers), ...filtered.map(getRowForExport)]
 }
 
-export async function drbtSetRug(
-  ca: string,
-  state: boolean,
-  apiKey: string,
-  toast: ToastServiceMethods,
-) {
+export function drbtSetRug(ca: string, state: boolean, apiKey: string, toast: ToastServiceMethods) {
   const params = new URLSearchParams({ ca, rug_state: state.toString() }).toString()
   const url = `https://defirobot.org/DRBT/SetRug?${params}`
 
@@ -337,20 +332,22 @@ export async function drbtSetRug(
         throw new Error(`Error ${response.status}: ${errorMessage}`) // Throw the error
       }
 
-      const data = response.json()
+      const { message } = await response.json()
       toast.add({
         severity: 'success',
-        summary: `${status ? 'Classified' : 'Unclassified'} has rug`,
-        detail: `${address} has been ${status ? 'added to' : 'removed from'} DRBT rugs database`,
-        life: 3000,
+        summary: `${state ? 'Classified' : 'Unclassified'} has rug`,
+        detail: message,
+        life: 5000,
       })
+      return true
     })
     .catch(error => {
       toast.add({
         severity: 'error',
         summary: 'Failed to call DRBT rug API',
         detail: error.message ?? error.toString(),
-        life: 3000,
+        life: 10000,
       })
+      return false
     })
 }
