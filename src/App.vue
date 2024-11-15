@@ -1362,7 +1362,22 @@ const ignoreCa = (ca: string, isIgnored: boolean) => {
   }
 }
 
-const onRug = (ca: string, isRug: boolean) => {
+const onRug = async (ca: string, isRug: boolean) => {
+  if (state.drbtApiKey) {
+    const ok = await drbtSetRug(ca, isRug, state.drbtApiKey, toast)
+    if (!ok) return
+  } else {
+    // Rug command to clipboard
+    const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
+    navigator.clipboard.writeText(command)
+    toast.add({
+      severity: 'success',
+      summary: 'Copied rug command',
+      detail: command,
+      life: 3000,
+    })
+  }
+
   if (isRug) state.rugs.push(ca)
   else state.rugs = state.rugs.filter(_ca => _ca !== ca)
 
@@ -1374,20 +1389,6 @@ const onRug = (ca: string, isRug: boolean) => {
     const row = archive.rows.find(row => row[indexes.CA] === ca)
     if (!row) return
     row[indexes.Rug] = isRug ? '1' : '0'
-  }
-
-  if (state.drbtApiKey) {
-    drbtSetRug(ca, isRug, state.drbtApiKey, toast)
-  } else {
-    // Rug command to clipboard
-    const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
-    navigator.clipboard.writeText(command)
-    toast.add({
-      severity: 'success',
-      summary: 'Copied rug command',
-      detail: command,
-      life: 3000,
-    })
   }
 }
 
