@@ -774,7 +774,7 @@
             <label for="drbt-input"
               >DRBT API key&nbsp;
               <InfoButton
-                text="In order to automatically set or unset token rug status in DRBT database when clicking Rug action in the call logs, enter the API key provided by DRBT. Otherwise you'll have to manually paste the /rug command into community group"
+                text="In order to automatically set or unset token rug status in DRBT database when clicking Rug action in the call logs, enter the API key provided by @DeFiRobot_Helper_Bot with /api_token command"
                 class="align-self-start"
             /></label>
             <InputGroup>
@@ -1371,10 +1371,10 @@ const onRug = async (ca: string, isRug: boolean) => {
     const command = `/setrug ${ca} ${isRug ? '1' : '0'}`
     navigator.clipboard.writeText(command)
     toast.add({
-      severity: 'success',
-      summary: 'Copied rug command',
-      detail: command,
-      life: 3000,
+      severity: 'warn',
+      summary: `Rug status updated locally`,
+      detail: `To update DRBT's database, either get an API key from @DeFiRobot_Helper_Bot with /api_token command and enter it in the field at the end of this app,\n\nor just DM @DeFi_Robot_ETH_bot with the /setrug command from your clipboard and then check with /getruglog`,
+      life: 60000,
     })
   }
 

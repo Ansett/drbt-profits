@@ -336,8 +336,9 @@ export function drbtSetRug(ca: string, state: boolean, apiKey: string, toast: To
       toast.add({
         severity: 'success',
         summary: `${state ? 'Classified' : 'Unclassified'} has rug`,
-        detail: message,
-        life: 5000,
+        detail:
+          message + `\n\nYou can DM @DeFi_Robot_ETH_bot /getruglog command to check a CA's status`,
+        life: 10000,
       })
       return true
     })
