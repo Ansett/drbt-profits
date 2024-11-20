@@ -107,6 +107,14 @@
           }})
         </template>
       </Column>
+      <!-- ATH -->
+      <Column
+        key="ATH"
+        field="mooners"
+        header=">2m"
+        sortable
+        :pt="{ headerTitle: { class: 'text-sm' } }"
+      />
       <!-- Rug -->
       <Column
         v-if="selectedColumns.includes('Rug')"

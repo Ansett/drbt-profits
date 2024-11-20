@@ -352,6 +352,7 @@ async function compute(
       if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++
       if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++
       if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++
+      if (call.ath >= 2000000 && !call.rug) hashes[call.hashF].mooners++
       hashes[call.hashF].xSum += call.rug ? 0 : call.xs
     }
 
@@ -365,6 +366,7 @@ async function compute(
         if (call.xs >= 10 && !call.rug) signatures[id].perf.x10++
         if (call.xs >= 50 && !call.rug) signatures[id].perf.x50++
         if (call.xs >= 100 && !call.rug) signatures[id].perf.x100++
+        if (call.ath >= 2000000 && !call.rug) signatures[id].mooners++
         signatures[id].xSum += call.rug ? 0 : call.xs
       }
     }
@@ -488,6 +490,7 @@ function initHash(id: string) {
       x50: 0,
       x100: 0,
     },
+    mooners: 0,
     rugs: 0,
     xSum: 0,
     allCalls: [],
