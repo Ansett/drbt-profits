@@ -1220,7 +1220,7 @@ const INIT_PRIO_BY_SNIPES = [
 ] as [number, number][]
 const INIT_CONDITIONAL_PRIO = false
 const INIT_MIN_CALLS = 5
-const INIT_HASH_COLUMNS = ['Count', 'Average', 'x10', 'x50', 'Tags']
+const INIT_HASH_COLUMNS = ['Count', 'ATH', 'Average', 'x100', 'Tags']
 const INIT_LOGS_COLUMNS = ['Invested', 'Entry MC']
 const INIT_TEXT_LOGS = false
 const INIT_BUY_TAX_IN_XS = true

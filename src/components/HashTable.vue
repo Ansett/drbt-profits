@@ -109,6 +109,7 @@
       </Column>
       <!-- ATH -->
       <Column
+        v-if="selectedColumns.includes('ATH')"
         key="ATH"
         field="mooners"
         header=">2m"
@@ -276,7 +277,7 @@ const filters = ref({
 })
 
 // prettier-ignore
-const optionalColumns = ["Count","Average","x5","x10","x50","x100","Rug","Tags"];
+const optionalColumns = ["Count","ATH","Average","x5","x10","x50","x100","Rug","Tags"];
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })
