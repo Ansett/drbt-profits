@@ -202,18 +202,18 @@
             <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
           </template>
         </Column>
+        <Column sortable :field="d => (d.rug ? -1 : d.xs)" header="Perf">
+          <template #body="{ data }">
+            <Tag v-if="data.rug || data.xs === -99" value="rug" severity="warning" />
+            <span v-else>{{ round(data.xs, 1) }}x</span>
+          </template>
+        </Column>
         <Column field="ath" header="ATH" sortable>
           <template #body="{ data }">
             <span
               :class="['help', { 'text-color-secondary font-italic': data.rug || data.xs === -99 }]"
               >{{ prettifyMc(data.ath) }}</span
             >
-          </template>
-        </Column>
-        <Column sortable :field="d => (d.rug ? -1 : d.xs)" header="Perf">
-          <template #body="{ data }">
-            <Tag v-if="data.rug || data.xs === -99" value="rug" severity="warning" />
-            <span v-else>{{ round(data.xs, 1) }}x</span>
           </template>
         </Column>
       </DataTable>
