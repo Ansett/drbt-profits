@@ -193,9 +193,17 @@
             <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
           </template>
         </Column>
+        <Column field="ath" header="ATH" sortable>
+          <template #body="{ data }">
+            <span
+              :class="['help', { 'text-color-secondary font-italic': data.rug || data.xs === -99 }]"
+              >{{ prettifyMc(data.ath) }}</span
+            >
+          </template>
+        </Column>
         <Column sortable :field="d => (d.rug ? -1 : d.xs)" header="Perf">
           <template #body="{ data }">
-            <Tag v-if="data.rug" value="rug" severity="warning" />
+            <Tag v-if="data.rug || data.xs === -99" value="rug" severity="warning" />
             <span v-else>{{ round(data.xs, 1) }}x</span>
           </template>
         </Column>
@@ -234,7 +242,7 @@ import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { FilterMatchMode } from 'primevue/api'
-import { prettifyDate, round } from '../lib'
+import { prettifyDate, prettifyMc, round } from '../lib'
 import CaLink from './CaLink.vue'
 import InfoButton from './InfoButton.vue'
 
