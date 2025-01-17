@@ -221,9 +221,9 @@
         class="flex flex-column mx-1 xl:mx-4 my-2 gap-3 lg:gap-4"
         style="max-width: min(95vw, 60rem)"
       >
-        <div class="flex flex-row flex-wrap gap-3 lg:gap-4">
+        <div class="flex flex-row flex-wrap gap-3 lg:gap-4 mb-3">
           <!-- POSITION -->
-          <div class="flex-grow-1 flex flex-column gap-2">
+          <div class="flex flex-column gap-2 flex-1">
             <label for="position-input">Max bag</label>
             <InputGroup>
               <InputGroupAddon>
@@ -244,30 +244,10 @@
               />
             </InputGroup>
           </div>
-          <!-- ALCHEMY API KEY -->
-          <div class="flex-grow-1 flex flex-column gap-2">
-            <label for="api-input"
-              ><a href="https://auth.alchemy.com/signup" target="_blank">Alchemy</a> API key&nbsp;
-              <InfoButton
-                text="In order to simulate more accurate swaps, we can fetch mainnet block transaction info (call blocks +1 and sometimes +2) in order to see how many buyers would front-run you, so we can calculate a realistic slippage, even if far from perfect, even if your query might have changed since then and calls delay were different back then.<br />Indeed the app doesn't know your wallet or even if you bought that token at all. It's just your priority vs. real transactions.<br/>Register for free on alchemy.com, create an APP, select Mainnet Ethereum, and then copy the API key from that app to paste it in here."
-                :accent="!state.chainApiKey"
-                class="align-self-start"
-            /></label>
-            <InputGroup>
-              <InputGroupAddon>
-                <i class="pi pi-ethereum"></i>
-              </InputGroupAddon>
-              <InputText
-                v-model.trim="state.chainApiKey"
-                id="api-input"
-                style="height: 4rem"
-                class="settingInput"
-              />
-            </InputGroup>
-          </div>
+
           <!-- GAS PRICE -->
-          <div class="flex flex-row align-items-end">
-            <div class="flex flex-column gap-2">
+          <div class="flex flex-row align-items-end flex-1">
+            <div class="flex flex-column gap-2 flex-grow-1">
               <label for="gwei-input"
                 >Priority (GWEI delta) {{ state.conditionalPrio ? 'based on bribes' : '' }}</label
               >
@@ -293,6 +273,7 @@
               </InputGroup>
             </div>
             <!-- CONDITIONAL PRIO SWITCH -->
+            <!--
             <div
               v-tooltip.top="{
                 value: `Priority based on bribes`,
@@ -316,6 +297,7 @@
               :pt="{ icon: { class: 'text-xl' } }"
               @click="configuringPrios = !configuringPrios"
             />
+            -->
           </div>
         </div>
 
@@ -734,7 +716,7 @@
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end">
+        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2 flex-1">
             <label for="mincalls-input">Minimum calls count to show hashes/sigs</label>
@@ -769,6 +751,24 @@
               />
             </InputGroup>
           </div>
+        </div>
+        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end">
+          <!-- ALCHEMY API KEY -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="api-input"
+              ><a href="https://auth.alchemy.com/signup" target="_blank">Alchemy</a> API key&nbsp;
+              <InfoButton
+                text="In order to simulate more accurate swaps, we can fetch mainnet block transaction info (call blocks +1 and sometimes +2) in order to see how many buyers would front-run you, so we can calculate a realistic slippage, even if far from perfect, even if your query might have changed since then and calls delay were different back then.<br />Indeed the app doesn't know your wallet or even if you bought that token at all. It's just your priority vs. real transactions.<br/>Register for free on alchemy.com, create an APP, select Mainnet Ethereum, and then copy the API key from that app to paste it in here."
+                :accent="!state.chainApiKey"
+                class="align-self-start"
+            /></label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-ethereum"></i>
+              </InputGroupAddon>
+              <InputText v-model.trim="state.chainApiKey" id="api-input" class="settingInput" />
+            </InputGroup>
+          </div>
           <!-- DRBT API -->
           <div class="flex flex-column gap-2 flex-1">
             <label for="drbt-input"
@@ -790,7 +790,7 @@
             </InputGroup>
           </div>
         </div>
-        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3">
+        <div class="flex flex-column md:flex-row flex-wrap md:align-items-center gap-3 mt-4">
           <!-- PRICE IMPACT -->
           <div class="flex flex-row gap-2 align-items-center">
             <Checkbox
@@ -1094,7 +1094,7 @@ const getHeaderIndexes = <T extends string>(
       continue
     }
 
-    // if the same header is present multiple time in sheet (ie. CRT_MC), take the last one
+    // if the same header is present multiple time in sheet, take the last one
     indexes[name] = allIndexes.length > 1 ? allIndexes[allIndexes.length - 1] : allIndexes[0]
   }
 
@@ -1113,7 +1113,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     'ATH_MC', // ATH at the time of call
     'TSupply',
     'MaxBuyPRCT', // MaxBuy is not realiable, using percentage instead
-    'CRT_MC', // taking the second column with same name, the first one is MC at present time, not call-time
+    'CRT_MC', // call-time MC (CRT_MC_ is present-time MC)
     'HashF',
     'BuyTax',
     'Logged',
@@ -1318,7 +1318,7 @@ function loadForm() {
   fixTakeProfits(state.takeProfits)
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
-  state.conditionalPrio = savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
+  state.conditionalPrio = INIT_CONDITIONAL_PRIO // savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
   state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS

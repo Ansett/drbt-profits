@@ -113,7 +113,7 @@
     <div v-else class="text-lg white-space-nowrap">Number of calls: <span class="text-primary">{{ nbCalls }}</span></div>
 
     <div v-if="noApiKey" class="font-italic text-sm text-yellow-300">
-      (&hairsp;It's recommanded to provide an API key in order to fetch on-chain data for a more realistic slippage simulation&hairsp;)
+      (&hairsp;It's recommanded to provide an API key in order to fetch on-chain data for a more realistic slippage simulation&hairsp;. See Alchemy input and instructions at the bottom.)
     </div>
   </div>
 </template>
