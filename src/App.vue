@@ -1365,6 +1365,7 @@ const ignoreCa = (ca: string, isIgnored: boolean) => {
 const onRug = async (ca: string, isRug: boolean) => {
   if (state.drbtApiKey) {
     const ok = await drbtSetRug(ca, isRug, state.drbtApiKey, toast)
+    console.warn({ ok })
     if (!ok) return
   } else {
     // Rug command to clipboard
@@ -1378,8 +1379,9 @@ const onRug = async (ca: string, isRug: boolean) => {
     })
   }
 
-  if (isRug) state.rugs.push(ca)
+  if (isRug) state.rugs = [...state.rugs, ca]
   else state.rugs = state.rugs.filter(_ca => _ca !== ca)
+  console.warn({ isRug }, [...state.rugs])
 
   for (const archive of archives.value) {
     archive.calls = archive.calls.map(call => ({ ...call, rug: ca === call.ca ? isRug : call.rug }))
