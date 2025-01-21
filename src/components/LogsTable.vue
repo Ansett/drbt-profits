@@ -270,6 +270,7 @@
           >
         </template></Column
       >
+
       <Column header="Perf" field="xs" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #header
           ><InfoButton
@@ -286,6 +287,35 @@
           </span>
         </template>
       </Column>
+
+      <Column
+        v-if="selectedColumns.includes('Perf diff')"
+        header="Diff"
+        field="xsDiff"
+        sortable
+        :pt="{ headerTitle: { class: 'text-xs' } }"
+      >
+        <template #header
+          ><InfoButton
+            text="Difference between Xs between this simulation and Xs from exported backtest XLSX"
+            direction="top"
+            hover
+            style="margin-top: 2px; margin-right: 6px"
+        /></template>
+        <template #body="{ data }">
+          <span class="flex flex-wrap column-gap-2 align-items-center">
+            <span
+              class="help"
+              v-tooltip.top="{
+                value: `Export: ${data.xs - data.xsDiff}x -> Simulation: ${data.xs}x`,
+                showDelay: 500,
+              }"
+              >{{ data.xsDiff === null ? '-' : data.xsDiff }}</span
+            >
+          </span>
+        </template>
+      </Column>
+
       <Column field="gain" header="Gain" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
           <span v-if="data.gain <= 0" class="flex column-gap-2 align-items-center">
@@ -369,7 +399,7 @@ const filteredLogs = computed(() =>
 )
 
 // prettier-ignore
-const optionalColumns = ["Block", "Invested", "Gas price", "Buy tax", "Entry MC", "ATH MC"];
+const optionalColumns = ["Block", "Invested", "Gas price", "Buy tax", "Entry MC", "ATH MC", "Perf diff"];
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })

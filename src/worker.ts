@@ -376,6 +376,7 @@ async function compute(
       ca: call.ca,
       name: call.name,
       xs: call.rug ? -99 : round(reducedBestXs, 1),
+      xsDiff: call.rug ? null : round(reducedBestXs - call.xs, 0),
       ath: call.ath,
       callMc: call.callMc,
       info: unrealistic
@@ -539,7 +540,7 @@ async function findTarget(
   do {
     if (abortSignal.aborted) return null
 
-    const { finalETH, drawdown, worstDrawdown } = await compute(
+    const { finalETH, drawdown, worstDrawdown, volume } = await compute(
       {
         calls,
         position,
@@ -562,6 +563,7 @@ async function findTarget(
       finalETH,
       drawdown,
       worstDrawdown,
+      volume,
       target: withMc ? `$${currentTP.mc}` : withXs ? `${currentTP.xs}x` : `${currentTP.eth} Ξ`,
     })
 

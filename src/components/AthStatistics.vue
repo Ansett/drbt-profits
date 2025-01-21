@@ -58,7 +58,6 @@ const getCategoryIndex = (hour: number): number => {
   return index > -1 ? index : hoursCategories.length - 1
 }
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
   calls: Call[]
 }>()
