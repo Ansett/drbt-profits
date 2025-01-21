@@ -237,14 +237,14 @@ async function compute(
     const feeMultiplicator = invested / (invested + gasPrice)
     const taxMultiplicator = 1 - call.buyTax
     // we reduce Xs used for targeting with gas fee, but we later need to revert that when using the Xs to actually calculate the final profit; only do that for Xs target, not MC target transformed in Xs
-    const reducedXs = (rawXs: number, includeFee: boolean, includeGas: boolean) => {
+    const reducedXs = (rawXs: number, includeFee: boolean, includeTax: boolean) => {
       let xs = includeFee ? rawXs * feeMultiplicator : rawXs
-      xs = includeGas ? xs * taxMultiplicator : xs
+      xs = includeTax ? xs * taxMultiplicator : xs
       return xs
     }
-    const unreducedXs = (xsWithFeeAndGas: number, includedFee: boolean, includedGas: boolean) => {
+    const unreducedXs = (xsWithFeeAndGas: number, includedFee: boolean, includeTax: boolean) => {
       let xs = includedFee ? xsWithFeeAndGas / feeMultiplicator : xsWithFeeAndGas
-      xs = includedGas ? xs / taxMultiplicator : xs
+      xs = includeTax ? xs / taxMultiplicator : xs
       return xs
     }
 

@@ -218,6 +218,15 @@
         </template>
       </Column>
       <Column
+        v-if="selectedColumns.includes('Buy tax')"
+        field="buyTax"
+        header="Tax"
+        sortable
+        :pt="{ headerTitle: { class: 'text-xs' } }"
+      >
+        <template #body="{ data }"> {{ data.buyTax }}% </template>
+      </Column>
+      <Column
         v-if="selectedColumns.includes('Entry MC')"
         field="callMc"
         header="MC"
@@ -360,7 +369,7 @@ const filteredLogs = computed(() =>
 )
 
 // prettier-ignore
-const optionalColumns = ["Block", "Invested","Gas price","Entry MC","ATH MC"];
+const optionalColumns = ["Block", "Invested", "Gas price", "Buy tax", "Entry MC", "ATH MC"];
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })

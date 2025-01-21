@@ -328,8 +328,8 @@ export function drbtSetRug(ca: string, state: boolean, apiKey: string, toast: To
   })
     .then(async response => {
       if (!response.ok) {
-        const errorMessage = await response.text() // Get error message text from response
-        throw new Error(`Error ${response.status}: ${errorMessage}`) // Throw the error
+        const errorMessage = await response.text()
+        throw new Error(`Error ${response.status}: ${errorMessage}`)
       }
 
       const { message } = await response.json()
