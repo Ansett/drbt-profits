@@ -214,6 +214,18 @@
               @addTag="addTag"
             />
           </AccordionTab>
+
+          <!-- GAS -->
+          <AccordionTab header="GAS" :pt="{ content: { class: 'p-0' } }">
+            <HashTable
+              :lines="gasesWithTags"
+              filter-template="Gas not in [{}]"
+              v-model:selectedColumns="state.hashColumns"
+              :screener-url="state.screenerUrl"
+              @removeTag="removeTag"
+              @addTag="addTag"
+            />
+          </AccordionTab>
         </Accordion>
       </div>
 
@@ -1041,6 +1053,10 @@ const signatures = ref<Record<string, HashInfo>>({})
 const signaturesWithTags = computed<HashInfo[]>(() =>
   addTagsToHashes(signatures.value, localTags.value, state.minCallsForHash),
 )
+const gases = ref<Record<string, HashInfo>>({})
+const gasesWithTags = computed<HashInfo[]>(() =>
+  addTagsToHashes(gases.value, localTags.value, state.minCallsForHash),
+)
 
 const archives = ref<CallArchive[]>([])
 const current = ref<CallArchive | null>(null)
@@ -1609,6 +1625,7 @@ worker.onmessage = ({ data }) => {
     logs.value = data.logs
     hashes.value = data.hashes
     signatures.value = data.signatures
+    gases.value = data.gases
     loading.value = false
   } else if (data.type === 'WARNING') {
     toast.removeAllGroups()

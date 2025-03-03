@@ -154,6 +154,7 @@ async function compute(
   const logs: Log[] = []
   const hashes: Record<string, HashInfo> = {}
   const signatures: Record<string, HashInfo> = {}
+  const gases: Record<string, HashInfo> = {}
 
   const gainByDate: Record<string, number> = {}
   const addGain = (date: string, gain: number) => {
@@ -371,6 +372,19 @@ async function compute(
       }
     }
 
+    // Regrouping gases
+    if (call.buyGas && !call.ignored) {
+      if (!gases[call.buyGas]) gases[call.buyGas] = initHash(call.buyGas + '')
+      gases[call.buyGas].allCalls.push(call)
+      if (call.rug) gases[call.buyGas].rugs++
+      if (call.xs >= 5 && !call.rug) gases[call.buyGas].perf.x5++
+      if (call.xs >= 10 && !call.rug) gases[call.buyGas].perf.x10++
+      if (call.xs >= 50 && !call.rug) gases[call.buyGas].perf.x50++
+      if (call.xs >= 100 && !call.rug) gases[call.buyGas].perf.x100++
+      if (call.ath >= 2000000 && !call.rug) gases[call.buyGas].mooners++
+      gases[call.buyGas].xSum += call.rug ? 0 : call.xs
+    }
+
     logs.unshift({
       date: prettifyDate(call.date),
       ca: call.ca,
@@ -431,6 +445,7 @@ async function compute(
     logs,
     hashes,
     signatures,
+    gases,
   }
 }
 

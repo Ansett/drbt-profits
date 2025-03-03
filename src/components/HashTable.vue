@@ -317,7 +317,7 @@ const toast = useToast()
 const getIdsString = () =>
   props.filterTemplate.includes('[{}]')
     ? getSelection()
-        .map(d => `'${d.id}'`)
+        .map(d => d.id)
         .join(',')
     : getSelection()
         .map(d => d.id)
