@@ -373,7 +373,7 @@ async function compute(
     }
 
     // Regrouping gases
-    if (call.buyGas && !call.ignored) {
+    if (call.buyGas && !isNaN(call.buyGas) && !call.ignored) {
       if (!gases[call.buyGas]) gases[call.buyGas] = initHash(call.buyGas + '')
       gases[call.buyGas].allCalls.push(call)
       if (call.rug) gases[call.buyGas].rugs++
