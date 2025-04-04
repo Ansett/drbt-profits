@@ -125,9 +125,12 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.rugs }} (&hairsp;{{
-            Math.round((data.rugs / data.allCalls.length) * 100) + '%'
-          }}&hairsp;)
+          {{ data.rugs }}
+          <span class="text-sm text-color-secondary nowrap">
+            (&hairsp;{{
+              Math.round((data.rugs / data.allCalls.length) * 100) + '%'
+            }}&hairsp;)
+          </span>
         </template>
       </Column>
       <!-- Tags -->
