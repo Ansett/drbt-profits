@@ -102,9 +102,12 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.perf[cat] }}<br />({{
-            Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%'
-          }})
+          {{ data.perf[cat] }}
+           <span class="text-sm text-color-secondary nowrap">
+            (&hairsp;{{
+              Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%'
+            }}&hairsp;)
+          </span>
         </template>
       </Column>
       <!-- ATH -->
