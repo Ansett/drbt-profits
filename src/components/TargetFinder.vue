@@ -2,7 +2,7 @@
   <section class="relative">
     <ProgressSpinner
       v-if="loading"
-      class="absolute top-0 left-50"
+      class="spinner absolute top-0 left-50"
       style="width: 99px; height: 99px; transform: translate(-50%, 50px); z-index: 2"
     />
 
@@ -47,13 +47,13 @@
         />
         <InputNumber
           v-else
-          key="ethInc"
-          v-model="ethIncrement"
+          key="amountInc"
+          v-model="amountIncrement"
           showButtons
           buttonLayout="stacked"
-          suffix=" Ξ"
-          :min="100000"
-          :step="100000"
+          :suffix="suffix"
+          :min="amountRange[0] / 2"
+          :step="amountRange[0] / 2"
           :pt="getPtNumberInput()"
           class="settingInput"
         />
@@ -90,13 +90,13 @@
         />
         <InputNumber
           v-else
-          key="ethFrom"
-          v-model="ethTargetStart"
+          key="amountFrom"
+          v-model="amountTargetStart"
           showButtons
           buttonLayout="stacked"
-          suffix=" Ξ"
-          :min="0.1"
-          :step="0.5"
+          :suffix="suffix"
+          :min="amountRange[0] / 2"
+          :step="amountRange[0] / 2"
           :pt="getPtNumberInput()"
           class="settingInput"
         />
@@ -129,13 +129,13 @@
         />
         <InputNumber
           v-else
-          key="ethTo"
-          v-model="ethTargetEnd"
+          key="amountTo"
+          v-model="amountTargetEnd"
           showButtons
           buttonLayout="stacked"
-          suffix=" Ξ"
-          :min="ethTargetStart"
-          :step="0.5"
+          :suffix="suffix"
+          :min="amountTargetStart"
+          :step="amountRange[0] / 2"
           :pt="getPtNumberInput()"
           class="settingInput"
         />
@@ -151,13 +151,13 @@
       <DataTable :value="result" sortField="target" dataKey="target" sortMode="single" size="small">
         <template #empty>No result yet</template>
         <Column field="target" header="Target" sortable></Column>
-        <Column field="finalETH" header="Profit" sortable>
+        <Column field="finalWorth" header="Profit" sortable>
           <template #body="{ data }">
             <span
               :class="{
-                'text-green-400': data.finalETH === extremeValues.topProfit,
+                'text-green-400': data.finalWorth === extremeValues.topProfit,
               }"
-              >{{ data.finalETH }}</span
+              >{{ data.finalWorth }}</span
             >
           </template>
         </Column>
@@ -195,7 +195,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, shallowRef } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Dropdown from 'primevue/dropdown'
 import InputNumber from 'primevue/inputnumber'
@@ -203,64 +203,118 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import type { Call } from '@/types/Call'
+import type { Call, SolCall } from '@/types/Call'
 import { getPtNumberInput } from '@/constants'
-import Worker from '../worker?worker'
 import type { ComputationShortResult } from '@/types/ComputationResult'
 import { debounce } from '@/lib'
 import type { TakeProfit } from '@/types/TakeProfit'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
-const props = defineProps<{
+const {
+  chain = 'ETH',
+  data,
+  amountRange,
+  mcRange,
+} = defineProps<{
+  chain?: 'ETH' | 'SOL'
   data: {
-    calls: Call[]
+    calls: Call[] | SolCall[]
     position: number
-    gweiDelta: number
-    prioBySnipes: [number, number][] | null
-    buyTaxInXs: boolean
-    feeInXs: boolean
-    chainApiKey: string
+    gweiDelta?: number
+    prioBySnipes?: [number, number][] | null
+    buyTaxInXs?: boolean
+    feeInXs?: boolean
+    chainApiKey?: string
   }
+  mcRange: [number, number, number]
+  amountRange: [number, number, number]
 }>()
 
-const xIncrement = ref(10)
 const xTargetStart = ref(50)
-const xTargetEnd = ref(300)
-const mcIncrement = ref(1000000)
-const mcTargetStart = ref(500000)
-const mcTargetEnd = ref(25000000)
-const ethIncrement = ref(1)
-const ethTargetStart = ref(0.5)
-const ethTargetEnd = ref(25)
+const xIncrement = ref(10)
+const xTargetEnd = ref(250)
+const mcTargetStart = ref(mcRange[0])
+const mcIncrement = ref(mcRange[1])
+const mcTargetEnd = ref(mcRange[2])
+const amountTargetStart = ref(amountRange[0])
+const amountIncrement = ref(amountRange[1])
+const amountTargetEnd = ref(amountRange[2])
 
-const targetKinds = ['Xs targets', 'ETH targets', 'MC targets']
-const selectedtargetKind = ref<'Xs targets' | 'ETH targets' | 'MC targets'>('MC targets')
+const targetKinds = ['Xs targets', 'Amount targets', 'MC targets']
+const selectedtargetKind = ref<'Xs targets' | 'Amount targets' | 'MC targets'>('MC targets')
 
+const suffix = computed(() => ' ' + (chain === 'ETH' ? 'Ξ' : '◎'))
 const loading = ref(false)
-const compute = () => {
+const result = ref<ComputationShortResult[]>([])
+const worker = shallowRef<Worker | null>(null)
+const debouncedCompute = debounce(compute, 1000)
+
+onMounted(async () => {
+  const WorkerConstructor = (
+    await import(chain === 'ETH' ? '@/worker?worker' : '@/worker-sol?worker')
+  ).default
+  worker.value = new WorkerConstructor()
+  worker.value!.onmessage = handleWorkerMessage
+
+  debouncedCompute()
+})
+
+async function handleWorkerMessage({ data }: any) {
+  if (data.type === 'TARGETING') {
+    loading.value = false
+    result.value = data.result
+  }
+}
+
+watch(
+  [
+    () => data.calls,
+    () => data.position,
+    () => data.gweiDelta,
+    () => data.prioBySnipes,
+    () => data.buyTaxInXs,
+    () => data.feeInXs,
+    () => data.chainApiKey,
+    selectedtargetKind,
+    xTargetStart,
+    mcTargetStart,
+    amountTargetStart,
+    xTargetEnd,
+    mcTargetEnd,
+    amountTargetEnd,
+    xIncrement,
+    mcIncrement,
+    amountIncrement,
+  ],
+  () => {
+    debouncedCompute()
+  },
+)
+
+function compute() {
   loading.value = true
-  worker.postMessage({
+  worker.value!.postMessage({
     type: 'TARGETING',
-    calls: JSON.parse(JSON.stringify(props.data.calls)),
-    position: props.data.position,
-    gweiDelta: props.data.gweiDelta,
-    prioBySnipes: props.data.prioBySnipes,
-    buyTaxInXs: props.data.buyTaxInXs,
-    feeInXs: props.data.feeInXs,
-    chainApiKey: props.data.chainApiKey,
+    calls: JSON.parse(JSON.stringify(data.calls)),
+    position: data.position,
+    gweiDelta: data.gweiDelta,
+    prioBySnipes: data.prioBySnipes,
+    buyTaxInXs: data.buyTaxInXs,
+    feeInXs: data.feeInXs,
+    chainApiKey: data.chainApiKey,
     withPriceImpact: false,
     increment:
       selectedtargetKind.value === 'Xs targets'
         ? xIncrement.value
         : selectedtargetKind.value === 'MC targets'
         ? mcIncrement.value
-        : ethIncrement.value,
+        : amountIncrement.value,
     end:
       selectedtargetKind.value === 'Xs targets'
         ? xTargetEnd.value
         : selectedtargetKind.value === 'MC targets'
         ? mcTargetEnd.value
-        : ethTargetEnd.value,
+        : amountTargetEnd.value,
     targetStart: JSON.parse(
       JSON.stringify({
         size: 100,
@@ -268,26 +322,17 @@ const compute = () => {
         withXs: selectedtargetKind.value === 'Xs targets',
         mc: mcTargetStart.value,
         withMc: selectedtargetKind.value === 'MC targets',
-        eth: ethTargetStart.value,
-        withEth: selectedtargetKind.value === 'ETH targets',
+        amount: amountTargetStart.value,
+        withAmount: selectedtargetKind.value === 'Amount targets',
         andLogic: false,
       } as TakeProfit),
     ),
   })
 }
 
-const result = ref<ComputationShortResult[]>([])
-const worker = new Worker()
-worker.onmessage = ({ data }) => {
-  if (data.type === 'TARGETING') {
-    loading.value = false
-    result.value = data.result
-  }
-}
-
 const extremeValues = computed(function () {
-  let topProfit = Math.max(...result.value.map(v => v.finalETH))
-  if (result.value.every(v => v.finalETH === topProfit)) topProfit = -1
+  let topProfit = Math.max(...result.value.map(v => v.finalWorth))
+  if (result.value.every(v => v.finalWorth === topProfit)) topProfit = -1
   let bestDD = Math.max(...result.value.map(v => v.drawdown))
   if (result.value.every(v => v.drawdown === bestDD)) bestDD = -1
   let bestWDD = Math.max(...result.value.map(v => v.worstDrawdown[1]))
@@ -299,31 +344,4 @@ const extremeValues = computed(function () {
     bestWDD,
   }
 })
-
-const debouncedCompute = debounce(compute, 1000)
-onMounted(() => debouncedCompute())
-watch(
-  [
-    () => props.data.calls,
-    () => props.data.position,
-    () => props.data.gweiDelta,
-    () => props.data.prioBySnipes,
-    () => props.data.buyTaxInXs,
-    () => props.data.feeInXs,
-    () => props.data.chainApiKey,
-    selectedtargetKind,
-    xTargetStart,
-    mcTargetStart,
-    ethTargetStart,
-    xTargetEnd,
-    mcTargetEnd,
-    ethTargetEnd,
-    xIncrement,
-    mcIncrement,
-    ethIncrement,
-  ],
-  () => {
-    debouncedCompute()
-  },
-)
 </script>

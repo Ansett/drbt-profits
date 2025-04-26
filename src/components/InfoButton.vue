@@ -15,7 +15,7 @@ import { computed } from 'vue'
 import vTooltip from 'primevue/tooltip'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
-const props = defineProps<{
+const { text, accent, direction, hover } = defineProps<{
   text: string
   accent?: boolean
   direction?: 'left' | 'right' | 'top' | 'bottom'
@@ -23,7 +23,7 @@ const props = defineProps<{
 }>()
 
 const options = computed(() => ({
-  position: props.direction || 'bottom',
-  event: props.hover ? 'hover' : 'focus',
+  position: direction || 'bottom',
+  event: hover ? 'hover' : 'focus',
 }))
 </script>

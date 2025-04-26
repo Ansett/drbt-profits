@@ -25,4 +25,8 @@ export default defineConfig({
   build: {
     sourcemap: true,
   },
+  server: {
+    port: 3000, // Replace with the port you want
+    strictPort: true, // Ensures Vite fails if the port is already in use
+  },
 })

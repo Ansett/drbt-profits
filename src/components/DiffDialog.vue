@@ -69,7 +69,7 @@
         <template #content>
           <Statistics
             :loading="left.loading"
-            :finalETH="left.stats.finalETH"
+            :final="left.stats.finalWorth"
             :drawdown="left.stats.drawdown"
             :worstDrawdown="left.stats.worstDrawdown"
             :volume="common.stats.volume"
@@ -83,6 +83,7 @@
             :rows="10"
             initialSort="xs"
             :screener-url="screenerUrl"
+            :chain="chain"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
           />
@@ -105,7 +106,7 @@
         <template #content>
           <Statistics
             :loading="right.loading"
-            :finalETH="right.stats.finalETH"
+            :final="right.stats.finalWorth"
             :drawdown="right.stats.drawdown"
             :worstDrawdown="right.stats.worstDrawdown"
             :volume="common.stats.volume"
@@ -119,6 +120,7 @@
             :rows="10"
             initialSort="xs"
             :screener-url="screenerUrl"
+            :chain="chain"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
           />
@@ -140,7 +142,7 @@
         <template #content>
           <Statistics
             :loading="common.loading"
-            :finalETH="common.stats.finalETH"
+            :final="common.stats.finalWorth"
             :drawdown="common.stats.drawdown"
             :worstDrawdown="common.stats.worstDrawdown"
             :volume="common.stats.volume"
@@ -154,6 +156,7 @@
             :rows="10"
             initialSort="xs"
             :screener-url="screenerUrl"
+            :chain="chain"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
           />
@@ -173,45 +176,50 @@
 </template>
 
 <script setup lang="ts">
-import writeXlsxFile from 'write-excel-file'
-import { computed, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import Card from 'primevue/card'
 import Dialog from 'primevue/dialog'
 import Dropdown from 'primevue/dropdown'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
-import SplitButton from 'primevue/splitbutton'
 import vTooltip from 'primevue/tooltip'
-import { type CallDiff, type CallArchive, type DiffType } from '@/types/Call'
+import { type CallDiff, type CallArchive } from '@/types/Call'
 import { getRowsCorrespondingToLogs, sleep, downloadRowsXlsx } from '@/lib'
-import Worker from '@/worker?worker'
 import Statistics from './Statistics.vue'
 import type { ComputationResult } from '@/types/ComputationResult'
 import LogsTable from './LogsTable.vue'
-import type { Call, CallExportType } from '@/types/Call'
+import type { Call, SolCall } from '@/types/Call'
 import { ComputeVariant } from '@/types/ComputeVariant'
 import type { Log } from '@/types/Log'
 
 type DiffPart = {
-  archive: CallArchive
-  diff: Call[]
+  archive: CallArchive | CallArchive<SolCall>
+  diff: Call[] | SolCall[]
   loading: boolean
   stats: ComputationResult
 }
 
-const props = defineProps<{
-  archives: CallArchive[]
-  current: CallArchive
-  screenerUrl?: string
+const {
+  archives,
+  current,
+  screenerUrl,
+  computingParams,
+  chain = 'ETH',
+} = defineProps<{
+  archives: CallArchive[] | CallArchive<SolCall>[]
+  current: CallArchive | CallArchive<SolCall>
+  screenerUrl: string
+  chain?: 'ETH' | 'SOL'
+
   computingParams: {
     position: number
-    gweiDelta: number
-    prioBySnipes: [number, number][] | null
-    buyTaxInXs: boolean
-    feeInXs: boolean
-    chainApiKey: string
+    gweiDelta?: number
+    prioBySnipes?: [number, number][] | null
+    buyTaxInXs?: boolean
+    feeInXs?: boolean
+    chainApiKey?: string
     takeProfits: string
-    withPriceImpact: boolean
+    withPriceImpact?: boolean
   }
 }>()
 
@@ -223,11 +231,11 @@ const emit = defineEmits<{
   (e: 'closed'): void
 }>()
 
-const currentIndex = props.archives.findIndex(a => a.fileName === props.current.fileName)
+const currentIndex = archives.findIndex(a => a.fileName === current.fileName)
 
 const getDefaultStats = () =>
   ({
-    finalETH: 0,
+    finalWorth: 0,
     drawdown: 0,
     worstDrawdown: ['', 0],
     volume: 0,
@@ -249,7 +257,7 @@ const getDefaultStats = () =>
 
 const left = reactive<DiffPart>({
   // previous file, or first one
-  archive: props.archives[Math.max(0, currentIndex - 1)],
+  archive: archives[Math.max(0, currentIndex - 1)],
   diff: [],
   loading: false,
   stats: getDefaultStats(),
@@ -257,9 +265,9 @@ const left = reactive<DiffPart>({
 const right = reactive<DiffPart>({
   // current file, or last one
   archive:
-    props.current.fileName === left.archive.fileName && props.archives.length > 1
-      ? props.archives[props.archives.length - 1]
-      : props.current,
+    current.fileName === left.archive.fileName && archives.length > 1
+      ? archives[archives.length - 1]
+      : current,
   diff: [],
   loading: false,
   stats: getDefaultStats(),
@@ -290,8 +298,18 @@ const onClose = async () => {
   emit('closed')
 }
 
-const worker = new Worker()
-worker.onmessage = async ({ data }) => {
+const worker = shallowRef<Worker | null>(null)
+
+onMounted(async () => {
+  const WorkerConstructor = (
+    await import(chain === 'ETH' ? '@/worker?worker' : '@/worker-sol?worker')
+  ).default
+  worker.value = new WorkerConstructor()
+  worker.value!.onmessage = handleWorkerMessage
+  extractDiff()
+})
+
+async function handleWorkerMessage({ data }: any) {
   if (data.type === 'DIFF') {
     left.diff = (data.diff as CallDiff[])
       .filter(data => data.status === 'REMOVED')
@@ -320,17 +338,17 @@ worker.onmessage = async ({ data }) => {
 function runCompute(part: DiffPart, variant: ComputeVariant) {
   part.loading = true
 
-  worker.postMessage({
+  worker.value!.postMessage({
     type: 'COMPUTE',
     calls: JSON.parse(JSON.stringify(part.diff)),
-    ...props.computingParams,
+    ...computingParams,
     variant,
   })
 }
 
 function extractDiff() {
   if (!left.archive || !right.archive) return
-  worker.postMessage({
+  worker.value!.postMessage({
     type: 'DIFF',
     previousCalls: JSON.parse(JSON.stringify(left.archive.calls)),
     newCalls: JSON.parse(JSON.stringify(right.archive.calls)),
@@ -347,13 +365,9 @@ async function exportXlsx(logs: Log[] | null, type: 'Merged' | 'Left' | 'Right' 
   await downloadRowsXlsx(rowsToExport, type)
 }
 
-watch(
-  [() => left.archive, () => right.archive],
-  () => {
-    extractDiff()
-  },
-  { immediate: true },
-)
+watch([() => left.archive, () => right.archive], () => {
+  extractDiff()
+})
 watch(
   () => left.diff,
   () => {

@@ -2,7 +2,7 @@ import type { HashInfo } from './HashInfo'
 import type { Log } from './Log'
 
 export type ComputationShortResult = {
-  finalETH: number
+  finalWorth: number
   drawdown: number
   worstDrawdown: [string, number]
   volume: number

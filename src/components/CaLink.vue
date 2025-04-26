@@ -35,29 +35,29 @@ import { useToast } from 'primevue/usetoast'
 import vTooltip from 'primevue/tooltip'
 import { DEFAULT_SCREENER_URL } from '@/constants'
 
-const props = defineProps<{
+const { ca, name, wallet, screenerUrl } = defineProps<{
   ca: string
   name?: string
   wallet?: boolean
   screenerUrl?: string
 }>()
 
-const truncatedCa = computed(() => props.ca.slice(0, 5) + '...' + props.ca.slice(-4))
+const truncatedCa = computed(() => ca.slice(0, 5) + '...' + ca.slice(-4))
 
 const toast = useToast()
 const copyCA = () => {
-  navigator.clipboard.writeText(props.ca)
+  navigator.clipboard.writeText(ca)
   toast.add({
     severity: 'success',
-    summary: `Copied ${props.name ? props.name + ' ' : ''}address to clipboard: ` + props.ca,
+    summary: `Copied ${name ? name + ' ' : ''}address to clipboard: ` + ca,
     life: 3000,
   })
 }
 
 const validScreenerUrl = computed(() => {
-  if (!props.screenerUrl) return DEFAULT_SCREENER_URL
+  if (!screenerUrl) return DEFAULT_SCREENER_URL
 
-  let url = props.screenerUrl
+  let url = screenerUrl
   if (url.slice(-1) !== '/') url += '/'
   if (!url.startsWith('https://') && !url.startsWith('http://')) url = 'https://' + url
 

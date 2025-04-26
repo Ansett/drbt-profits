@@ -46,6 +46,8 @@ const cleanedData = computed(
     props.data?.filter(
       d =>
         !EXCLUDED_FROM_ACCURACY.includes(d.ca) &&
+        d.realBlock &&
+        d.theoricBlock &&
         // remove entries where block diff is > 1, indicating my query is now delivering a call with a delay different then it was at the time of launch
         Math.abs(d.realBlock - d.theoricBlock) <= 1,
     ) || [],
@@ -57,7 +59,7 @@ const dataset = computed(() =>
         {
           name: 'Accuracy by delay',
           values: cleanedData.value
-            .filter(d => d.delay < 30)
+            .filter(d => (d.delay || 0) < 30)
             .map(d => ({
               x: d.delay,
               y: d.relativeError,

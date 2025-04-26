@@ -9,19 +9,19 @@
     <!-- FUNDS -->
     <div class="text-2xl flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
-        v-if="info"
-        :text="`Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag or contract's max buy, minus tax, gas price (calculated from current+delta gwei) and, optionally, estimated slippage from on-chain data.</li><li>Sell calculations: ${SELL_GAS_PRICE} fixed gas price, ${SELL_TAX}% tax and, optinally, price impact, are removed from each sales.</li><li>Investment is counted as a loss if not reaching targets.</li><li>Each sale's date is guessed from sale MC vs. ATH MC ratio: on a 1 month 4m MC token, selling at 1m means selling after 1 week.</li></ul>`"
+        v-if="info && buyInfo"
+        :text="buyInfo"
         direction="right"
       />
       Realized profit:
-      <span class="font-bold text-primary">{{ finalETH }}</span>
-      <span class="text-color-secondary text-lg"> ETH</span>
+      <span class="font-bold text-primary">{{ final }}</span>
+      <span class="text-color-secondary text-lg"> {{ currency }}</span>
     </div>
     <!-- DRAWDOWN -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
       <InfoButton
         v-if="info"
-        :text="`<ul><li>Overall drawdown: the lowest the wallet has fallen to, starting from 0 ETH, during the whole period.<li>Worst drawdown: the lowest the wallet has fallen to if you began your strategy at the worst time during the selected period (${worstDrawdown[0]} in this case).<li>You need at the very least double the worst drawndown value your wallet to sustain the strategy.</li></ul>`"
+        :text="`<ul><li>Overall drawdown: the lowest the wallet has fallen to, starting from 0 ${currency}, during the whole period.<li>Worst drawdown: the lowest the wallet has fallen to if you began your strategy at the worst time during the selected period (${worstDrawdown[0]} in this case).<li>You need at the very least double the worst drawndown value your wallet to sustain the strategy.</li></ul>`"
         direction="right"
       />
       Drawdown:
@@ -41,7 +41,7 @@
       <span class="">Profit/drawdown ratio: </span>
       <span class="text-primary">{{
         worstDrawdown[1]
-          ? round(finalETH / Math.abs(worstDrawdown[1]), 2)
+          ? round(final / Math.abs(worstDrawdown[1]), 2)
           : 0
       }}</span>
     </div>
@@ -54,7 +54,7 @@
       />
       Volume:
       <span class="text-primary">{{ volume || 0 }}</span>
-      <span class="text-color-secondary"> ETH</span>
+      <span class="text-color-secondary"> {{ currency }}</span>
     </div>
     <!-- VOLUME RATIO -->
     <div class="text-lg flex gap-2 align-items-center white-space-nowrap">
@@ -66,7 +66,7 @@
       <span class="">Profit/volume ratio: </span>
       <span class="text-primary">{{
         volume
-          ? round(finalETH / volume, 2)
+          ? round(final / volume, 2)
           : 0
       }}</span>
     </div>
@@ -80,7 +80,7 @@
             <div class="text-lg font-normal white-space-nowrap">Number of calls: <span class="text-primary">{{ nbCalls }}</span></div>
           </template>
 
-            <div class="text-sm white-space-nowrap">
+            <div v-if="counters.rug" class="text-sm white-space-nowrap">
               Rugs: {{counters.rug}} ({{ statPercentages(counters.rug,nbCalls) }})
             </div>
             <div class="text-sm white-space-nowrap">
@@ -126,16 +126,32 @@ import { SELL_GAS_PRICE, SELL_TAX } from '@/constants'
 import type { ComputationResult } from '@/types/ComputationResult'
 import { round } from '@/lib'
 import InfoButton from './InfoButton.vue'
+import { computed } from 'vue'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
-const props = defineProps<{
+const {
+  nbCalls,
+  loading,
+  final,
+  currency = 'ETH',
+  drawdown,
+  volume,
+  worstDrawdown,
+  counters,
+  info,
+  noApiKey,
+  fullStats,
+  buyInfo,
+} = defineProps<{
   nbCalls: number
   loading: boolean | string
-  finalETH: number
+  final: number
+  currency?: 'ETH' | 'SOL'
   drawdown: number
   volume: number
   worstDrawdown: [string, number]
   counters: ComputationResult['counters']
+  buyInfo?: string
   info?: boolean
   noApiKey?: boolean
   fullStats?: boolean

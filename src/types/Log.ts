@@ -3,7 +3,7 @@ export type Log = {
   ca: string
   name: string
   invested: number
-  gasPrice: number
+  gasPrice?: number
   xs: number // -99 is rug
   xsDiff: number | null
   callMc: number
@@ -15,24 +15,24 @@ export type Log = {
   ignored: boolean
   flag: 'ignored' | '' // to allow search
   /* for accuracy check */
-  nbBribes: number
-  buyTax: number
+  nbBribes?: number
+  buyTax?: number
   supply: number
-  delay: number
-  callBlock: number
-  theoricBlock: number
-  ethPrice: number
+  delay?: number
+  callBlock?: number
+  theoricBlock?: number
+  basePrice: number // eth or sol price
 }
 
 export type AccuracyLog = {
   slippage: number
-  bribes: number
+  bribes?: number
   relativeError: number // in %
   theoricBuyMc: number
   realBuyMc: number
   ca: string
-  delay: number
-  callBlock: number
-  theoricBlock: number
-  realBlock: number
+  delay?: number
+  callBlock?: number
+  theoricBlock?: number
+  realBlock?: number
 }

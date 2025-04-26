@@ -1,8 +1,10 @@
 import writeXlsxFile from 'write-excel-file'
-import type { Call, CallArchive, CallExportType, RowsForExport } from './types/Call'
+import type { Call, CallArchive, CallExportType, RowsForExport, SolCall } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog, Log } from './types/Log'
 import type { ToastServiceMethods } from 'primevue/toastservice'
+import { INITIAL_TP_SIZE_CODE } from './constants'
+import { TakeProfit } from './types/TakeProfit'
 
 type ExportedRows = {
   value: string | number
@@ -90,19 +92,19 @@ export function prettifyMc(mc: number) {
 export function localStorageSet(key: string, value: string) {
   try {
     localStorage.setItem(key, value)
-  } catch (e) {} // in case storage is corrupted
+  } catch (e) { } // in case storage is corrupted
 }
 export function localStorageSetObject(key: string, value: Record<string, any>) {
   try {
     localStorageSet(key, JSON.stringify(value))
-  } catch (e) {} // in case storage is corrupted
+  } catch (e) { } // in case storage is corrupted
 }
 
 export function localStorageGet(key: string): string | null {
   let value: string | null = null
   try {
     value = localStorage.getItem(key)
-  } catch (e) {} // in case storage is corrupted
+  } catch (e) { } // in case storage is corrupted
   return value
 }
 
@@ -112,7 +114,7 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
   try {
     const parsed = JSON.parse(value)
     return parsed
-  } catch (e) {} // in case storage is corrupted
+  } catch (e) { } // in case storage is corrupted
   return null
 }
 
@@ -151,7 +153,7 @@ export function sumObjectProperty<T extends Record<string, any>>(
 }
 
 // Sale date is prorated from sale MC / ATH ratio
-export function getSaleDate(call: Call, saleMc: number) {
+export function getSaleDate(call: Call | SolCall, saleMc: number) {
   const saleDelayHours = (call.athDelayHours / call.ath) * saleMc
   const saleDate = new Date(call.date)
   saleDate.setTime(saleDate.getTime() + saleDelayHours * 60 * 60 * 1000)
@@ -232,7 +234,7 @@ export async function downloadDataUrl(
   await sleep(0)
   try {
     document.body.removeChild(link)
-  } catch (e) {}
+  } catch (e) { }
   if (filename) window.URL.revokeObjectURL(link.href) // if there is a filename we consider it's an inline data-url (which needs revocation)
 }
 
@@ -281,7 +283,7 @@ async function downloadBlob(blob: Blob, title: CallExportType) {
   await sleep(0)
   try {
     document.body.removeChild(link)
-  } catch (e) {}
+  } catch (e) { }
   window.URL.revokeObjectURL(link.href)
 }
 
@@ -351,4 +353,53 @@ export function drbtSetRug(ca: string, state: boolean, apiKey: string, toast: To
       })
       return false
     })
+}
+
+export const getHeaderIndexes = <T extends string>(
+  header: (string | number | Date)[],
+  names: T[],
+  onFail: (message: string) => void
+): Record<T, number> | null => {
+  const indexes = {} as Record<T, number>
+
+  for (const name of names) {
+    const allIndexes = header.flatMap((h, i) => (h === name ? i : []))
+    if (!allIndexes.length) {
+      // we'll use a default value if ETHPrice is not found
+      if (name !== 'ETHPrice' && name !== 'sol_price') {
+        onFail(`${name} header not found`)
+        return null
+      }
+      indexes[name] = -1
+      continue
+    }
+
+    // if the same header is present multiple time in sheet, take the last one
+    indexes[name] = allIndexes.length > 1 ? allIndexes[allIndexes.length - 1] : allIndexes[0]
+  }
+
+  return indexes
+}
+
+export function fixTakeProfits(tps: TakeProfit[], initTp: TakeProfit) {
+  // add taking-initial TP
+  if (tps[0].size !== INITIAL_TP_SIZE_CODE) tps.unshift(initTp)
+  for (const tp of tps) {
+    if (tp.amount === undefined) {
+      tp.amount = (tp as any).eth ?? initTp.amount
+      tp.withAmount = (tp as any).withAmount ?? false
+    }
+  }
+}
+
+export const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: number): number => {
+  if (!lpAmount) return 5 / 100
+
+  const lpOtherAmount = lpAmount / previousPrice
+  const newPrice =
+    (lpAmount - 1 * ((lpOtherAmount * lpAmount) / (lpOtherAmount + nbTokens) - lpAmount)) /
+    (lpOtherAmount - nbTokens)
+  const slippage = (newPrice / previousPrice - 1) * 100
+
+  return slippage
 }

@@ -236,11 +236,14 @@
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2 align-items-center">
             <span
-              ><span v-if="data.xs <= XS_WORTH_OF_ONCHAIN_DATA" class="text-color-secondary">~</span
+              ><span
+                v-if="!noSlippage && data.xs <= XS_WORTH_OF_ONCHAIN_DATA"
+                class="text-color-secondary"
+                >~</span
               >{{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}</span
             >
             <span
-              v-if="data.xs > XS_WORTH_OF_ONCHAIN_DATA"
+              v-if="!noSlippage && data.xs > XS_WORTH_OF_ONCHAIN_DATA"
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
                 value: 'Entry without slippage',
@@ -274,6 +277,7 @@
       <Column header="Perf" field="xs" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #header
           ><InfoButton
+            v-if="!noSlippage"
             text="Accounting for slippage"
             direction="top"
             hover
@@ -371,14 +375,22 @@ import MenuButton from './MenuButton.vue'
 import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
-const props = defineProps<{
+const {
+  logs,
+  rows,
+  initialSort,
+  withDisplaySwitch,
+  withActions,
+  screenerUrl,
+  chain = 'ETH',
+} = defineProps<{
   logs: Log[]
   rows?: number
-  textual?: boolean
   initialSort?: string
   withDisplaySwitch?: boolean
   withActions?: boolean
-  screenerUrl?: string
+  screenerUrl: string
+  chain?: 'ETH' | 'SOL'
 }>()
 
 const emit = defineEmits<{
@@ -394,12 +406,16 @@ const logsPage = ref(0)
 const logsRowCount = ref(25)
 
 const profitableFilter = ref(false)
-const filteredLogs = computed(() =>
-  profitableFilter.value ? props.logs.filter(l => l.gain > 0) : props.logs,
-)
+const filteredLogs = computed(() => (profitableFilter.value ? logs.filter(l => l.gain > 0) : logs))
+
+const noBlock = computed(() => chain === 'SOL')
+const noGas = computed(() => chain === 'SOL')
+const noTaxes = computed(() => chain === 'SOL')
+const noSlippage = computed(() => chain === 'SOL')
+const canRug = computed(() => chain === 'ETH')
 
 // prettier-ignore
-const optionalColumns = ["Block", "Invested", "Gas price", "Buy tax", "Entry MC", "ATH MC", "Perf diff"];
+const optionalColumns = [!noBlock && "Block", "Invested", !noGas && "Gas price", !noTaxes && "Buy tax", "Entry MC", "ATH MC", !noSlippage && "Perf diff"].filter(Boolean);
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })
@@ -412,21 +428,25 @@ const logFilters = ref({
 })
 
 const getActions = (log: Log) => [
-  log.xs === -99
-    ? {
-        label: 'Not rug',
-        icon: 'pi pi-thumbs-up',
-        command: () => {
-          emit('rug', log.ca, false)
-        },
-      }
-    : {
-        label: 'Rug',
-        icon: 'pi pi-thumbs-down',
-        command: () => {
-          emit('rug', log.ca, true)
-        },
-      },
+  ...(canRug
+    ? [
+        log.xs === -99
+          ? {
+              label: 'Not rug',
+              icon: 'pi pi-thumbs-up',
+              command: () => {
+                emit('rug', log.ca, false)
+              },
+            }
+          : {
+              label: 'Rug',
+              icon: 'pi pi-thumbs-down',
+              command: () => {
+                emit('rug', log.ca, true)
+              },
+            },
+      ]
+    : []),
   log.ignored
     ? {
         label: 'Not ignored',

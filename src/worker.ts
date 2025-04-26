@@ -8,25 +8,23 @@ import {
   getSaleDate,
   prettifyDate,
   round,
-  sumObjectProperty,
-  uuid,
-  getRowForExport,
   sleep,
+  getPriceImpact
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
-import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
+import type { ComputationForTarget } from './types/ComputationResult'
 import {
   SELL_TAX,
   SELL_GAS_PRICE,
   AVERAGE_LP_TO_MC_RATIO,
   EXCLUDED_FROM_ACCURACY,
   XS_WORTH_OF_ONCHAIN_DATA,
-  CURRENT_CACHED_BLOCK_VERSION,
   INITIAL_TP_SIZE_CODE,
   ESTIMATED_TIME_FOR_ALCHEMY,
+  REALISTIC_MAX_XS,
 } from './constants'
 import type { BlockTx } from './types/Transaction'
-import { createBlockStore, getBlockDataFromStore, storeBlockDataInStore } from './db'
+import { createBlockStore, getBlockDataFromStore } from './db'
 import { fetchAllBuysFrom, fetchTxsFromBlock } from './chain'
 import { ComputeVariant } from './types/ComputeVariant'
 
@@ -53,7 +51,7 @@ onmessage = async function ({ data }) {
     computeControllers[variant]?.abort()
     computeControllers[variant] = new AbortController()
     const computation = await compute(data, computeControllers[variant]!.signal)
-    if (computation.finalETH === undefined) return
+    if (computation.finalWorth === undefined) return
 
     return postMessage({
       type: 'COMPUTE',
@@ -76,8 +74,6 @@ onmessage = async function ({ data }) {
     })
 }
 
-const REALISTIC_MAX_XS = 100000
-
 const computeMaxETH = (currentMC: number, supply: number, maxBuy: number, ethPrice: number) => {
   const supplyBought = maxBuy * supply
   return ((currentMC / supply) * supplyBought) / ethPrice
@@ -86,15 +82,7 @@ const computeMaxETH = (currentMC: number, supply: number, maxBuy: number, ethPri
 const getGasPrice = (call: Call, gweiDelta: number): number =>
   ((call.gwei + gweiDelta) / 1000000000) * call.buyGas
 
-const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: number): number => {
-  const lpOtherAmount = lpAmount / previousPrice
-  const newPrice =
-    (lpAmount - 1 * ((lpOtherAmount * lpAmount) / (lpOtherAmount + nbTokens) - lpAmount)) /
-    (lpOtherAmount - nbTokens)
-  const slippage = (newPrice / previousPrice - 1) * 100
 
-  return slippage
-}
 
 // NOTE: Comparing tx cost (used gas * gas price) would be better than comparing just priority, in theory, but it's rarely the case, builders' algo is too complicated, and even worse we don't have the real gas quantity to calculate from (call's value from is not accurate, because it includes approval maybe)
 const getSlippage = (call: Call, invested: number, gweiDelta: number, txs: BlockTx[]): number => {
@@ -137,7 +125,7 @@ async function compute(
   },
   abortSignal: AbortSignal,
 ) {
-  let finalETH = 0
+  let finalWorth = 0
   let drawdown = 0
   const counters = {
     rug: 0,
@@ -260,7 +248,7 @@ async function compute(
 
       for (const tp of takeProfits) {
         const targetXsDirect = tp.withXs ? tp.xs : 0
-        const targetXsFromEth = tp.withEth ? reducedXs(tp.eth / invested, feeInXs, buyTaxInXs) : 0
+        const targetXsFromEth = tp.withAmount ? reducedXs(tp.amount / invested, feeInXs, buyTaxInXs) : 0
         const targetXsFromMc = tp.withMc ? (bestXs / call.ath) * tp.mc : 0
         const allTargets = [targetXsDirect, targetXsFromEth, targetXsFromMc].filter(v => v > 0)
 
@@ -291,10 +279,10 @@ async function compute(
             // size to get back initial
             tp.size === INITIAL_TP_SIZE_CODE
               ? (((invested + SELL_GAS_PRICE) / xsMultiplicator / (1 - SELL_TAX / 100)) * 100) /
-                invested
+              invested
               : // remove from other targets a portion of the size sold for initial
-                tp.size -
-                (takeProfits.length > 1 ? sizeSoldForInitial / (takeProfits.length - 1) : 0)
+              tp.size -
+              (takeProfits.length > 1 ? sizeSoldForInitial / (takeProfits.length - 1) : 0)
           if (sizeSold <= 0) {
             tpIndex++
             continue
@@ -310,9 +298,9 @@ async function compute(
 
           const profit =
             ((invested * sizeSold) / 100) *
-              xsMultiplicator *
-              (1 - SELL_TAX / 100) *
-              (1 - priceImpact / 100) -
+            xsMultiplicator *
+            (1 - SELL_TAX / 100) *
+            (1 - priceImpact / 100) -
             SELL_GAS_PRICE
 
           gain += profit
@@ -338,10 +326,10 @@ async function compute(
     }
 
     if (!call.ignored) {
-      finalETH += gain
+      finalWorth += gain
     }
-    if (finalETH < drawdown) {
-      drawdown = round(finalETH)
+    if (finalWorth < drawdown) {
+      drawdown = round(finalWorth)
     }
 
     // Regrouping hashes
@@ -396,8 +384,8 @@ async function compute(
       info: unrealistic
         ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
         : postAth
-        ? 'Post-ath: Entry occured after the current ATH'
-        : '',
+          ? 'Post-ath: Entry occured after the current ATH'
+          : '',
       invested: round(invested, 3),
       gasPrice: round(gasPrice, 3),
       gain: round(gain, gain < 1 ? 2 : 1),
@@ -411,7 +399,7 @@ async function compute(
       delay: call.delay,
       callBlock: call.block,
       theoricBlock: blockEnd,
-      ethPrice: call.ethPrice,
+      basePrice: call.ethPrice,
     })
   }
 
@@ -436,7 +424,7 @@ async function compute(
   }
 
   return {
-    finalETH: finalETH ? round(finalETH) : finalETH, // keep undefined value for abort controller
+    finalWorth: finalWorth ? round(finalWorth) : finalWorth, // keep undefined value for abort controller
     drawdown: round(drawdown),
     // find the minimum value in all drawdowns
     worstDrawdown: drawdownByDate.reduce((prev, cur) => (cur[1] < prev[1] ? cur : prev), ['', 0]),
@@ -545,7 +533,7 @@ async function findTarget(
   const withXs = targetStart.withXs
   let currentTP = { ...targetStart }
   const inc = (): boolean => {
-    const prop = withMc ? 'mc' : withXs ? 'xs' : 'eth'
+    const prop = withMc ? 'mc' : withXs ? 'xs' : 'amount'
     currentTP[prop] += increment
     return currentTP[prop] > end
   }
@@ -555,7 +543,7 @@ async function findTarget(
   do {
     if (abortSignal.aborted) return null
 
-    const { finalETH, drawdown, worstDrawdown, volume } = await compute(
+    const { finalWorth, drawdown, worstDrawdown, volume } = await compute(
       {
         calls,
         position,
@@ -570,16 +558,16 @@ async function findTarget(
       abortSignal,
     )
 
-    if (finalETH === undefined) {
+    if (finalWorth === undefined) {
       return null // aborted
     }
 
     results.push({
-      finalETH,
+      finalWorth,
       drawdown,
       worstDrawdown,
       volume,
-      target: withMc ? `$${currentTP.mc}` : withXs ? `${currentTP.xs}x` : `${currentTP.eth} Ξ`,
+      target: withMc ? `$${currentTP.mc}` : withXs ? `${currentTP.xs}x` : `${currentTP.amount} Ξ`,
     })
 
     ended = inc()
@@ -595,7 +583,7 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
   for (const log of logs) {
     const realBuy = myBuys.find(b => b.ca === log.ca.toLowerCase())
     if (realBuy) {
-      const price = (realBuy.eth * log.ethPrice) / (realBuy.amount! / (1 - log.buyTax))
+      const price = (realBuy.eth * log.basePrice) / (realBuy.amount! / (1 - (log.buyTax || 0)))
       const realBuyMc = log.supply * price
       const theoricBuyMc = log.callMc * (1 + log.slippage / 100)
 

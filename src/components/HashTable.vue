@@ -103,10 +103,8 @@
       >
         <template #body="{ data }">
           {{ data.perf[cat] }}
-           <span class="text-sm text-color-secondary nowrap">
-            (&hairsp;{{
-              Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%'
-            }}&hairsp;)
+          <span class="text-sm text-color-secondary nowrap">
+            (&hairsp;{{ Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%' }}&hairsp;)
           </span>
         </template>
       </Column>
@@ -130,9 +128,7 @@
         <template #body="{ data }">
           {{ data.rugs }}
           <span class="text-sm text-color-secondary nowrap">
-            (&hairsp;{{
-              Math.round((data.rugs / data.allCalls.length) * 100) + '%'
-            }}&hairsp;)
+            (&hairsp;{{ Math.round((data.rugs / data.allCalls.length) * 100) + '%' }}&hairsp;)
           </span>
         </template>
       </Column>
@@ -263,10 +259,10 @@ import InfoButton from './InfoButton.vue'
 
 const TAG_SEPARATOR = ', '
 
-const props = defineProps<{
+const { lines, filterTemplate, screenerUrl } = defineProps<{
   lines: HashInfo[]
   filterTemplate: string
-  screenerUrl?: string
+  screenerUrl: string
 }>()
 const emit = defineEmits<{
   (e: 'removeTag', hash: string, index: number): void
@@ -321,14 +317,14 @@ const getSelection = () => (selection.value.length ? selection.value : currentDa
 const table = ref<InstanceType<typeof DataTable>>()
 const toast = useToast()
 const getIdsString = () =>
-  props.filterTemplate.includes('[{}]')
+  filterTemplate.includes('[{}]')
     ? getSelection()
         .map(d => d.id)
         .join(',')
     : getSelection()
         .map(d => d.id)
         .join('|')
-const getQueryFilter = () => props.filterTemplate.replace('{}', getIdsString())
+const getQueryFilter = () => filterTemplate.replace('{}', getIdsString())
 
 const exportOptions = [
   {

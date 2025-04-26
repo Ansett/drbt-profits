@@ -28,9 +28,26 @@ export type Call = {
   lpVersion: number
 }
 
+export type SolCall = {
+  name: string
+  ca: string
+  nameAndCa: string // for filtering
+  date: string
+  postAth: boolean
+  athDelayHours: number
+  xs: number
+  ignored: boolean
+  supply: number
+  price: number
+  callMc: number
+  ath: number
+  lp: number // can be 0
+  solPrice: number
+}
+
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'
-export type CallDiff = {
-  call: Call
+export type CallDiff<C extends Call | SolCall = Call> = {
+  call: C
   status: DiffType
 }
 
@@ -41,9 +58,9 @@ export type RowsForExport = {
   align?: 'left' | 'center' | 'right'
 }[][]
 
-export type CallArchive = {
+export type CallArchive<C extends Call | SolCall = Call> = {
   fileName: string
-  calls: Call[]
+  calls: C[]
   rows: (string | number | Date)[][]
   caColumn: number
 }

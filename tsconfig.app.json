@@ -1,12 +1,36 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  // "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
   "typeRoots": ["node_modules/@types", "node_modules"],
   "exclude": ["src/**/__tests__/*"],
+  "vueCompilerOptions": {
+    "target": 3.5,
+    "propsDestructure": true
+    // "strictTempates": true,
+    // "allowJsxPropsOnComponent": true
+  },
   "compilerOptions": {
-    "composite": true,
-    "noEmit": true,
-    "baseUrl": ".",
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost", "es2015.promise"],
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "removeComments": false, // do not activate or it strips Webpack chunking comments, and istanbul ignores
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": true,
+    "importHelpers": true,
+    "sourceMap": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noErrorTruncation": false, // set true to avoid truncated VSCode hint popup
+    "jsx": "preserve", // needed for Volar
+    "noEmit": true, // solving https://github.com/microsoft/TypeScript/issues/14538
     "paths": {
       "@/*": ["./src/*"]
     }
