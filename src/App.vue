@@ -76,8 +76,8 @@ const showDonation = ref(false)
 const route = useRoute()
 const router = useRouter()
 const routes = [
-  { label: 'ETH', path: '/eth' },
-  { label: 'SOL', path: '/sol' },
+  { label: 'Ethereum', path: '/eth' },
+  { label: 'Solana', path: '/sol' },
 ]
 const selectedRoute = ref(route.path)
 watch(route, () => {
