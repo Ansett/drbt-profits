@@ -133,7 +133,6 @@
               withDisplaySwitch
               withActions
               :screener-url="state.screenerUrl"
-              :can-rug="false"
               chain="SOL"
               @ignore="ignoreCa"
               @exportXlsx="exportXlsx"

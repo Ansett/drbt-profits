@@ -415,7 +415,7 @@ const noSlippage = computed(() => chain === 'SOL')
 const canRug = computed(() => chain === 'ETH')
 
 // prettier-ignore
-const optionalColumns = [!noBlock && "Block", "Invested", !noGas && "Gas price", !noTaxes && "Buy tax", "Entry MC", "ATH MC", !noSlippage && "Perf diff"].filter(Boolean);
+const optionalColumns = [!noBlock.value && "Block", "Invested", !noGas.value && "Gas price", !noTaxes.value && "Buy tax", "Entry MC", "ATH MC", !noSlippage.value && "Perf diff"].filter(Boolean);
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })

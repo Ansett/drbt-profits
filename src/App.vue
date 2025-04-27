@@ -12,7 +12,12 @@
         @change="onRouteChange"
         class="route-dropdown w-28"
       />
-      <span>profits from DRBT</span>
+      <span
+        >profits from
+        <a href="https://t.me/DeFi_Robot_Portal" style="color: inherit" target="_blank"
+          >DRBT</a
+        ></span
+      >
     </div>
 
     <Button
