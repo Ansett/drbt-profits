@@ -369,11 +369,11 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'xs',
       'total_supply',
       'mc',
-      'ath_mc',
+      'current_ath_mc',
       'lp_sol_launch',
       'sol_price', // TODO: to be added
       'created_slot',
-      'ath_slot',
+      'current_ath_slot',
     ],
     message => {
       error.value = message
@@ -405,7 +405,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const callMc = row[indexes.mc] as number
     const supply = row[indexes.total_supply] as number
     const price = callMc / supply
-    const athSlot = row[indexes.ath_slot] as number
+    const athSlot = row[indexes.current_ath_slot] as number
     const creationSlot = row[indexes.created_slot] as number
     const athDelaySec = athSlot && creationSlot ? (athSlot - creationSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
     const athDelayHours = athDelaySec / 60 / 60
@@ -420,7 +420,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       callMc,
       price,
       athDelayHours,
-      ath: row[indexes.ath_mc] as number,
+      ath: row[indexes.current_ath_mc] as number,
       supply,
       lp: (row[indexes.lp_sol_launch] as number) || 0,
       ignored: state.blackList.includes(ca),
