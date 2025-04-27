@@ -187,12 +187,14 @@
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          <span class="nowrap text-color-secondary"
-            >(+{{ data.theoricBlock - data.callBlock }})
-          </span>
-          <a :href="'https://etherscan.io/block/' + data.theoricBlock" target="_blank">{{
-            data.theoricBlock
-          }}</a>
+          <div class="flex flex-row flex-wrap">
+            <span class="nowrap text-color-secondary"
+              >(+{{ data.theoricBlock - data.callBlock }})
+            </span>
+            <a :href="'https://etherscan.io/block/' + data.theoricBlock" target="_blank">{{
+              data.theoricBlock
+            }}</a>
+          </div>
         </template>
       </Column>
       <Column
@@ -480,5 +482,9 @@ const exportSourceCalls = () => {
   right: 0.5rem;
   top: 0.5rem;
   z-index: 2;
+}
+
+td {
+  overflow: hidden;
 }
 </style>
