@@ -289,7 +289,7 @@ const INIT_TP = [
   { "size": 33.333333333333336, "xs": 50, "withXs": false, "mc": 500000, "withMc": true, "amount": 75, "withAmount": false, "andLogic": true },
   { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 1000000, "withMc": true, "amount": 100, "withAmount": false, "andLogic": false }
 ] as TakeProfit[]
-const INIT_FULL_STATS = true
+const INIT_FULL_STATS = false
 const INIT_AUTO_REDISTRIBUTE = true
 const INIT_TEXT_LOGS = false
 const INIT_LOGS_COLUMNS = ['Entry MC', 'ATH MC']

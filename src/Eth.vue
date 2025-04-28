@@ -955,7 +955,7 @@ const INIT_HOURS = [
 ];
 const INIT_AUTO_REDISTRIBUTE = true
 const INIT_PRICE_IMPACT = true
-const INIT_FULL_STATS = true
+const INIT_FULL_STATS = false
 const INIT_SCREENER_URL = DEFAULT_SCREENER_URL
 const state = reactive({
   position: INIT_POSITION,
