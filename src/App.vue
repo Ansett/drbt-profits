@@ -25,7 +25,7 @@
       aria-label="Donate"
       outlined
       rounded
-      class="w-2rem h-2rem md:w-3rem md:h-3rem mx-1 md:mx-2 xl:mx-4"
+      class="w-2rem h-2rem md:w-3rem md:h-3rem mx-1 md:mx-2 xl:mx-4 flex-shrink-0"
       @click="showDonation = true"
     />
   </header>

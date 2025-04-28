@@ -371,7 +371,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'current_ath_mc',
       'lp_sol_launch',
       'sol_price', // TODO: to be added
-      'created_slot',
+      'launched_slot',
       'current_ath_slot',
     ],
     message => {
@@ -397,16 +397,16 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     } catch (e) {
       continue
     }
-    const name = row[indexes.name] as string
     const ca = row[indexes.mint] as string
-    if (!name || !ca) continue
+    if (!ca) continue
 
+    const name = (row[indexes.name] as string) || ca
     const callMc = row[indexes.mc] as number
-    const supply = row[indexes.total_supply] as number
+    const supply = (row[indexes.total_supply] as number) || 1000000000
     const price = callMc / supply
     const athSlot = row[indexes.current_ath_slot] as number
-    const creationSlot = row[indexes.created_slot] as number
-    const athDelaySec = athSlot && creationSlot ? (athSlot - creationSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
+    const launchSlot = row[indexes.launched_slot] as number
+    const athDelaySec = athSlot && launchSlot ? (athSlot - launchSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
     const athDelayHours = athDelaySec / 60 / 60
 
     newCalls.push({
