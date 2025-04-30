@@ -430,7 +430,7 @@ const logFilters = ref({
 })
 
 const getActions = (log: Log) => [
-  ...(canRug
+  ...(canRug.value
     ? [
         log.xs === -99
           ? {
