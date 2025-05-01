@@ -64,18 +64,19 @@
     <DataTable
       v-else
       ref="logTable"
-      :value="filteredLogs"
+      :value="sortedLogs"
       dataKey="ca"
       size="small"
-      :multiSortMeta="[{ field: initialSort || 'date', order: -1 }]"
+      :multiSortMeta="multiSortMeta"
       sortMode="multiple"
-      :paginator="filteredLogs.length > 20"
+      :paginator="sortedLogs.length > 20"
       :rows="rows || 25"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
       :rowsPerPageOptions="[10, 25, 100]"
       :globalFilterFields="['ca', 'name', 'date', 'flag']"
       v-model:filters="logFilters"
       @value-change="onListUpdate"
+      @sort="onSort"
     >
       <template #empty> No calls </template>
 
@@ -363,7 +364,7 @@ import { FilterMatchMode } from 'primevue/api'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import InputText from 'primevue/inputtext'
-import DataTable from 'primevue/datatable'
+import DataTable, { type DataTableSortMeta, type DataTableSortEvent } from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
@@ -427,6 +428,35 @@ const exportLogs = () => logTable.value?.exportCSV()
 
 const logFilters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+})
+
+const multiSortMeta = ref<DataTableSortMeta[] | undefined>([
+  { field: initialSort || 'date', order: -1 },
+])
+function onSort(event: DataTableSortEvent) {
+  multiSortMeta.value = event.multiSortMeta
+  console.warn(event.multiSortMeta, event)
+}
+const sortedLogs = computed<Log[]>(() => {
+  if (!multiSortMeta.value?.length) return filteredLogs.value
+
+  return filteredLogs.value.slice().sort((a, b) => {
+    for (const meta of multiSortMeta.value || []) {
+      const field = meta.field as keyof Log
+      const order = meta.order || 1
+
+      const valA = a[field]
+      const valB = b[field]
+
+      if (valA == null && valB == null) continue
+      if (valA == null) return order * -1
+      if (valB == null) return order * 1
+
+      const result = valA > valB ? 1 : valA < valB ? -1 : 0
+      if (result !== 0) return order * result
+    }
+    return 0
+  })
 })
 
 const getActions = (log: Log) => [
