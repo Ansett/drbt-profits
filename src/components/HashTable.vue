@@ -102,9 +102,9 @@
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ data.perf[cat] }}
+          {{ round((data.perf[cat] / data.allCalls.length) * 100, 1) + '%' }}
           <span class="text-sm text-color-secondary nowrap">
-            (&hairsp;{{ Math.round((data.perf[cat] / data.allCalls.length) * 100) + '%' }}&hairsp;)
+            (&hairsp;{{ data.perf[cat] }}&hairsp;)
           </span>
         </template>
       </Column>
@@ -304,7 +304,7 @@ const addTag = () => {
   editingForHash.value = ''
 }
 
-const getSortablePct = (num: number) => ('' + Math.round(num * 100) / 100).padEnd(4, '0')
+const getSortablePct = (num: number) => ('' + Math.round(num * 1000) / 1000).padEnd(4, '0')
 
 let currentData: HashInfo[] = []
 // when sorting or searching
