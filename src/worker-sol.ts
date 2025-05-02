@@ -214,7 +214,7 @@ async function compute(
     }
 
     // Regrouping program IDs
-    if (!call.ignored) {
+    if (!call.ignored && !postAth) {
       for (const programId of call.programIds) {
         if (!programs[programId]) programs[programId] = initHash(programId)
         programs[programId].allCalls.push(call)

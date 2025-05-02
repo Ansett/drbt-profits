@@ -420,3 +420,7 @@ export function initHash(id: string) {
     allCalls: [],
   }
 }
+
+export function callIsPostAth(call: Call): boolean {
+  return !call.rug && call.date > call.athDate
+}

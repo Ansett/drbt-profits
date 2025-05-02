@@ -10,7 +10,8 @@ import {
   round,
   sleep,
   getPriceImpact,
-  initHash
+  initHash,
+  callIsPostAth
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget } from './types/ComputationResult'
@@ -334,7 +335,7 @@ async function compute(
     }
 
     // Regrouping hashes
-    if (call.hashF && !call.ignored) {
+    if (call.hashF && !call.ignored && !postAth) {
       if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF)
       hashes[call.hashF].allCalls.push(call)
       if (call.rug) hashes[call.hashF].rugs++
@@ -347,7 +348,7 @@ async function compute(
     }
 
     // Regrouping function 4bytes signatures
-    if (call.fList && !call.ignored) {
+    if (call.fList && !call.ignored && !postAth) {
       for (const id of call.fList.split(',')) {
         if (!signatures[id]) signatures[id] = initHash(id)
         signatures[id].allCalls.push(call)
@@ -362,7 +363,7 @@ async function compute(
     }
 
     // Regrouping gases
-    if (call.buyGas && !isNaN(call.buyGas) && !call.ignored) {
+    if (call.buyGas && !isNaN(call.buyGas) && !call.ignored && !postAth) {
       if (!gases[call.buyGas]) gases[call.buyGas] = initHash(call.buyGas + '')
       gases[call.buyGas].allCalls.push(call)
       if (call.rug) gases[call.buyGas].rugs++
@@ -385,7 +386,7 @@ async function compute(
       info: unrealistic
         ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
         : postAth
-          ? 'Post-ath: Entry occured after the current ATH'
+          ? 'Post-ath: Entry occurred after the current ATH'
           : '',
       invested: round(invested, 3),
       gasPrice: round(gasPrice, 3),
@@ -610,9 +611,7 @@ async function compareToRealBuys(myAddy: string, firstBlock: number, logs: Log[]
   postMessage({ type: 'SCATTER', accuracy })
 }
 
-function callIsPostAth(call: Call): boolean {
-  return !call.rug && call.date > call.athDate
-}
+
 function callWorthOnChainData(call: Call): boolean {
   return !call.rug && !callIsPostAth(call) && call.xs > XS_WORTH_OF_ONCHAIN_DATA
 }
