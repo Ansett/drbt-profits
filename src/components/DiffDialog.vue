@@ -75,6 +75,7 @@
             :volume="common.stats.volume"
             :counters="left.stats.counters"
             :nbCalls="left.stats.logs.length"
+            :currency="chain"
           />
 
           <LogsTable
@@ -112,6 +113,7 @@
             :volume="common.stats.volume"
             :counters="right.stats.counters"
             :nbCalls="right.stats.logs.length"
+            :currency="chain"
           />
 
           <LogsTable
@@ -148,6 +150,7 @@
             :volume="common.stats.volume"
             :counters="common.stats.counters"
             :nbCalls="common.stats.logs.length"
+            :currency="chain"
           />
 
           <LogsTable
