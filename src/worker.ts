@@ -9,7 +9,8 @@ import {
   prettifyDate,
   round,
   sleep,
-  getPriceImpact
+  getPriceImpact,
+  initHash
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
 import type { ComputationForTarget } from './types/ComputationResult'
@@ -482,23 +483,6 @@ function getCallsDiff(previousCalls: Call[], newCalls: Call[]): CallDiff[] {
   }
 
   return diff
-}
-
-function initHash(id: string) {
-  return {
-    id,
-    tags: [],
-    perf: {
-      x5: 0,
-      x10: 0,
-      x50: 0,
-      x100: 0,
-    },
-    mooners: 0,
-    rugs: 0,
-    xSum: 0,
-    allCalls: [],
-  }
 }
 
 async function findTarget(

@@ -6,7 +6,8 @@ import {
   getSaleDate,
   prettifyDate,
   round,
-  getPriceImpact
+  getPriceImpact,
+  initHash
 } from './lib'
 import {
   SELL_TAX,
@@ -17,6 +18,7 @@ import {
 } from './constants'
 import { ComputeVariant } from './types/ComputeVariant'
 import { ComputationForTarget } from './types/ComputationResult'
+import { HashInfo } from './types/HashInfo'
 
 
 const computeControllers: Record<ComputeVariant, AbortController | null> = {
@@ -91,6 +93,7 @@ async function compute(
     x2: 0,
   }
   const logs: Log[] = []
+  const programs: Record<string, HashInfo<SolCall>> = {}
   let volume = 0
 
   const gainByDate: Record<string, number> = {}
@@ -210,6 +213,20 @@ async function compute(
       drawdown = round(finalWorth)
     }
 
+    // Regrouping program IDs
+    if (!call.ignored) {
+      for (const programId of call.programIds) {
+        if (!programs[programId]) programs[programId] = initHash(programId)
+        programs[programId].allCalls.push(call)
+        if (call.xs >= 5) programs[programId].perf.x5++
+        if (call.xs >= 10) programs[programId].perf.x10++
+        if (call.xs >= 50) programs[programId].perf.x50++
+        if (call.xs >= 100) programs[programId].perf.x100++
+        if (call.ath >= 2000000) programs[programId].mooners++
+        programs[programId].xSum += call.xs
+      }
+    }
+
     logs.unshift({
       date: prettifyDate(call.date),
       ca: call.ca,
@@ -258,6 +275,7 @@ async function compute(
     volume: round(volume, 1),
     counters,
     logs,
+    programs
   }
 }
 

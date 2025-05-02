@@ -1,6 +1,6 @@
-import type { Call } from './Call'
+import type { Call, SolCall } from './Call'
 
-export type HashInfo = {
+export type HashInfo<C extends Call | SolCall = Call> = {
   id: string
   tags: string[]
   rugs: number
@@ -12,5 +12,5 @@ export type HashInfo = {
     x100: number
   }
   mooners: number
-  allCalls: Call[]
+  allCalls: C[]
 }

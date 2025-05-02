@@ -151,6 +151,18 @@
               :amountRange="[10, 10, 200]"
             />
           </AccordionTab>
+
+          <!-- PROGRAMS -->
+          <AccordionTab header="PROGRAM IDS" :pt="{ content: { class: 'p-0' } }">
+            <HashTable
+              :lines="programsWithTags"
+              filter-template="WHERE hashes NOT REGEXP '({})'"
+              v-model:selectedColumns="state.hashColumns"
+              :screener-url="state.screenerUrl"
+              @removeTag="removeTag"
+              @addTag="addTag"
+            />
+          </AccordionTab>
         </Accordion>
       </div>
 
@@ -196,6 +208,28 @@
             'All MC': 100000,
           }"
         />
+
+        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
+          <!-- MIN CALLS -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="mincalls-input">Minimum calls count to show program IDS</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-megaphone"></i>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.minCallsForHash"
+                id="mincalls-input"
+                showButtons
+                buttonLayout="stacked"
+                :min="0"
+                :step="5"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -235,6 +269,7 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import { Log } from './types/Log'
 import {
+  addTagsToHashes,
   debounce,
   downloadRowsXlsx,
   getHeaderIndexes,
@@ -250,6 +285,9 @@ import AccordionTab from 'primevue/accordiontab'
 import Targets from './components/Targets.vue'
 import LogsTable from './components/LogsTable.vue'
 import TargetFinder from './components/TargetFinder.vue'
+import useTags from './compose/useTags'
+import { HashInfo } from './types/HashInfo'
+import HashTable from './components/HashTable.vue'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -294,6 +332,8 @@ const INIT_AUTO_REDISTRIBUTE = true
 const INIT_TEXT_LOGS = false
 const INIT_LOGS_COLUMNS = ['Entry MC', 'ATH MC']
 const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
+const INIT_HASH_COLUMNS = ['Count', 'Average', 'x100', 'ATH', 'Tags']
+const INIT_MIN_CALLS = 100
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -303,6 +343,8 @@ const state = reactive({
   rugs: [] as string[],
   textLogs: INIT_TEXT_LOGS,
   logsColumns: INIT_LOGS_COLUMNS,
+  hashColumns: INIT_HASH_COLUMNS,
+  minCallsForHash: INIT_MIN_CALLS,
   screenerUrl: INIT_SCREENER_URL,
 })
 
@@ -323,6 +365,8 @@ function loadForm() {
   state.rugs = savedState.rugs || []
   state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
   state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS
+  state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
+  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
 }
 onMounted(() => {
@@ -373,6 +417,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'sol_price', // TODO: to be added
       'launched_slot',
       'current_ath_slot',
+      'program_ids',
     ],
     message => {
       error.value = message
@@ -409,6 +454,12 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const athDelaySec = athSlot && launchSlot ? (athSlot - launchSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
     const athDelayHours = athDelaySec / 60 / 60
 
+    let programIds = [] as string[]
+    try {
+      const stringPrograms = (row[indexes.program_ids] as string).replaceAll("'", '"')
+      programIds = JSON.parse(stringPrograms) as string[]
+    } catch (e) {}
+
     newCalls.push({
       name,
       ca,
@@ -424,6 +475,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       lp: (row[indexes.lp_sol_launch] as number) || 0,
       ignored: state.blackList.includes(ca),
       solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : 150,
+      programIds,
     })
 
     newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
@@ -495,6 +547,7 @@ async function handleWorkerMessage({ data }: any) {
     worstDrawdown.value = data.worstDrawdown
     counters.value = data.counters
     logs.value = data.logs
+    programs.value = data.programs
     loading.value = false
   }
 }
@@ -509,4 +562,10 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   uploading.value = allXlsx.length
   worker.value?.postMessage({ type: 'XLSX', allXlsx })
 }
+
+const { localTags, removeTag, addTag } = useTags()
+const programs = ref<Record<string, HashInfo<SolCall>>>({})
+const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
+  addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
+)
 </script>

@@ -256,11 +256,12 @@ import { FilterMatchMode } from 'primevue/api'
 import { prettifyDate, prettifyMc, round } from '../lib'
 import CaLink from './CaLink.vue'
 import InfoButton from './InfoButton.vue'
+import { Call, SolCall } from '@/types/Call'
 
 const TAG_SEPARATOR = ', '
 
 const { lines, filterTemplate, screenerUrl } = defineProps<{
-  lines: HashInfo[]
+  lines: HashInfo<Call | SolCall>[]
   filterTemplate: string
   screenerUrl: string
 }>()

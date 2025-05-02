@@ -118,8 +118,8 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
   return null
 }
 
-export function addTagsToHashes(
-  hashes: Record<string, HashInfo>,
+export function addTagsToHashes<C extends Call | SolCall = Call>(
+  hashes: Record<string, HashInfo<C>>,
   tags: Record<string, string[]> | null,
   minCallsCount: number,
 ) {
@@ -127,13 +127,13 @@ export function addTagsToHashes(
   const bigHashes = Object.keys(hashes).reduce((arr, h) => {
     if (hashes[h].allCalls.length >= minCallsCount) {
       hashes[h].allCalls.sort((a, b) =>
-        !a.rug && b.rug ? -1 : a.rug && !b.rug ? 1 : a.xs > b.xs ? -1 : a.xs < b.xs ? 1 : 0,
+        'rug' in a && !a.rug && 'rug' in b && b.rug ? -1 : 'rug' in a && a.rug && 'rug' in b && !b.rug ? 1 : a.xs > b.xs ? -1 : a.xs < b.xs ? 1 : 0,
       )
 
       arr.push(hashes[h])
     }
     return arr
-  }, [] as HashInfo[])
+  }, [] as HashInfo<C>[])
 
   // Add tags
   if (tags) {
@@ -402,4 +402,21 @@ export const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens
   const slippage = (newPrice / previousPrice - 1) * 100
 
   return slippage
+}
+
+export function initHash(id: string) {
+  return {
+    id,
+    tags: [],
+    perf: {
+      x5: 0,
+      x10: 0,
+      x50: 0,
+      x100: 0,
+    },
+    mooners: 0,
+    rugs: 0,
+    xSum: 0,
+    allCalls: [],
+  }
 }

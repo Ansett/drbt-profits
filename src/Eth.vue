@@ -720,6 +720,7 @@ import {
 } from './constants'
 import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
+import useTags from './compose/useTags'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -742,24 +743,8 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 const showDiff = ref(false)
 const accuracyLogs = ref<AccuracyLog[] | null>(null)
 const logs = ref<Log[]>([])
-const TAGS_STORAGE_KEY = 'tags'
-const localTags = ref<Record<string, string[]>>(localStorageGetObject(TAGS_STORAGE_KEY) || {})
 
-const removeTag = (hash: string, index: number) => {
-  localTags.value[hash]?.splice(index, 1)
-}
-const addTag = (hash: string, newTag: string) => {
-  if (!localTags.value[hash]) localTags.value[hash] = []
-  localTags.value[hash].push(newTag)
-}
-watch(
-  localTags,
-  () => {
-    localStorageSetObject(TAGS_STORAGE_KEY, localTags.value)
-  },
-  { deep: true },
-)
-
+const { localTags, removeTag, addTag } = useTags()
 const hashes = ref<Record<string, HashInfo>>({})
 const hashesWithTags = computed<HashInfo[]>(() =>
   addTagsToHashes(hashes.value, localTags.value, state.minCallsForHash),

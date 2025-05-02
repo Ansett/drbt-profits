@@ -435,7 +435,6 @@ const multiSortMeta = ref<DataTableSortMeta[] | undefined>([
 ])
 function onSort(event: DataTableSortEvent) {
   multiSortMeta.value = event.multiSortMeta
-  console.warn(event.multiSortMeta, event)
 }
 const sortedLogs = computed<Log[]>(() => {
   if (!multiSortMeta.value?.length) return filteredLogs.value

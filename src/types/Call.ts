@@ -43,6 +43,7 @@ export type SolCall = {
   ath: number
   lp: number // can be 0
   solPrice: number
+  programIds: string[]
 }
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'
