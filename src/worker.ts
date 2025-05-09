@@ -24,6 +24,7 @@ import {
   INITIAL_TP_SIZE_CODE,
   ESTIMATED_TIME_FOR_ALCHEMY,
   REALISTIC_MAX_XS,
+  DEFAULT_GAS_USED,
 } from './constants'
 import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore } from './db'
@@ -82,7 +83,7 @@ const computeMaxETH = (currentMC: number, supply: number, maxBuy: number, ethPri
 }
 
 const getGasPrice = (call: Call, gweiDelta: number): number =>
-  ((call.gwei + gweiDelta) / 1000000000) * call.buyGas
+  ((call.gwei + gweiDelta) / 1000000000) * (call.buyGas || DEFAULT_GAS_USED)
 
 
 
@@ -363,7 +364,8 @@ async function compute(
     }
 
     // Regrouping gases
-    if (call.buyGas && !isNaN(call.buyGas) && !call.ignored && !postAth) {
+    const buyGas = call.buyGas || DEFAULT_GAS_USED
+    if (buyGas && !call.ignored && !postAth) {
       if (!gases[call.buyGas]) gases[call.buyGas] = initHash(call.buyGas + '')
       gases[call.buyGas].allCalls.push(call)
       if (call.rug) gases[call.buyGas].rugs++
