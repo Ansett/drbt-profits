@@ -152,6 +152,11 @@
             />
           </AccordionTab>
 
+          <!-- TIMING -->
+          <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
+            <TimingFinder :logs="logs" />
+          </AccordionTab>
+
           <!-- PROGRAMS -->
           <AccordionTab header="PROGRAM IDS" :pt="{ content: { class: 'p-0' } }">
             <HashTable
@@ -288,6 +293,7 @@ import TargetFinder from './components/TargetFinder.vue'
 import useTags from './compose/useTags'
 import { HashInfo } from './types/HashInfo'
 import HashTable from './components/HashTable.vue'
+import TimingFinder from './components/TimingFinder.vue'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)

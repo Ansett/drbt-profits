@@ -156,7 +156,9 @@ const compute = () => {
   week.value = structuredClone(INIT_WEEK)
 
   for (const log of logs) {
-    const date = new Date(log.date.replace(' ', 'T') + '.000Z')
+    let dateStr = log.date.replace(' ', 'T')
+    if (!dateStr.endsWith('Z')) dateStr += '.000Z'
+    const date = new Date(dateStr)
     let day = date.getUTCDay() - 1
     if (day === -1) day = 6
     // const sliceIndex = Math.ceil((date.getUTCHours() + 0.1) / 3) - 1;
