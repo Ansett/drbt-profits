@@ -161,7 +161,7 @@
           <AccordionTab header="PROGRAM IDS" :pt="{ content: { class: 'p-0' } }">
             <HashTable
               :lines="programsWithTags"
-              filter-template="WHERE hashes NOT REGEXP '({})'"
+              filter-template="program_ids::text !~ '({})'"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
               @removeTag="removeTag"
