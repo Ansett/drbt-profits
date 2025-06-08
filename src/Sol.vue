@@ -471,7 +471,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       ca,
       nameAndCa: (((row[indexes.name] as string) || '') + row[indexes.mint]) as string,
       date: parsedDate.toISOString(),
-      postAth: !!(row[indexes.post_ath] as number),
+      postAth: (row[indexes.post_ath] as string) === 'TRUE',
       xs: Number(row[indexes.xs] as string),
       callMc,
       price,
