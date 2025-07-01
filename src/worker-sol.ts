@@ -153,7 +153,6 @@ async function compute(
               : 0
             : Math.min(...allReachedTargets)
           : 0
-        const reachedTargetIsFromMc = reachedTarget === reachedMcTarget
 
         const xsMultiplicator = reachedTarget
 
@@ -161,11 +160,11 @@ async function compute(
           const sizeSold =
             // size to get back initial
             tp.size === INITIAL_TP_SIZE_CODE
-              ? (((invested + SELL_GAS_PRICE) / xsMultiplicator / (1 - SELL_TAX / 100)) * 100) /
+              ? ((invested / xsMultiplicator) * 100) /
               invested
               : // remove from other targets a portion of the size sold for initial
-              tp.size -
-              (takeProfits.length > 1 ? sizeSoldForInitial / (takeProfits.length - 1) : 0)
+              tp.size * sizeSoldForInitial / 100
+
           if (sizeSold <= 0) {
             tpIndex++
             continue
@@ -180,9 +179,7 @@ async function compute(
           const profit =
             ((invested * sizeSold) / 100) *
             xsMultiplicator *
-            (1 - SELL_TAX / 100) *
-            (1 - priceImpact / 100) -
-            SELL_GAS_PRICE
+            (1 - priceImpact / 100)
 
           gain += profit
           if (!call.ignored) {
