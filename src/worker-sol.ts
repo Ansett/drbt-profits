@@ -163,7 +163,7 @@ async function compute(
               ? ((invested / xsMultiplicator) * 100) /
               invested
               : // remove from other targets a portion of the size sold for initial
-              tp.size * sizeSoldForInitial / 100
+              tp.size * (100 - sizeSoldForInitial) / 100
 
           if (sizeSold <= 0) {
             tpIndex++
