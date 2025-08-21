@@ -40,8 +40,8 @@
           showButtons
           buttonLayout="stacked"
           prefix="$"
-          :min="100000"
-          :step="100000"
+          :min="10000"
+          :step="10000"
           :pt="getPtNumberInput()"
           class="settingInput"
         />
