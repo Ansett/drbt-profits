@@ -65,7 +65,11 @@
       </template>
 
       <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
-      <Column field="id" header="ID" :pt="{ headerTitle: { class: 'text-sm' } }"></Column>
+      <Column field="id" header="ID" :pt="{ headerTitle: { class: 'text-sm' } }">
+        <template #body="{ data }">
+          <CaLink :ca="data.id" wallet />
+        </template>
+      </Column>
       <!-- Calls count -->
       <Column
         v-if="selectedColumns.includes('Count')"
