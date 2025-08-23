@@ -359,7 +359,8 @@ async function compute(
         if (call.xs >= 10 && !call.rug) signatures[id].perf.x10++
         if (call.xs >= 50 && !call.rug) signatures[id].perf.x50++
         if (call.xs >= 100 && !call.rug) signatures[id].perf.x100++
-        if (call.ath >= 2000000 && !call.rug) signatures[id].mooners++
+        if (call.ath >= 1000000 && !call.rug) signatures[id].mooners++
+        if (call.ath >= 2000000 && !call.rug) signatures[id].mooners2++
         signatures[id].xSum += call.rug ? 0 : call.xs
       }
     }
@@ -374,7 +375,8 @@ async function compute(
       if (call.xs >= 10 && !call.rug) gases[call.buyGas].perf.x10++
       if (call.xs >= 50 && !call.rug) gases[call.buyGas].perf.x50++
       if (call.xs >= 100 && !call.rug) gases[call.buyGas].perf.x100++
-      if (call.ath >= 2000000 && !call.rug) gases[call.buyGas].mooners++
+      if (call.ath >= 1000000 && !call.rug) gases[call.buyGas].mooners++
+      if (call.ath >= 2000000 && !call.rug) gases[call.buyGas].mooners2++
       gases[call.buyGas].xSum += call.rug ? 0 : call.xs
     }
 
