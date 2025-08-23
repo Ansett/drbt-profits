@@ -313,7 +313,7 @@ const addTag = () => {
   editingForHash.value = ''
 }
 
-const getSortablePct = (num: number) => ('' + Math.round(num * 1000) / 1000).padEnd(4, '0')
+const getSortablePct = (num: number) => ('' + num * 1000).padStart(4, '0')
 
 let currentData: HashInfo[] = []
 // when sorting or searching
