@@ -172,7 +172,7 @@ async function compute(
 
           const salePrice = call.price * reachedTarget
           const saleMc = salePrice * call.supply
-          const dollarLp = saleMc * AVERAGE_LP_TO_MC_RATIO
+          const dollarLp = saleMc * (call.lpRatio || AVERAGE_LP_TO_MC_RATIO)
           const tokensSold = (totalTokens * sizeSold) / 100
           const priceImpact = Math.min(100, Math.abs(getPriceImpact(dollarLp, salePrice, tokensSold)))
 
@@ -180,6 +180,9 @@ async function compute(
             ((invested * sizeSold) / 100) *
             xsMultiplicator *
             (1 - priceImpact / 100)
+
+          if (call.name === 'Zitcoin')
+            console.warn({ invested, sizeSold, xsMultiplicator, priceImpact, dollarLp, salePrice, tokensSold })
 
           gain += profit
           if (!call.ignored) {

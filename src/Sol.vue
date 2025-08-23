@@ -424,6 +424,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'launched_slot',
       'current_ath_slot',
       'program_ids',
+      'lp_ratio',
     ],
     message => {
       error.value = message
@@ -482,6 +483,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       ignored: state.blackList.includes(ca),
       solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : 150,
       programIds,
+      lpRatio: row[indexes.lp_ratio] as number,
     })
 
     newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
