@@ -4,7 +4,7 @@
 
     <span class="nowrap">
       <i
-        v-if="!wallet"
+        v-if="type === 'address'"
         class="pi pi-external-link text-primary cursor-pointer ml-1 mr-1"
         aria-label="Open chart"
         v-tooltip.bottom="{
@@ -15,10 +15,10 @@
       ></i>
 
       <code
-        :class="['text-color-secondary', 'hoverlink', { 'px-1': !wallet }]"
+        :class="['text-color-secondary', 'hoverlink', { 'px-1': type === 'address' }]"
         aria-label="Copy to clipboard"
         v-tooltip.bottom="{
-          value: 'Copy address to clipboard',
+          value: `Copy ${type === 'hash' ? 'hash' : 'address'} to clipboard`,
           showDelay: 500,
         }"
         @click="copyCA"
@@ -35,11 +35,17 @@ import { useToast } from 'primevue/usetoast'
 import vTooltip from 'primevue/tooltip'
 import { DEFAULT_SCREENER_URL } from '@/constants'
 
-const { ca, name, wallet, screenerUrl } = defineProps<{
+const {
+  ca,
+  name,
+  wallet,
+  screenerUrl,
+  type = 'address',
+} = defineProps<{
   ca: string
   name?: string
-  wallet?: boolean
   screenerUrl?: string
+  type?: 'address' | 'wallet' | 'hash'
 }>()
 
 const truncatedCa = computed(() => ca.slice(0, 5) + '...' + ca.slice(-4))

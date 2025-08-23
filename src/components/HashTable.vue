@@ -67,7 +67,7 @@
       <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
       <Column field="id" header="ID" :pt="{ headerTitle: { class: 'text-sm' } }">
         <template #body="{ data }">
-          <CaLink :ca="data.id" wallet />
+          <CaLink :ca="data.id" type="hash" />
         </template>
       </Column>
       <!-- Calls count -->

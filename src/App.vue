@@ -52,11 +52,11 @@
     </p>
     <ul class="bullets">
       <li>
-        <CaLink ca="0xCDce65EC034F058b6cC7428275e9BA9f356269fd" wallet />
+        <CaLink ca="0xCDce65EC034F058b6cC7428275e9BA9f356269fd" type="wallet" />
         (Ethereum, Polygon, Base)
       </li>
       <li>
-        <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" wallet />
+        <CaLink ca="3yTeS4b5BcwMNBdxL2w1cysFDrUPcT21ZvQHpwErJLrL" type="wallet" />
         (Solana)
       </li>
     </ul>
