@@ -415,6 +415,7 @@ export function initHash(id: string) {
       x100: 0,
     },
     mooners: 0,
+    mooners2: 0,
     rugs: 0,
     xSum: 0,
     allCalls: [],

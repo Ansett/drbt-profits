@@ -344,7 +344,8 @@ async function compute(
       if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++
       if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++
       if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++
-      if (call.ath >= 2000000 && !call.rug) hashes[call.hashF].mooners++
+      if (call.ath >= 1000000 && !call.rug) hashes[call.hashF].mooners++
+      if (call.ath >= 2000000 && !call.rug) hashes[call.hashF].mooners2++
       hashes[call.hashF].xSum += call.rug ? 0 : call.xs
     }
 

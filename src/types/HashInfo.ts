@@ -12,5 +12,6 @@ export type HashInfo<C extends Call | SolCall = Call> = {
     x100: number
   }
   mooners: number
+  mooners2: number
   allCalls: C[]
 }

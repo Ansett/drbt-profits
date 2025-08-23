@@ -219,7 +219,8 @@ async function compute(
         if (call.xs >= 10) programs[programId].perf.x10++
         if (call.xs >= 50) programs[programId].perf.x50++
         if (call.xs >= 100) programs[programId].perf.x100++
-        if (call.ath >= 2000000) programs[programId].mooners++
+        if (call.ath >= 1000000) programs[programId].mooners++
+        if (call.ath >= 2000000) programs[programId].mooners2++
         programs[programId].xSum += call.xs
       }
     }

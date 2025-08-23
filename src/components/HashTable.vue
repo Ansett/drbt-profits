@@ -113,6 +113,15 @@
         v-if="selectedColumns.includes('ATH')"
         key="ATH"
         field="mooners"
+        header=">1m"
+        sortable
+        :pt="{ headerTitle: { class: 'text-sm' } }"
+      />
+      <!-- ATH 2 -->
+      <Column
+        v-if="selectedColumns.includes('ATH2')"
+        key="ATH2"
+        field="mooners2"
         header=">2m"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
@@ -280,7 +289,7 @@ const filters = ref({
 })
 
 // prettier-ignore
-const optionalColumns = ["Count","Average","x5","x10","x50","x100","ATH","Rug","Tags"];
+const optionalColumns = ["Count","Average","x5","x10","x50","x100","ATH","ATH2","Rug","Tags"];
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })
@@ -325,6 +334,7 @@ const getIdsString = () =>
     : getSelection()
         .map(d => d.id)
         .join('|')
+
 const getQueryFilter = () => filterTemplate.replace('{}', getIdsString())
 
 const exportOptions = [
