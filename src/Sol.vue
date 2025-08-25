@@ -252,6 +252,7 @@
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
       }"
       @closed="showDiff = false"
+      @ignore="ignoreCa"
     />
   </main>
 </template>

@@ -84,7 +84,7 @@ export async function fetchTxsFromBlock(
           tx.hash.toLowerCase() === token.hash.toLowerCase() &&
           tx.to?.toLowerCase() === WRAPPED_ETH_ADDY,
       )
-      if (!dexPayment && !botPayment) console.warn('NOT payment TX for ', ca)
+
       const paidETH = dexPayment?.value || botPayment?.value || 0.1111111111
 
       const builderTx = internalTxs.find(

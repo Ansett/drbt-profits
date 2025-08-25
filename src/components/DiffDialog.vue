@@ -85,8 +85,10 @@
             initialSort="xs"
             :screener-url="screenerUrl"
             :chain="chain"
+            with-actions
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
+            @ignore="(ca, state) => $emit('ignore', ca, state)"
           />
         </template>
       </Card>
@@ -123,8 +125,10 @@
             initialSort="xs"
             :screener-url="screenerUrl"
             :chain="chain"
+            with-actions
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
+            @ignore="$emit('ignore', $event)"
           />
         </template>
       </Card>
@@ -160,8 +164,10 @@
             initialSort="xs"
             :screener-url="screenerUrl"
             :chain="chain"
+            with-actions
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
+            @ignore="$emit('ignore', $event)"
           />
         </template>
       </Card>
@@ -232,6 +238,8 @@ const logsColumns = defineModel<string[]>('logsColumns', {
 
 const emit = defineEmits<{
   (e: 'closed'): void
+  (e: 'closed'): void
+  (e: 'ignore', ca: string, state: boolean): void
 }>()
 
 const currentIndex = archives.findIndex(a => a.fileName === current.fileName)
