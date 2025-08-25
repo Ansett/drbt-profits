@@ -82,7 +82,7 @@
 
 
             <div class="text-sm white-space-nowrap">
-              Sum of xs above 100: {{counters.x100Sum}}
+              Sum of xs above 100: {{Math.round(counters.x100Sum)}}
             </div>
             <div class="text-sm white-space-nowrap">
               100X+: {{counters.x100}} ({{ statPercentages(counters.x100,nbCalls) }})
