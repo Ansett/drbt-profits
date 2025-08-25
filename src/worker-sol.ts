@@ -198,6 +198,14 @@ async function compute(
         if (remainingPosition <= 0) break
         tpIndex++
       }
+    }
+
+    if (finalWorth < drawdown) {
+      drawdown = round(finalWorth)
+    }
+
+    if (!call.ignored && !postAth) {
+      finalWorth += gain
 
       if (bestXs >= 100) {
         counters.x100++
@@ -208,17 +216,9 @@ async function compute(
       if (bestXs >= 10) counters.x10++
       if (bestXs >= 5) counters.x5++
       if (bestXs >= 2) counters.x2++
-    }
 
-    if (!call.ignored) {
-      finalWorth += gain
-    }
-    if (finalWorth < drawdown) {
-      drawdown = round(finalWorth)
-    }
 
-    // Regrouping program IDs
-    if (!call.ignored && !postAth) {
+      // Regrouping program IDs
       for (const programId of call.programIds) {
         if (!programs[programId]) programs[programId] = initHash(programId)
         programs[programId].allCalls.push(call)

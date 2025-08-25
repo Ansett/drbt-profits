@@ -320,6 +320,14 @@ async function compute(
         if (remainingPosition <= 0) break
         tpIndex++
       }
+    }
+
+    if (finalWorth < drawdown) {
+      drawdown = round(finalWorth)
+    }
+
+    if (call.hashF && !call.ignored && !postAth) {
+      finalWorth += gain
 
       if (bestXs >= 100) {
         counters.x100++
@@ -330,27 +338,20 @@ async function compute(
       if (reducedBestXs >= 10) counters.x10++
       if (reducedBestXs >= 5) counters.x5++
       if (reducedBestXs >= 2) counters.x2++
-    }
 
-    if (!call.ignored) {
-      finalWorth += gain
-    }
-    if (finalWorth < drawdown) {
-      drawdown = round(finalWorth)
-    }
-
-    // Regrouping hashes
-    if (call.hashF && !call.ignored && !postAth) {
-      if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF)
-      hashes[call.hashF].allCalls.push(call)
-      if (call.rug) hashes[call.hashF].rugs++
-      if (call.xs >= 5 && !call.rug) hashes[call.hashF].perf.x5++
-      if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++
-      if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++
-      if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++
-      if (call.ath >= 1000000 && !call.rug) hashes[call.hashF].mooners++
-      if (call.ath >= 2000000 && !call.rug) hashes[call.hashF].mooners2++
-      hashes[call.hashF].xSum += call.rug ? 0 : call.xs
+      if (call.hashF) {
+        // Regrouping hashes
+        if (!hashes[call.hashF]) hashes[call.hashF] = initHash(call.hashF)
+        hashes[call.hashF].allCalls.push(call)
+        if (call.rug) hashes[call.hashF].rugs++
+        if (call.xs >= 5 && !call.rug) hashes[call.hashF].perf.x5++
+        if (call.xs >= 10 && !call.rug) hashes[call.hashF].perf.x10++
+        if (call.xs >= 50 && !call.rug) hashes[call.hashF].perf.x50++
+        if (call.xs >= 100 && !call.rug) hashes[call.hashF].perf.x100++
+        if (call.ath >= 1000000 && !call.rug) hashes[call.hashF].mooners++
+        if (call.ath >= 2000000 && !call.rug) hashes[call.hashF].mooners2++
+        hashes[call.hashF].xSum += call.rug ? 0 : call.xs
+      }
     }
 
     // Regrouping function 4bytes signatures
