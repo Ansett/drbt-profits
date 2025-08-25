@@ -14,7 +14,7 @@ import {
   callIsPostAth
 } from './lib'
 import type { HashInfo } from './types/HashInfo'
-import type { ComputationForTarget } from './types/ComputationResult'
+import type { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import {
   SELL_TAX,
   SELL_GAS_PRICE,
@@ -130,10 +130,11 @@ async function compute(
 ) {
   let finalWorth = 0
   let drawdown = 0
-  const counters = {
+  const counters: ComputationResult['counters'] = {
     rug: 0,
     unrealistic: 0,
     postAth: 0,
+    x100Sum: 0,
     x100: 0,
     x50: 0,
     x20: 0,
@@ -320,7 +321,10 @@ async function compute(
         tpIndex++
       }
 
-      if (reducedBestXs >= 100) counters.x100++
+      if (bestXs >= 100) {
+        counters.x100++
+        counters.x100Sum += bestXs
+      }
       if (reducedBestXs >= 50) counters.x50++
       if (reducedBestXs >= 20) counters.x20++
       if (reducedBestXs >= 10) counters.x10++

@@ -80,8 +80,9 @@
             <div class="text-lg font-normal white-space-nowrap">Number of calls: <span class="text-primary">{{ nbCalls }}</span></div>
           </template>
 
-            <div v-if="counters.rug" class="text-sm white-space-nowrap">
-              Rugs: {{counters.rug}} ({{ statPercentages(counters.rug,nbCalls) }})
+
+            <div class="text-sm white-space-nowrap">
+              Sum of xs above 100: {{counters.x100Sum}}
             </div>
             <div class="text-sm white-space-nowrap">
               100X+: {{counters.x100}} ({{ statPercentages(counters.x100,nbCalls) }})
@@ -101,7 +102,10 @@
             <div class="text-sm white-space-nowrap">
               2X+: {{counters.x2}} ({{ statPercentages(counters.x2,nbCalls) }})
             </div>
-            <div class="text-sm">
+            <div v-if="counters.rug" class="text-sm white-space-nowrap">
+              Rugs: {{counters.rug}} ({{ statPercentages(counters.rug,nbCalls) }})
+            </div>
+            <div class="text-sm white-space-nowrap">
               PostATH: {{counters.postAth}} ({{ statPercentages(counters.postAth,nbCalls) }})
             </div>
             <div v-if="counters.unrealistic" class="text-sm white-space-nowrap">

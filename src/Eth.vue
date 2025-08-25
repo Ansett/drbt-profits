@@ -721,6 +721,7 @@ import {
 import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
 import useTags from './compose/useTags'
+import { ComputationResult } from './types/ComputationResult'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -993,10 +994,11 @@ const finalWorth = ref(0)
 const drawdown = ref(0)
 const volume = ref(0)
 const worstDrawdown = ref<[string, number]>(['', 0])
-const counters = ref({
+const counters = ref<ComputationResult['counters']>({
   rug: 0,
   unrealistic: 0,
   postAth: 0,
+  x100Sum: 0,
   x100: 0,
   x50: 0,
   x20: 0,

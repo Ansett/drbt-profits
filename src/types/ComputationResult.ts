@@ -17,6 +17,7 @@ export type ComputationResult = ComputationShortResult & {
     rug: number
     unrealistic: number
     postAth: number
+    x100Sum: number
     x100: number
     x50: number
     x20: number

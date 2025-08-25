@@ -17,7 +17,7 @@ import {
   REALISTIC_MAX_XS,
 } from './constants'
 import { ComputeVariant } from './types/ComputeVariant'
-import { ComputationForTarget } from './types/ComputationResult'
+import { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import { HashInfo } from './types/HashInfo'
 
 
@@ -81,10 +81,11 @@ async function compute(
 ) {
   let finalWorth = 0
   let drawdown = 0
-  const counters = {
+  const counters: ComputationResult['counters'] = {
     rug: 0,
     unrealistic: 0,
     postAth: 0,
+    x100Sum: 0,
     x100: 0,
     x50: 0,
     x20: 0,
@@ -198,7 +199,10 @@ async function compute(
         tpIndex++
       }
 
-      if (bestXs >= 100) counters.x100++
+      if (bestXs >= 100) {
+        counters.x100++
+        counters.x100Sum += bestXs
+      }
       if (bestXs >= 50) counters.x50++
       if (bestXs >= 20) counters.x20++
       if (bestXs >= 10) counters.x10++
