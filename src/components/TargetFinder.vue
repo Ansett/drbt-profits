@@ -24,7 +24,6 @@
           v-if="selectedtargetKind === 'Xs targets'"
           key="xInc"
           v-model="xIncrement"
-          label="increment"
           showButtons
           buttonLayout="stacked"
           suffix="x"

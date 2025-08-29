@@ -9,7 +9,7 @@
                 class="p-1 w-min"
                 @click="($refs.menu as any).toggle($event)"
               />
-              <Menu ref="menu" id="overlay_menu" :model="actions" :popup="true" />
+              <Menu ref="menu" v-bind="{ id: 'overlay_menu' }" :model="actions" :popup="true" />
 </template>
 
 <script setup lang="ts">

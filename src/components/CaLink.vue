@@ -38,7 +38,6 @@ import { DEFAULT_SCREENER_URL } from '@/constants'
 const {
   ca,
   name,
-  wallet,
   screenerUrl,
   type = 'address',
 } = defineProps<{

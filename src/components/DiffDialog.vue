@@ -17,7 +17,7 @@
           v-model="left.archive"
           optionLabel="fileName"
           :options="archives"
-          aria-label="Left file"
+          v-bind="{ 'aria-label': 'Left file' }"
           style="max-width: 25rem"
           scrollHeight="275px"
         />
@@ -26,7 +26,7 @@
           v-model="right.archive"
           optionLabel="fileName"
           :options="archives"
-          aria-label="Right file"
+          v-bind="{ 'aria-label': 'Right file' }"
           style="max-width: 25rem"
           scrollHeight="275px"
         />
@@ -128,7 +128,7 @@
             with-actions
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
-            @ignore="$emit('ignore', $event)"
+            @ignore="(ca, state) => $emit('ignore', ca, state)"
           />
         </template>
       </Card>
@@ -167,7 +167,7 @@
             with-actions
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
-            @ignore="$emit('ignore', $event)"
+            @ignore="(ca, state) => $emit('ignore', ca, state)"
           />
         </template>
       </Card>
@@ -254,6 +254,7 @@ const getDefaultStats = () =>
       rug: 0,
       unrealistic: 0,
       postAth: 0,
+      x100Sum: 0,
       x100: 0,
       x50: 0,
       x20: 0,

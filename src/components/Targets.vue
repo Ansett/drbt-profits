@@ -26,7 +26,7 @@
             <InputNumber
               v-else
               v-model="takeProfit.size"
-              :id="'tp-input' + index"
+              v-bind="{ id: 'tp-input' + index }"
               showButtons
               buttonLayout="stacked"
               style="height: 4rem"
@@ -104,7 +104,7 @@
               optionValue="value"
               :allowEmpty="false"
               :disabled="!isMultiTakeProfit(takeProfit)"
-              aria-label="Logic"
+              v-bind="{ 'aria-label': 'Logic' }"
               class="flex flex-row h-full p-0"
               :pt="{
                 button: {

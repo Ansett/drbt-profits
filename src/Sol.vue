@@ -42,7 +42,7 @@
                     v-model="current"
                     optionLabel="fileName"
                     :options="archives"
-                    aria-label="Current calls file"
+                    v-bind="{ 'aria-label': 'Current calls file' }"
                     style="max-width: 21rem"
                     scrollHeight="300px"
                   >
@@ -111,7 +111,6 @@
               :volume="volume"
               :worstDrawdown="worstDrawdown"
               :counters="counters"
-              taxless
               :nbCalls="filteredCalls.length"
               :full-stats="state.showFullStats"
               :buyInfo="buyInfo"
@@ -136,7 +135,19 @@
               chain="SOL"
               @ignore="ignoreCa"
               @exportXlsx="exportXlsx"
-            />
+            >
+              <template #header v-if="isLocalhost">
+                <!-- Wallets special button -->
+                <Button
+                  icon="pi pi-wallet"
+                  aria-label="Wallets analysis"
+                  outlined
+                  severity="primary"
+                  class="small-button"
+                  @click="showWalletsView()"
+                />
+              </template>
+            </LogsTable>
           </AccordionTab>
 
           <!-- TARGETS -->
@@ -185,7 +196,7 @@
               </InputGroupAddon>
               <InputNumber
                 v-model="state.position"
-                id="position-input"
+                v-bind="{ id: 'position-input' }"
                 showButtons
                 buttonLayout="stacked"
                 suffix=" ◎"
@@ -224,7 +235,7 @@
               </InputGroupAddon>
               <InputNumber
                 v-model="state.minCallsForHash"
-                id="mincalls-input"
+                v-bind="{ id: 'mincalls-input' }"
                 showButtons
                 buttonLayout="stacked"
                 :min="0"
@@ -258,7 +269,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import { CallArchive, SolCall } from './types/Call'
@@ -296,6 +307,10 @@ import { HashInfo } from './types/HashInfo'
 import HashTable from './components/HashTable.vue'
 import TimingFinder from './components/TimingFinder.vue'
 import { ComputationResult } from './types/ComputationResult'
+import { useRouter } from 'vue-router'
+import { STORAGE_KEY } from './storage'
+
+const router = useRouter()
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -378,10 +393,6 @@ function loadForm() {
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
 }
-onMounted(() => {
-  loadForm()
-  initialized.value = true
-})
 
 const ignoreCa = (ca: string, isIgnored: boolean) => {
   if (isIgnored) state.blackList.push(ca)
@@ -539,6 +550,9 @@ const buyInfo = `Final wallet worth, starting from 0.<ul><li>Buy calculations: I
 
 const worker = shallowRef<Worker | null>(null)
 onMounted(async () => {
+  loadForm()
+  initialized.value = true
+
   const WorkerConstructor = (await import('@/worker-sol?worker')).default
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage
@@ -578,5 +592,22 @@ const { localTags, removeTag, addTag } = useTags()
 const programs = ref<Record<string, HashInfo<SolCall>>>({})
 const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
   addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
+)
+
+const showWalletsView = () => {
+  const mooners = logs.value
+    .filter(log => !log.flag) // remove ignored CAs
+    .sort((a, b) => b.xs - a.xs)
+    .slice(0, 50)
+    .map(log => ({ ca: log.ca, xs: log.xs, name: log.name }))
+
+  localStorage.setItem(STORAGE_KEY.MOONERS_NEW, JSON.stringify(mooners))
+
+  const route = router.resolve('/wallets')
+  window.open(route.href, '_blank')
+}
+
+const isLocalhost = computed(
+  () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
 )
 </script>

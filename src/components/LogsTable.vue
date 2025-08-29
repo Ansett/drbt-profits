@@ -56,7 +56,7 @@
         v-model:first="logsPage"
         v-model:rows="logsRowCount"
         :totalRecords="filteredLogs.length"
-        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
+        template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown"
         :rowsPerPageOptions="[10, 25, 100]"
       />
     </template>
@@ -82,6 +82,8 @@
 
       <template #header>
         <div class="flex flex-wrap justify-content-end gap-3">
+          <slot name="header" />
+
           <InputGroup
             class="w-auto small-button"
             v-tooltip.top="{
@@ -97,7 +99,7 @@
               >
             </InputGroupAddon>
             <InputGroupAddon>
-              <Checkbox v-model="profitableFilter" binary aria-label="Filter" />
+              <Checkbox v-model="profitableFilter" binary v-bind="{ 'aria-label': 'Filter' }" />
             </InputGroupAddon>
           </InputGroup>
           <Button
@@ -278,8 +280,8 @@
       >
 
       <Column header="Perf" field="xs" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
-        <template #header
-          ><InfoButton
+        <template #header>
+          <InfoButton
             v-if="!noSlippage"
             text="Accounting for slippage"
             direction="top"

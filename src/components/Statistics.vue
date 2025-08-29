@@ -4,7 +4,7 @@
     <ProgressSpinner
       v-if="loading"
       class="absolute top-50 left-50 spinner"
-      :data-info="typeof loading === 'string' ? loading : ''"
+      v-bind="{ 'data-info': typeof loading === 'string' ? loading : '' }"
     />
     <!-- FUNDS -->
     <div class="text-2xl flex gap-2 align-items-center white-space-nowrap">

@@ -5,9 +5,9 @@
   "exclude": ["src/**/__tests__/*"],
   "vueCompilerOptions": {
     "target": 3.5,
-    "propsDestructure": true
-    // "strictTempates": true,
-    // "allowJsxPropsOnComponent": true
+    "skipLibCheck": true,
+    "propsDestructure": true,
+    "strictTemplates": true
   },
   "compilerOptions": {
     "lib": ["esnext", "dom", "dom.iterable", "scripthost", "es2015.promise"],

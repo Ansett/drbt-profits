@@ -43,7 +43,7 @@
                     v-model="current"
                     optionLabel="fileName"
                     :options="archives"
-                    aria-label="Current calls file"
+                    v-bind="{ 'aria-label': 'Current calls file' }"
                     style="max-width: 21rem"
                     scrollHeight="300px"
                   >
@@ -229,7 +229,7 @@
               </InputGroupAddon>
               <InputNumber
                 v-model="state.position"
-                id="position-input"
+                v-bind="{ id: 'position-input' }"
                 showButtons
                 buttonLayout="stacked"
                 suffix=" Ξ"
@@ -255,7 +255,7 @@
                 </InputGroupAddon>
                 <InputNumber
                   v-model="state.gweiDelta"
-                  id="gwei-input"
+                  v-bind="{ id: 'gwei-input' }"
                   showButtons
                   buttonLayout="stacked"
                   :min="1"
@@ -326,10 +326,9 @@
             <Button icon="pi pi-minus" outlined severity="secondary" @click="incStartDate(-1)" />
             <InputMask
               v-model="selection.startDate"
-              id="start-input"
+              v-bind="{ id: 'start-input', placeholder: 'YYYY-MM-DD' }"
               style="height: 4rem"
               mask="9999-99-99"
-              placeholder="YYYY-MM-DD"
               class="settingInput"
             />
             <Button icon="pi pi-plus" outlined severity="secondary" @click="incStartDate()" />
@@ -339,7 +338,7 @@
               v-model="selection.startHour"
               style="height: 4rem"
               mask="99:99"
-              placeholder="00:00"
+              v-bind="{ placeholder: '00:00' }"
               class="settingInputSmall"
             />
             <!-- prettier-ignore -->
@@ -366,10 +365,9 @@
             <Button icon="pi pi-minus" outlined severity="secondary" @click="incEndDate(-1)" />
             <InputMask
               v-model="selection.endDate"
-              id="end-input"
+              v-bind="{ id: 'end-input', placeholder: 'YYYY-MM-DD' }"
               style="height: 4rem"
               mask="9999-99-99"
-              placeholder="YYYY-MM-DD"
               class="settingInput"
             />
             <Button icon="pi pi-plus" outlined severity="secondary" @click="incEndDate()" />
@@ -379,7 +377,7 @@
               v-model="selection.endHour"
               style="height: 4rem"
               mask="99:99"
-              placeholder="00:00"
+              v-bind="{ placeholder: '00:00' }"
               class="settingInputSmall"
             />
             <!-- prettier-ignore -->
@@ -489,7 +487,7 @@
               </InputGroupAddon>
               <InputNumber
                 v-model="state.minCallsForHash"
-                id="mincalls-input"
+                v-bind="{ id: 'mincalls-input' }"
                 showButtons
                 buttonLayout="stacked"
                 :min="0"
@@ -617,7 +615,7 @@
           </label>
           <InputNumber
             v-model="snipesThreshold[1]"
-            :id="'snipe-th-' + snipesThreshold[0]"
+            v-bind="{ id: 'snipe-th-' + snipesThreshold[0] }"
             showButtons
             buttonLayout="stacked"
             :min="1"
@@ -653,6 +651,7 @@
         withPriceImpact: state.withPriceImpact,
       }"
       @closed="showDiff = false"
+      @ignore="ignoreCa"
     />
 
     <ScatterDialog v-if="showAccuracy" :data="accuracyLogs" @closed="showAccuracy = false" />
