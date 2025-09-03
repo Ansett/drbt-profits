@@ -61,6 +61,7 @@
                       </div>
                     </template>
                   </Dropdown>
+                  <!-- Archives comparator -->
                   <Button
                     v-if="archives.length"
                     icon="pi pi-code"
@@ -81,6 +82,15 @@
                       <span class="material-symbols-outlined cursor-pointer">difference</span>
                     </template>
                   </Button>
+                  <!-- Wallets special button -->
+                  <Button
+                    icon="pi pi-wallet"
+                    aria-label="Wallets analysis"
+                    outlined
+                    severity="primary"
+                    class="mx-1"
+                    @click="showWalletsView()"
+                  />
                 </InputGroup>
               </template>
               <template v-else>
@@ -136,17 +146,6 @@
               @ignore="ignoreCa"
               @exportXlsx="exportXlsx"
             >
-              <template #header v-if="isLocalhost">
-                <!-- Wallets special button -->
-                <Button
-                  icon="pi pi-wallet"
-                  aria-label="Wallets analysis"
-                  outlined
-                  severity="primary"
-                  class="small-button"
-                  @click="showWalletsView()"
-                />
-              </template>
             </LogsTable>
           </AccordionTab>
 

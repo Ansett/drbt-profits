@@ -1,5 +1,39 @@
 <template>
   <main>
+    <!-- File Upload -->
+    <div class="w-full max-w-full px-2">
+      <FileUpload
+        ref="uploader"
+        mode="advanced"
+        accept="application/json"
+        multiple
+        :showUploadButton="false"
+        :showCancelButton="false"
+        chooseLabel="&nbsp;Import JSON"
+        :pt="{
+          content: 'p-3',
+        }"
+        @select="onUpload($event)"
+      >
+        <template #empty>
+          <ProgressSpinner
+            v-if="uploading"
+            class="absolute top-50 left-50"
+            style="width: 50px; height: 50px; transform: translate(-50%, -50%); z-index: 99"
+          />
+
+          <div class="flex flex-column m-1 align-items-center justify-content-center">
+            <i class="pi pi-file-import mb-2" style="font-size: 2rem; color: var(--cyan-300)" />
+            <p class="text-center text-sm">Import JSON file with wallets and mooners data</p>
+          </div>
+        </template>
+
+        <template #content>
+          <div />
+        </template>
+      </FileUpload>
+    </div>
+
     <div class="w-full max-w-full px-2">
       <Accordion :activeIndex="[0]" multiple class="mt-5">
         <AccordionTab
@@ -19,27 +53,47 @@
           </template>
 
           <div class="flex flex-column xl:flex-row gap-4">
-            <!-- Mooners diff -->
-            <DataTable :value="moonersDiff" dataKey="ca" size="small">
-              <template #empty> No mooners </template>
+            <!-- New/Both Mooners -->
+            <DataTable :value="newAndBothMooners" dataKey="ca" size="small" class="flex-1">
+              <template #header>
+                <div class="text-sm font-semibold">New & Updated Mooners</div>
+              </template>
+              <template #empty> No new mooners </template>
+              <Column
+                field="ca"
+                header="CA"
+                :pt="{
+                  headerTitle: { class: 'text-xs' },
+                }"
+              >
+                <template #body="{ data }">
+                  <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
+                </template>
+              </Column>
+              <Column field="xs" header="XS" :pt="{ headerTitle: { class: 'text-xs' } }">
+                <template #body="{ data }">
+                  <span :class="data.type === 'new' ? 'text-green-500' : ''">
+                    {{ data.xs }}
+                  </span>
+                </template>
+              </Column>
+            </DataTable>
+
+            <!-- Old Mooners -->
+            <DataTable :value="oldOnlyMooners" dataKey="ca" size="small" class="flex-1">
+              <template #header>
+                <div class="text-sm font-semibold">Removed Mooners</div>
+              </template>
+              <template #empty> No removed mooners </template>
               <Column field="ca" header="CA" :pt="{ headerTitle: { class: 'text-xs' } }">
                 <template #body="{ data }">
                   <CaLink :name="data.name" :ca="data.ca" :screener-url="screenerUrl" />
                 </template>
               </Column>
-              <Column field="xs" header="XS" :pt="{ headerTitle: { class: 'text-xs' } }" />
-              <Column field="type" header="TYPE" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <Column field="xs" header="XS" :pt="{ headerTitle: { class: 'text-xs' } }">
                 <template #body="{ data }">
-                  <span
-                    :class="
-                      data.type === 'new'
-                        ? 'text-green-500'
-                        : data.type === 'old'
-                        ? 'text-red-500'
-                        : ''
-                    "
-                  >
-                    {{ data.type }}
+                  <span class="text-red-500">
+                    {{ data.xs }}
                   </span>
                 </template>
               </Column>
@@ -77,96 +131,93 @@
             </div>
           </template>
 
-          <div class="flex flex-column xl:flex-row gap-4">
-            <!-- Wallets diff -->
-            <DataTable :value="walletsDiff" dataKey="adr" size="small" class="flex-1">
-              <template #empty> No wallets </template>
-              <Column field="adr" header="ADDRESS" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <CaLink type="wallet" :ca="data.wallet.adr" />
-                  &nbsp;
-                  <i
-                    class="pi pi-external-link text-primary cursor-pointer ml-1 mr-1"
-                    aria-label="Open GMGN"
-                    v-tooltip.bottom="{
-                      value: 'Open GMGN',
-                      showDelay: 500,
-                    }"
-                    @click="openGmGn(data.wallet.adr)"
-                  ></i>
-                </template>
-              </Column>
-              <!-- Mooner -->
-              <Column field="mooners" header="MOONERS" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <span
-                    :class="{
-                      'text-green-500': data.type === 'new',
-                      'text-red-500': data.type === 'old',
-                    }"
-                    ><span class="text-color-secondary">
-                      {{
-                        data.type === 'both' &&
-                        data.oldMooners &&
-                        data.oldMooners !== data.wallet.mooners
-                          ? data.oldMooners +
-                            (data.oldMooners < data.wallet.mooners ? ' < ' : ' > ')
-                          : ''
-                      }}</span
-                    >
-                    {{ data.wallet.mooners }}
-                  </span>
-                </template>
-              </Column>
-              <!-- Tokens total and ratio -->
-              <Column field="total" header="TOTAL" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <span :class="{ 'text-300': !isRatioOk(data) }">
-                    {{ data.wallet.total }} ({{
-                      round((data.wallet.mooners / data.wallet.total) * 100)
-                    }}%)
-                  </span>
-                </template>
-              </Column>
-              <!-- Wallet age and last tx -->
-              <Column field="age" header="AGE" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <span :class="['white-space-nowrap', { 'text-300': !isAgeOk(data) }]">
-                    {{ data.wallet.age }} / {{ data.wallet.last }}
-                  </span>
-                </template>
-              </Column>
-              <!-- Backtest stats -->
-              <Column header="STATS" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <div class="flex flex-row gap-3">
-                    <span class="white-space-nowrap">{{ data.oldStats || '&nbsp;' }}</span>
-                    <InputText
-                      v-if="data.type !== 'old'"
-                      v-model="data.wallet.stats"
-                      :class="[
-                        'w-full p-1',
-                        { 'border-yellow-400': isRatioOk(data) && isAgeOk(data) },
-                      ]"
-                    />
-                  </div>
-                </template>
-              </Column>
-              <!-- Selection -->
-              <Column :header="selectionHeader" :pt="{ headerTitle: { class: 'text-xs' } }">
-                <template #body="{ data }">
-                  <div class="flex flex-row gap-3">
-                    <span class="white-space-nowrap">{{ data.oldIncluded || '&nbsp;' }}</span>
-                    <InputText
-                      v-if="data.type !== 'old'"
-                      v-model="data.wallet.included"
-                      :class="['w-full p-1', { 'border-yellow-400': areStatsGood(data) }]"
-                    />
-                  </div>
-                </template>
-              </Column>
-            </DataTable>
-          </div>
+          <!-- Wallets diff -->
+          <DataTable :value="walletsDiff" dataKey="adr" size="small" class="flex-1">
+            <template #empty> No wallets </template>
+            <Column field="adr" header="ADDRESS" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <CaLink type="wallet" :ca="data.wallet.adr" />
+                &nbsp;
+                <i
+                  class="pi pi-external-link text-primary cursor-pointer ml-1 mr-1"
+                  aria-label="Open GMGN"
+                  v-tooltip.bottom="{
+                    value: 'Open GMGN',
+                    showDelay: 500,
+                  }"
+                  @click="openGmGn(data.wallet.adr)"
+                ></i>
+              </template>
+            </Column>
+            <!-- Mooner -->
+            <Column field="mooners" header="MOONERS" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <span
+                  :class="{
+                    'text-green-500': data.type === 'new',
+                    'text-red-500': data.type === 'old',
+                  }"
+                  ><span class="text-color-secondary">
+                    {{
+                      data.type === 'both' &&
+                      data.oldMooners &&
+                      data.oldMooners !== data.wallet.mooners
+                        ? data.oldMooners + (data.oldMooners < data.wallet.mooners ? ' < ' : ' > ')
+                        : ''
+                    }}</span
+                  >
+                  {{ data.wallet.mooners }}
+                </span>
+              </template>
+            </Column>
+            <!-- Tokens total and ratio -->
+            <Column field="total" header="TOTAL" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <span :class="{ 'text-300': !isRatioOk(data) }">
+                  {{ data.wallet.total }} ({{
+                    round((data.wallet.mooners / data.wallet.total) * 100)
+                  }}%)
+                </span>
+              </template>
+            </Column>
+            <!-- Wallet age and last tx -->
+            <Column field="age" header="AGE" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <span :class="['white-space-nowrap', { 'text-300': !isAgeOk(data) }]">
+                  {{ data.wallet.age }} / {{ data.wallet.last }}
+                </span>
+              </template>
+            </Column>
+            <!-- Backtest stats -->
+            <Column header="STATS" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <div class="flex flex-row gap-3">
+                  <span class="white-space-nowrap">{{ data.oldStats || '&nbsp;' }}</span>
+                  <InputText
+                    v-if="data.type !== 'old'"
+                    v-model="data.wallet.stats"
+                    :class="[
+                      'w-full p-1',
+                      { 'border-yellow-400': isRatioOk(data) && isAgeOk(data) },
+                    ]"
+                  />
+                </div>
+              </template>
+            </Column>
+            <!-- Selection -->
+            <Column :header="selectionHeader" :pt="{ headerTitle: { class: 'text-xs' } }">
+              <template #body="{ data }">
+                <div class="flex flex-row gap-3">
+                  <span class="white-space-nowrap">{{ data.oldIncluded || '&nbsp;' }}</span>
+                  <InputText
+                    v-if="data.type !== 'old'"
+                    v-model="data.wallet.included"
+                    :class="['w-full p-1', { 'border-yellow-400': areStatsGood(data) }]"
+                  />
+                </div>
+              </template>
+            </Column>
+          </DataTable>
         </AccordionTab>
       </Accordion>
     </div>
@@ -178,7 +229,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted, shallowRef } from 'vue'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import Column from 'primevue/column'
@@ -186,6 +237,8 @@ import DataTable from 'primevue/datatable'
 import Button from 'primevue/button'
 import vTooltip from 'primevue/tooltip'
 import InputText from 'primevue/inputtext'
+import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
+import ProgressSpinner from 'primevue/progressspinner'
 import CaLink from './components/CaLink.vue'
 import { STORAGE_KEY } from './storage'
 import { DEFAULT_SOL_SCREENER_URL } from './constants'
@@ -210,16 +263,13 @@ type WalletWithInfo = {
   oldIncluded?: string
 }
 
+const oldMooners = ref<Mooner[]>([])
 const newMooners = ref<Mooner[]>([])
 try {
   newMooners.value = JSON.parse(localStorage.getItem(STORAGE_KEY.MOONERS_NEW) || '[]')
 } catch (e) {
   console.error(`Failed to parse ${STORAGE_KEY.MOONERS_NEW} storage data:`, e)
 }
-const oldMooners = ref<Mooner[]>([])
-try {
-  oldMooners.value = JSON.parse(localStorage.getItem(STORAGE_KEY.MOONERS_OLD) || '[]')
-} catch (e) {}
 
 const moonersDiff = computed(() => [
   ...newMooners.value.map(m => ({
@@ -230,6 +280,10 @@ const moonersDiff = computed(() => [
     .filter(m => !newMooners.value.some(old => old.ca === m.ca))
     .map(m => ({ ...m, type: 'old' })),
 ])
+const newAndBothMooners = computed(() =>
+  moonersDiff.value.filter(m => m.type === 'new' || m.type === 'both'),
+)
+const oldOnlyMooners = computed(() => moonersDiff.value.filter(m => m.type === 'old'))
 
 const screenerUrl = computed<string>(() => DEFAULT_SOL_SCREENER_URL)
 
@@ -238,12 +292,46 @@ const copyMooners = () => {
   navigator.clipboard.writeText(caList)
 }
 
-const resultsInput = ref('')
+const resultsInput = ref<string | undefined>('')
 const newWallets = ref<Wallet[]>([])
 const oldWallets = ref<Wallet[]>([])
-try {
-  oldWallets.value = JSON.parse(localStorage.getItem(STORAGE_KEY.WALLETS_OLD) || '[]')
-} catch (e) {}
+
+const uploading = ref(false)
+const uploader = ref<InstanceType<typeof FileUpload>>()
+
+const onUpload = async (event: FileUploadSelectEvent) => {
+  const { files } = event
+  if (!files?.length) return
+
+  const jsonFile = files[0]
+  ;(uploader.value as any)?.clear()
+
+  uploading.value = true
+
+  const reader = new FileReader()
+  reader.onload = e => {
+    try {
+      const jsonData = JSON.parse(e.target?.result as string)
+
+      if (jsonData.oldWallets) {
+        oldWallets.value = jsonData.oldWallets
+      }
+      if (jsonData.oldMooners) {
+        oldMooners.value = jsonData.oldMooners
+      }
+
+      uploading.value = false
+    } catch (error) {
+      console.error('Failed to parse JSON file:', error)
+      uploading.value = false
+    }
+  }
+  reader.onerror = () => {
+    console.error('Failed to read file')
+    uploading.value = false
+  }
+  reader.readAsText(jsonFile)
+}
 
 const walletsDiff = computed<WalletWithInfo[]>(() => {
   const result: WalletWithInfo[] = []
@@ -319,6 +407,8 @@ const areStatsGood = (wallet: WalletWithInfo): boolean => {
 
 // add pasted wallets
 watch(resultsInput, async result => {
+  if (!result?.trim()) return
+
   const regex = /([A-Za-z0-9]{44})[\r\n\s]*(\d+)[\r\n\s]*(\d+)[\r\n\s]*(\d+)[\r\n\s]*(\d+)/g
   let match
   while ((match = regex.exec(result)) !== null) {
@@ -348,12 +438,25 @@ watch(resultsInput, async result => {
 
 const save = () => {
   try {
-    localStorage.setItem(STORAGE_KEY.MOONERS_OLD, JSON.stringify(newMooners.value))
-    oldMooners.value = [...newMooners.value]
-    localStorage.setItem(STORAGE_KEY.WALLETS_OLD, JSON.stringify(newWallets.value))
-    oldWallets.value = [...newWallets.value]
-  } catch (e) {
-    console.error('Failed to save:', e)
+    const dataToExport = {
+      oldMooners: newMooners.value,
+      oldWallets: newWallets.value,
+    }
+
+    const jsonString = JSON.stringify(dataToExport, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `alpha-wallets-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Failed to save data:', error)
   }
 }
 </script>
