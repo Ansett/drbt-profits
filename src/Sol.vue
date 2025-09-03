@@ -84,6 +84,7 @@
                   </Button>
                   <!-- Wallets special button -->
                   <Button
+                    v-if="$route.query.wallets !== undefined"
                     icon="pi pi-wallet"
                     aria-label="Wallets analysis"
                     outlined
