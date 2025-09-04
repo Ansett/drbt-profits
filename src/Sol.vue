@@ -596,10 +596,10 @@ const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
 
 const showWalletsView = () => {
   const mooners = logs.value
-    .filter(log => !log.flag) // remove ignored CAs
+    .filter(log => !log.flag && log.xs >= 100) // remove ignored CAs or below 100x
     .sort((a, b) => b.xs - a.xs)
     .slice(0, 50)
-    .map(log => ({ ca: log.ca, xs: log.xs, name: log.name }))
+    .map(log => ({ ca: log.ca, xs: Math.round(log.xs), name: log.name }))
 
   localStorage.setItem(STORAGE_KEY.MOONERS_NEW, JSON.stringify(mooners))
 

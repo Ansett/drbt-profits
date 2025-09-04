@@ -225,6 +225,8 @@
     <div class="mt-4 text-center">
       <Button label="Save" severity="primary" @click="save" />
     </div>
+
+    <Toast />
   </main>
 </template>
 
@@ -239,6 +241,7 @@ import vTooltip from 'primevue/tooltip'
 import InputText from 'primevue/inputtext'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import ProgressSpinner from 'primevue/progressspinner'
+import Toast from 'primevue/toast'
 import CaLink from './components/CaLink.vue'
 import { STORAGE_KEY } from './storage'
 import { DEFAULT_SOL_SCREENER_URL } from './constants'
