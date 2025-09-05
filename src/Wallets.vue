@@ -1,39 +1,5 @@
 <template>
   <main>
-    <!-- File Upload -->
-    <div class="w-full max-w-full px-2">
-      <FileUpload
-        ref="uploader"
-        mode="advanced"
-        accept="application/json"
-        multiple
-        :showUploadButton="false"
-        :showCancelButton="false"
-        chooseLabel="&nbsp;Import JSON"
-        :pt="{
-          content: 'p-3',
-        }"
-        @select="onUpload($event)"
-      >
-        <template #empty>
-          <ProgressSpinner
-            v-if="uploading"
-            class="absolute top-50 left-50"
-            style="width: 50px; height: 50px; transform: translate(-50%, -50%); z-index: 99"
-          />
-
-          <div class="flex flex-column m-1 align-items-center justify-content-center">
-            <i class="pi pi-file-import mb-2" style="font-size: 2rem; color: var(--cyan-300)" />
-            <p class="text-center text-sm">Import JSON file with wallets and mooners data</p>
-          </div>
-        </template>
-
-        <template #content>
-          <div />
-        </template>
-      </FileUpload>
-    </div>
-
     <div class="w-full max-w-full px-2">
       <Accordion :activeIndex="[0]" multiple class="mt-5">
         <AccordionTab
@@ -273,6 +239,11 @@ try {
 } catch (e) {
   console.error(`Failed to parse ${STORAGE_KEY.MOONERS_NEW} storage data:`, e)
 }
+try {
+  oldMooners.value = JSON.parse(localStorage.getItem(STORAGE_KEY.MOONERS_OLD) || '[]')
+} catch (e) {
+  console.error(`Failed to parse ${STORAGE_KEY.MOONERS_OLD} storage data:`, e)
+}
 
 const moonersDiff = computed(() => [
   ...newMooners.value.map(m => ({
@@ -298,42 +269,10 @@ const copyMooners = () => {
 const resultsInput = ref<string | undefined>('')
 const newWallets = ref<Wallet[]>([])
 const oldWallets = ref<Wallet[]>([])
-
-const uploading = ref(false)
-const uploader = ref<InstanceType<typeof FileUpload>>()
-
-const onUpload = async (event: FileUploadSelectEvent) => {
-  const { files } = event
-  if (!files?.length) return
-
-  const jsonFile = files[0]
-  ;(uploader.value as any)?.clear()
-
-  uploading.value = true
-
-  const reader = new FileReader()
-  reader.onload = e => {
-    try {
-      const jsonData = JSON.parse(e.target?.result as string)
-
-      if (jsonData.oldWallets) {
-        oldWallets.value = jsonData.oldWallets
-      }
-      if (jsonData.oldMooners) {
-        oldMooners.value = jsonData.oldMooners
-      }
-
-      uploading.value = false
-    } catch (error) {
-      console.error('Failed to parse JSON file:', error)
-      uploading.value = false
-    }
-  }
-  reader.onerror = () => {
-    console.error('Failed to read file')
-    uploading.value = false
-  }
-  reader.readAsText(jsonFile)
+try {
+  oldWallets.value = JSON.parse(localStorage.getItem(STORAGE_KEY.WALLETS_OLD) || '[]')
+} catch (e) {
+  console.error(`Failed to parse ${STORAGE_KEY.WALLETS_OLD} storage data:`, e)
 }
 
 const walletsDiff = computed<WalletWithInfo[]>(() => {
@@ -441,9 +380,12 @@ watch(resultsInput, async result => {
 
 const save = () => {
   try {
+    localStorage.setItem(STORAGE_KEY.MOONERS_OLD, JSON.stringify(newMooners.value))
+    localStorage.setItem(STORAGE_KEY.WALLETS_OLD, JSON.stringify(newWallets.value))
+
     const dataToExport = {
-      oldMooners: newMooners.value,
-      oldWallets: newWallets.value,
+      'mooners-old': newMooners.value,
+      'wallets-old': newWallets.value,
     }
 
     const jsonString = JSON.stringify(dataToExport, null, 2)

@@ -84,7 +84,7 @@
                   </Button>
                   <!-- Wallets special button -->
                   <Button
-                    v-if="$route.query.wallets !== undefined"
+                    v-if="canSeeWallets"
                     icon="pi pi-wallet"
                     aria-label="Wallets analysis"
                     outlined
@@ -594,6 +594,15 @@ const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
   addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
 )
 
+const canSeeWallets = ref(false)
+try {
+  canSeeWallets.value =
+    !!localStorage.getItem(STORAGE_KEY.WALLET_FEATURE) ||
+    router.currentRoute.value.query.wallets !== undefined
+} catch (e) {
+  console.error(`Failed to parse ${STORAGE_KEY.WALLET_FEATURE} storage data:`, e)
+}
+
 const showWalletsView = () => {
   const mooners = logs.value
     .filter(log => !log.flag && log.xs >= 50) // remove ignored CAs or below 100x
@@ -606,8 +615,4 @@ const showWalletsView = () => {
   const route = router.resolve('/wallets')
   window.open(route.href, '_blank')
 }
-
-const isLocalhost = computed(
-  () => window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1',
-)
 </script>
