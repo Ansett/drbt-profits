@@ -219,7 +219,7 @@
           currency="◎"
           :whenError="errorMessage"
           :steps="{
-            'All Xs': 5,
+            'All Xs': 1,
             'All amount': 10,
             'All MC': 100000,
           }"
@@ -239,7 +239,7 @@
                 showButtons
                 buttonLayout="stacked"
                 :min="0"
-                :step="5"
+                :step="1"
                 :pt="getPtNumberInput()"
                 class="settingInput"
               />

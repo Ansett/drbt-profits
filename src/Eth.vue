@@ -307,9 +307,9 @@
           currency="Ξ"
           :whenError="errorMessage"
           :steps="{
-            'All Xs': 5,
-            'All amount': 0.5,
-            'All MC': 500000,
+            'All Xs': 1,
+            'All amount': 0.1,
+            'All MC': 100000,
           }"
         />
 
@@ -491,7 +491,7 @@
                 showButtons
                 buttonLayout="stacked"
                 :min="0"
-                :step="5"
+                :step="1"
                 :pt="getPtNumberInput()"
                 class="settingInput"
               />
