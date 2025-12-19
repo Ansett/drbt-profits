@@ -344,7 +344,7 @@ const isAgeOk = (wallet: WalletWithInfo): boolean =>
 const areStatsGood = (wallet: WalletWithInfo): boolean => {
   if (!wallet.wallet.stats.match(/100x/i)) return false
   const rate = wallet.wallet.stats.match(/(\d+\.\d+)%/)?.[1]
-  return !!rate && Number(rate) > 1
+  return !!rate && Number(rate) > 0.70
 }
 
 // add pasted wallets
