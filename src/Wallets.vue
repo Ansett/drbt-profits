@@ -338,7 +338,7 @@ const openGmGn = (adr: string) => {
 }
 
 const isRatioOk = (wallet: WalletWithInfo): boolean =>
-  wallet.wallet.total < 90000 && wallet.wallet.mooners / wallet.wallet.total > 0.0003
+  wallet.wallet.total < 90000 && wallet.wallet.mooners / wallet.wallet.total > 0.001
 const isAgeOk = (wallet: WalletWithInfo): boolean =>
   wallet.wallet.age > 30 && wallet.wallet.last < 4
 const areStatsGood = (wallet: WalletWithInfo): boolean => {
