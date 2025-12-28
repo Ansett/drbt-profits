@@ -9,13 +9,22 @@
           }"
         >
           <template #header>
-            <Button
+          <div class="flex flex-row gap-4 w-full">
+              <Button
               label="Copy"
               severity="primary"
               outlined
               class="small-button ml-5"
               @click.stop="copyMooners"
             />
+
+              <InputText
+                v-model="extraMooners"
+                placeholder="Extra mooners"
+                class="flex-grow-1"
+                @click.stop
+              />
+            </div>
           </template>
 
           <div class="flex flex-column xl:flex-row gap-4">
@@ -244,6 +253,21 @@ try {
 } catch (e) {
   console.error(`Failed to parse ${STORAGE_KEY.MOONERS_OLD} storage data:`, e)
 }
+
+const extraMooners = ref<string | undefined>('')
+watch(extraMooners, async () => {
+  if (!extraMooners.value?.trim()) return
+
+  const mooners = extraMooners.value.split(',')
+  for (const mooner of mooners) {
+    const [name, ca] = mooner.split(' ')
+    if (!newMooners.value.some(mooner => mooner.ca === ca.trim()))
+      newMooners.value.push({ ca: ca.trim(), name: name.trim(), xs: 9.9 })
+  }
+
+  await nextTick()
+  extraMooners.value = ''
+})
 
 const moonersDiff = computed(() => [
   ...newMooners.value.map(m => ({
