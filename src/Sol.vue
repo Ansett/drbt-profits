@@ -158,7 +158,7 @@
                 calls: filteredCalls,
                 position: state.position,
               }"
-              :mcRange="[100000, 100000, 2000000]"
+              :mcRange="[100000, 100000, 5000000]"
               :amountRange="[10, 10, 200]"
             />
           </AccordionTab>

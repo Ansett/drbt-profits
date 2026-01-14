@@ -105,7 +105,7 @@
         <InputNumber
           v-if="selectedtargetKind === 'Xs targets'"
           key="xTo"
-          v-model="xTargetStart"
+          v-model="xTargetEnd"
           showButtons
           buttonLayout="stacked"
           suffix="x"
