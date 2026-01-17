@@ -24,8 +24,8 @@ export const CURRENT_CACHED_BLOCK_VERSION = 2
 export const WRAPPED_ETH_ADDY = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'.toLowerCase()
 export const INITIAL_TP_SIZE_CODE = -1
 export const ESTIMATED_TIME_FOR_ALCHEMY = 1.3 // s
-export const DEFAULT_SCREENER_URL = 'https://dexspy.io/eth/token/'
-export const DEFAULT_SOL_SCREENER_URL = 'https://dexscreener.com/solana/'
+export const DEFAULT_SCREENER_URL = 'https://gmgn.ai/eth/token/'
+export const DEFAULT_SOL_SCREENER_URL = 'https://gmgn.ai/sol/token/'
 export const REALISTIC_MAX_XS = 100000
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
