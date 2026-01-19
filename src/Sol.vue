@@ -247,6 +247,21 @@
               />
             </InputGroup>
           </div>
+          <!-- DEX URL -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="screener-input">Screener URL</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-chart-line"></i>
+              </InputGroupAddon>
+              <InputText
+                v-model.trim="state.screenerUrl"
+                id="screener-input"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
         </div>
       </div>
     </div>
@@ -286,6 +301,7 @@ import Message from 'primevue/message'
 import InputNumber from 'primevue/inputnumber'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
+import InputText from 'primevue/inputtext'
 import { Log } from './types/Log'
 import {
   addTagsToHashes,
