@@ -236,6 +236,8 @@
                 :min="0.005"
                 mode="decimal"
                 :step="0.005"
+                :minFractionDigits="0"
+                :maxFractionDigits="3"
                 :pt="getPtNumberInput()"
                 class="settingInput"
                 style="height: 4rem"

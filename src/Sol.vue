@@ -194,7 +194,7 @@
               <InputGroupAddon>
                 <i class="pi pi-wallet"></i>
               </InputGroupAddon>
-              <InputNumber
+              <InputNumber 
                 v-model="state.position"
                 v-bind="{ id: 'position-input' }"
                 showButtons
@@ -203,6 +203,8 @@
                 :min="0.1"
                 mode="decimal"
                 :step="0.1"
+                :minFractionDigits="0"
+                :maxFractionDigits="1"
                 :pt="getPtNumberInput()"
                 class="settingInput"
                 style="height: 4rem"
