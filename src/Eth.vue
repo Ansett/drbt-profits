@@ -143,6 +143,7 @@
               withActions
               chain="ETH"
               :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
               @ignore="ignoreCa"
               @rug="onRug"
               @exportXlsx="exportXlsx"
@@ -183,7 +184,8 @@
               :lines="hashesWithTags"
               filter-template="~HashF.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
-              :screener-url="state.screenerUrl"
+              :screener-url="state.screenerUrl" 
+              :timezone="state.timezone"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -196,6 +198,7 @@
               filter-template="~FList.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -208,6 +211,7 @@
               filter-template="Gas not in [{}]"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -481,7 +485,7 @@
 
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
           <!-- MIN CALLS -->
-          <div class="flex flex-column gap-2 flex-1">
+          <div class="flex flex-column gap-2">
             <label for="mincalls-input">Minimum calls count to show hashes/sigs</label>
             <InputGroup>
               <InputGroupAddon>
@@ -500,7 +504,7 @@
             </InputGroup>
           </div>
           <!-- DEX URL -->
-          <div class="flex flex-column gap-2 flex-1">
+          <div class="flex flex-column gap-2">
             <label for="screener-input">Screener URL</label>
             <InputGroup>
               <InputGroupAddon>
@@ -511,6 +515,27 @@
                 id="screener-input"
                 :pt="getPtNumberInput()"
                 class="settingInput"
+              />
+            </InputGroup>
+          </div>
+           <!-- Timezone -->
+          <div class="flex flex-column gap-2">
+            <label for="timezone-input">Timezone</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-clock"></i>
+              </InputGroupAddon>
+              <Dropdown
+                v-model="state.timezone"
+                id="timezone-input"
+                :options="timezoneOptions"
+                optionLabel="label"
+                optionValue="value"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+                scrollHeight="300px"
+                filter
+                filterPlaceholder="Search timezone"
               />
             </InputGroup>
           </div>
@@ -723,6 +748,7 @@ import Statistics from './components/Statistics.vue'
 import AthStatistics from './components/AthStatistics.vue'
 import useTags from './compose/useTags'
 import { ComputationResult } from './types/ComputationResult'
+import { useTimezone } from './compose/useTimezone'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -839,7 +865,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
   let newCalls: Call[] = []
   for (const rowIndex in rows) {
-    if (!rowIndex) return // ignore headers
+    if (!rowIndex || rowIndex === '0') continue // ignore headers
+
     const row = rows[rowIndex]
     const parsedLaunch = row[indexes.LiveAt] as Date
     const parsedDate = row[indexes.Logged] as Date
@@ -944,6 +971,7 @@ const INIT_AUTO_REDISTRIBUTE = true
 const INIT_PRICE_IMPACT = true
 const INIT_FULL_STATS = false
 const INIT_SCREENER_URL = DEFAULT_SCREENER_URL
+const INIT_TIMEZONE = 'UTC'
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -967,6 +995,7 @@ const state = reactive({
   rugs: [] as string[],
   showFullStats: INIT_FULL_STATS,
   screenerUrl: INIT_SCREENER_URL,
+  timezone: INIT_TIMEZONE,
 })
 
 const updatedSomeRug = ref(false)
@@ -1038,6 +1067,7 @@ function loadForm() {
   state.withPriceImpact = savedState.withPriceImpact ?? INIT_PRICE_IMPACT
   state.showFullStats = savedState.showFullStats ?? INIT_FULL_STATS
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
+  state.timezone = savedState.timezone ?? INIT_TIMEZONE
   state.blackList = savedState.blackList
     ? typeof savedState.blackList === 'string'
       ? savedState.blackList.split(',').map(ca => ca.trim())
@@ -1181,6 +1211,8 @@ watch(
   },
   { deep: true },
 )
+
+const { timezoneOptions } = useTimezone()
 
 const toast = useToast()
 const errorMessage = (message: string) =>

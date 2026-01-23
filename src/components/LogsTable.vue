@@ -24,7 +24,7 @@
           :key="log.ca"
           class="text-sm mb-3"
         >
-          <span class="">[{{ log.date }}]</span><br /><span class="text-color-secondary">
+          <span class="">[{{ formatDate(log.date, timezone)[0] + ', ' + formatDate(log.date, timezone)[1] }}]</span><br /><span class="text-color-secondary">
             bought </span
           ><span class="font-bold">{{ log.invested }}</span>
           <span class="text-color-secondary"> of </span>
@@ -167,8 +167,8 @@
       <Column field="date" header="Date" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2">
-            <span class="nowrap">{{ prettifyDate(data.date, 'date') }}</span>
-            <span class="nowrap text-color-secondary">{{ prettifyDate(data.date, 'hour') }}</span>
+            <span class="nowrap">{{ formatDate(data.date, timezone)[0] }}</span>
+            <span class="nowrap text-color-secondary">{{ formatDate(data.date, timezone)[1] }}</span>
           </span>
         </template>
       </Column>
@@ -361,7 +361,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { Log } from '@/types/Log'
-import { prettifyDate, prettifyMc } from '@/lib'
+import { prettifyMc } from '@/lib'
 import { FilterMatchMode } from 'primevue/api'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
@@ -378,6 +378,7 @@ import InfoButton from './InfoButton.vue'
 import CaLink from './CaLink.vue'
 import MenuButton from './MenuButton.vue'
 import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
+import { useTimezone } from '@/compose/useTimezone'
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const {
@@ -388,6 +389,7 @@ const {
   withActions,
   screenerUrl,
   chain = 'ETH',
+  timezone = 'UTC'
 } = defineProps<{
   logs: Log[]
   rows?: number
@@ -396,6 +398,7 @@ const {
   withActions?: boolean
   screenerUrl: string
   chain?: 'ETH' | 'SOL'
+  timezone?: string
 }>()
 
 const emit = defineEmits<{
@@ -418,6 +421,8 @@ const noGas = computed(() => chain === 'SOL')
 const noTaxes = computed(() => chain === 'SOL')
 const noSlippage = computed(() => chain === 'SOL')
 const canRug = computed(() => chain === 'ETH')
+
+const { formatDate } = useTimezone()
 
 // prettier-ignore
 const optionalColumns = [!noBlock.value && "Block", "Invested", !noGas.value && "Gas price", !noTaxes.value && "Buy tax", "Entry MC", "ATH MC", !noSlippage.value && "Perf diff"].filter(Boolean);

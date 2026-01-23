@@ -27,6 +27,7 @@ export const ESTIMATED_TIME_FOR_ALCHEMY = 1.3 // s
 export const DEFAULT_SCREENER_URL = 'https://gmgn.ai/eth/token/'
 export const DEFAULT_SOL_SCREENER_URL = 'https://gmgn.ai/sol/token/'
 export const REALISTIC_MAX_XS = 100000
+export const SOL_PRICE = 130
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
 export const BUILDER_ADDYS = [

@@ -4,14 +4,12 @@ import type { Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
 import {
   getSaleDate,
-  prettifyDate,
+  extractDate,
   round,
   getPriceImpact,
   initHash
 } from './lib'
 import {
-  SELL_TAX,
-  SELL_GAS_PRICE,
   AVERAGE_LP_TO_MC_RATIO,
   INITIAL_TP_SIZE_CODE,
   REALISTIC_MAX_XS,
@@ -99,7 +97,7 @@ async function compute(
 
   const gainByDate: Record<string, number> = {}
   const addGain = (date: string, gain: number) => {
-    const day = prettifyDate(date, 'date')
+    const day = extractDate(date)
     gainByDate[day] = (gainByDate[day] || 0) + gain
   }
 
@@ -182,9 +180,6 @@ async function compute(
             xsMultiplicator *
             (1 - priceImpact / 100)
 
-          if (call.name === 'Zitcoin')
-            console.warn({ invested, sizeSold, xsMultiplicator, priceImpact, dollarLp, salePrice, tokensSold })
-
           gain += profit
           if (!call.ignored) {
             addGain(getSaleDate(call, saleMc), profit)
@@ -233,7 +228,7 @@ async function compute(
     }
 
     logs.unshift({
-      date: prettifyDate(call.date),
+      date: call.date,
       ca: call.ca,
       name: call.name,
       xs: round(bestXs, 1),

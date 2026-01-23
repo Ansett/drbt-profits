@@ -86,6 +86,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
+              :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -126,6 +127,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
+              :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -165,6 +167,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
+              :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -214,11 +217,13 @@ const {
   screenerUrl,
   computingParams,
   chain = 'ETH',
+  timezone = 'UTC'
 } = defineProps<{
   archives: CallArchive[] | CallArchive<SolCall>[]
   current: CallArchive | CallArchive<SolCall>
   screenerUrl: string
   chain?: 'ETH' | 'SOL'
+  timezone?: string
 
   computingParams: {
     position: number

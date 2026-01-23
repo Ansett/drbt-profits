@@ -142,8 +142,9 @@
               v-model:selectedColumns="state.logsColumns"
               withDisplaySwitch
               withActions
-              :screener-url="state.screenerUrl"
               chain="SOL"
+              :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
               @ignore="ignoreCa"
               @exportXlsx="exportXlsx"
             >
@@ -175,6 +176,7 @@
               filter-template="program_ids::text !~ '({})'"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -229,7 +231,7 @@
 
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
           <!-- MIN CALLS -->
-          <div class="flex flex-column gap-2 flex-1">
+          <div class="flex flex-column gap-2">
             <label for="mincalls-input">Minimum calls count to show program IDS</label>
             <InputGroup>
               <InputGroupAddon>
@@ -248,7 +250,7 @@
             </InputGroup>
           </div>
           <!-- DEX URL -->
-          <div class="flex flex-column gap-2 flex-1">
+          <div class="flex flex-column gap-2">
             <label for="screener-input">Screener URL</label>
             <InputGroup>
               <InputGroupAddon>
@@ -259,6 +261,27 @@
                 id="screener-input"
                 :pt="getPtNumberInput()"
                 class="settingInput"
+              />
+            </InputGroup>
+          </div>
+           <!-- Timezone -->
+          <div class="flex flex-column gap-2">
+            <label for="timezone-input">Timezone</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-clock"></i>
+              </InputGroupAddon>
+              <Dropdown
+                v-model="state.timezone"
+                id="timezone-input"
+                :options="timezoneOptions"
+                optionLabel="label"
+                optionValue="value"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+                scrollHeight="300px"
+                filter
+                filterPlaceholder="Search timezone"
               />
             </InputGroup>
           </div>
@@ -290,7 +313,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } fr
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import { CallArchive, SolCall } from './types/Call'
-import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE } from './constants'
+import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE, SOL_PRICE } from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -327,6 +350,7 @@ import TimingFinder from './components/TimingFinder.vue'
 import { ComputationResult } from './types/ComputationResult'
 import { useRouter } from 'vue-router'
 import { STORAGE_KEY } from './storage'
+import { useTimezone } from './compose/useTimezone'
 
 const router = useRouter()
 
@@ -376,6 +400,7 @@ const INIT_LOGS_COLUMNS = ['Entry MC', 'ATH MC']
 const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x100', 'ATH', 'Tags']
 const INIT_MIN_CALLS = 100
+const INIT_TIMEZONE = 'UTC'
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -388,6 +413,7 @@ const state = reactive({
   hashColumns: INIT_HASH_COLUMNS,
   minCallsForHash: INIT_MIN_CALLS,
   screenerUrl: INIT_SCREENER_URL,
+  timezone: INIT_TIMEZONE,
 })
 
 const STATE_STORAGE_KEY = 'state-sol-a'
@@ -410,6 +436,7 @@ function loadForm() {
   state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
+  state.timezone = savedState.timezone ?? INIT_TIMEZONE
 }
 
 const ignoreCa = (ca: string, isIgnored: boolean) => {
@@ -444,7 +471,6 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     [
       'mint',
       'snapshot_at',
-      'created_at',
       'name',
       'post_ath',
       'xs',
@@ -467,22 +493,12 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
   let newCalls: SolCall[] = []
   for (const rowIndex in rows) {
-    if (!rowIndex) return // ignore headers
-    const row = rows[rowIndex]
-    const parsedLaunch = row[indexes.created_at] as Date
-    const parsedDate = row[indexes.snapshot_at] as Date
-    // const parsedAthDate = new Date(parsedDate.getTime())
-    // parsedAthDate.setSeconds(parsedAthDate.getSeconds() + athDelaySec);
+    if (!rowIndex || rowIndex === '0') continue // ignore headers
 
-    if (!parsedDate) continue
-    try {
-      parsedLaunch.setHours(parsedLaunch.getHours() - 1) // not sure why dates are UTC+1 in the XLSX
-      parsedDate.setHours(parsedDate.getHours() - 1) // not sure why dates are UTC+1 in the XLSX
-    } catch (e) {
-      continue
-    }
+    const row = rows[rowIndex]
     const ca = row[indexes.mint] as string
-    if (!ca) continue
+    const parsedDate = row[indexes.snapshot_at] as Date
+    if (!parsedDate || !ca) continue
 
     const name = (row[indexes.name] as string) || ca
     const callMc = row[indexes.mc] as number
@@ -513,7 +529,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       supply,
       lp: (row[indexes.lp_sol_launch] as number) || 0,
       ignored: state.blackList.includes(ca),
-      solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : 150,
+      solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : SOL_PRICE,
       programIds,
       lpRatio: row[indexes.lp_ratio] as number,
     })
@@ -611,6 +627,8 @@ const programs = ref<Record<string, HashInfo<SolCall>>>({})
 const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
   addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
 )
+
+const { timezoneOptions } = useTimezone()
 
 const canSeeWallets = ref(false)
 try {

@@ -65,10 +65,9 @@ export function sleep(ms = 0, callback: Function = () => true) {
   return new Promise(resolve => setTimeout(() => resolve(callback()), ms))
 }
 
-export function prettifyDate(rawDate: string, chunk: 'date' | 'hour' | 'all' = 'all') {
+export function extractDate(rawDate: string) {
   let [date, hour] = rawDate.split(/[T ]/)
-  hour = hour?.replace('.000Z', '') || ''
-  return chunk === 'date' ? date : chunk === 'hour' ? hour : date + ' ' + hour
+  return date
 }
 
 export function decimalHourToString(num: number) {

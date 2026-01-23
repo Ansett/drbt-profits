@@ -207,8 +207,8 @@
         <Column sortable field="date" header="Date">
           <template #body="{ data }">
             <span class="flex flex-wrap column-gap-2">
-              <span class="nowrap">{{ prettifyDate(data.date, 'date') }}</span>
-              <span class="nowrap text-color-secondary">{{ prettifyDate(data.date, 'hour') }}</span>
+              <span class="nowrap">{{ formatDate(data.date, timezone)[0] }}</span>
+              <span class="nowrap text-color-secondary">{{ formatDate(data.date, timezone)[1] }}</span>
             </span>
           </template>
         </Column>
@@ -266,22 +266,27 @@ import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { FilterMatchMode } from 'primevue/api'
-import { prettifyDate, prettifyMc, round } from '../lib'
+import { prettifyMc, round } from '../lib'
 import CaLink from './CaLink.vue'
 import InfoButton from './InfoButton.vue'
 import { Call, SolCall } from '@/types/Call'
+import { useTimezone } from '@/compose/useTimezone'
 
 const TAG_SEPARATOR = ', '
 
-const { lines, filterTemplate, screenerUrl } = defineProps<{
+const { lines, filterTemplate, screenerUrl, timezone = 'UTC' } = defineProps<{
   lines: HashInfo<Call | SolCall>[]
   filterTemplate: string
   screenerUrl: string
+  timezone?: string
+  
 }>()
 const emit = defineEmits<{
   (e: 'removeTag', hash: string, index: number): void
   (e: 'addTag', hash: string, tag: string): void
 }>()
+
+const { formatDate } = useTimezone()
 
 const inspectedHash = ref<HashInfo | null>(null)
 const tagDropdown = ref<InstanceType<typeof OverlayPanel>>()

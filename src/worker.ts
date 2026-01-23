@@ -6,7 +6,7 @@ import {
   mean_absolute_percentage_error,
   mean_percentage_error,
   getSaleDate,
-  prettifyDate,
+  extractDate,
   round,
   sleep,
   getPriceImpact,
@@ -150,7 +150,7 @@ async function compute(
 
   const gainByDate: Record<string, number> = {}
   const addGain = (date: string, gain: number) => {
-    const day = prettifyDate(date, 'date')
+    const day = extractDate(date)
     gainByDate[day] = (gainByDate[day] || 0) + gain
   }
 
@@ -386,7 +386,7 @@ async function compute(
     }
 
     logs.unshift({
-      date: prettifyDate(call.date),
+      date: call.date,
       ca: call.ca,
       name: call.name,
       xs: call.rug ? -99 : round(reducedBestXs, 1),
