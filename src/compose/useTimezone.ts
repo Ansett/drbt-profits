@@ -1,6 +1,12 @@
 export function useTimezone() {
   // Get all available timezones from Intl and ensure UTC is included
-  const timezones = Intl.supportedValuesOf('timeZone')
+  let timezones: string[] = []
+  try {
+    timezones = Intl.supportedValuesOf('timeZone')
+  } catch (e) {
+    // Fallback for browsers that don't support Intl.supportedValuesOf
+    console.warn('Intl.supportedValuesOf not supported, using empty timezones array')
+  }
   if (!timezones.includes('UTC')) {
     timezones.unshift('UTC')
   }
@@ -9,23 +15,16 @@ export function useTimezone() {
     value: tz,
   }))
 
-  const getTimezoneOffset = (timezone: string) => {
-    const date = new Date()
-    const tzString = date.toLocaleString('en-US', { timeZone: timezone, timeZoneName: 'short' })
-    const match = tzString.match(/GMT([+-]\d+)/)
-    return match ? match[1] : ''
-  }
-
   const formatDate = (dateString: string, timezone: string): [string, string] => {
     if (!dateString || !timezone) return ['', '']
     
-    try {
+    const formatWithTimezone = (tz: string): [string, string] => {
       const date = new Date(dateString)
       const dateOnly = new Intl.DateTimeFormat(undefined, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-        timeZone: timezone,
+        timeZone: tz,
       }).format(date)
       
       const timeOnly = new Intl.DateTimeFormat(undefined, {
@@ -33,19 +32,27 @@ export function useTimezone() {
         minute: '2-digit',
         second: '2-digit',
         hour12: false,
-        timeZone: timezone,
+        timeZone: tz,
       }).format(date)
       
       return [dateOnly, timeOnly]
+    }
+    
+    try {
+      return formatWithTimezone(timezone)
     } catch (e) {
-      console.error('Error formatting date:', e)
-      return ['', '']
+      // Fallback to UTC if timezone is not supported
+      try {
+        return formatWithTimezone('UTC')
+      } catch (fallbackError) {
+        console.error('Error formatting date with UTC fallback:', fallbackError)
+        return ['', '']
+      }
     }
   }
 
   return {
     timezoneOptions,
-    getTimezoneOffset,
     formatDate
   }
 }
