@@ -229,6 +229,91 @@
           }"
         />
 
+        <!-- DAYS & HOURS -->
+        <div class="flex flex-column gap-4">
+          <div class="flex gap-2 pt-1">
+            <InputSwitch v-model="state.withHours" inputId="hours-global" />
+            <label for="hours-global"
+              >Custom trading periods<span class="text-xs"> (UTC)</span></label
+            >
+          </div>
+          <div v-if="state.withHours" class="card flex flex-wrap justify-content-start gap-3">
+            <div
+              v-for="day in allDays"
+              :key="day.index"
+              class="flex gap-2 flex-wrap align-items-center"
+            >
+              <TriStateCheckbox
+                v-model="state.week[day.index]"
+                :inputId="day.name"
+                :pt="{
+                  box: {
+                    class:
+                      state.week[day.index] === false
+                        ? 'bg-orange-300 border-orange-300'
+                        : state.week[day.index] === null
+                        ? 'bg-primary border-primary'
+                        : undefined,
+                  },
+                }"
+              >
+                <template #nullableicon="scope"></template>
+              </TriStateCheckbox>
+              <label :for="day.name" class="">
+                {{ day.name + (state.week[day.index] === null ? ':' : '') }}
+              </label>
+
+              <template v-if="state.week[day.index] === null" v-for="hour in allHours" :key="`${day.name}-${hour}`">
+                <Checkbox
+                  v-model="state.hours[day.index][hour]"
+                  binary
+                  :disabled="state.week[day.index] !== null"
+                  :inputId="`${day.name}-${hour}`"
+                  :pt="{
+                    input: {
+                      style:
+                        'border: 2px solid #424b57; background: #111827; color: var(--primary-color)',
+                    },
+                    icon: {
+                      class: 'text-primary',
+                    },
+                  }"
+                >
+                  <template #icon="scope">
+                    <i
+                      :class="[
+                        'pi font-bold text-xs border-primary',
+                        scope.checked ? 'pi-check text-primary' : 'pi-times text-orange-300',
+                        scope.class,
+                      ]"
+                    ></i>
+                  </template>
+                </Checkbox>
+                <label
+                  :for="`${day.name}-${hour}`"
+                  :class="[
+                    'mr-1',
+                    state.week[day.index] === null ? 'text-color-secondary' : 'text-200',
+                  ]"
+                >
+                  {{ hour }}
+                </label>
+                <span v-if="hour === 11" class="flex-br" />
+              </template>
+              <span
+                v-if="state.week[day.index] === null"
+                class="ml-1 iconButton text-lg material-symbols-outlined"
+                v-tooltip.bottom="{
+                  value: state.hours[day.index][0] ? 'Uncheck all hours' : 'Check all hours',
+                  showDelay: 500,
+                }"
+                @click="toggleHours(day.index)"
+                >{{ state.hours[day.index][0] ? 'remove_done' : 'done_all' }}</span
+              >
+            </div>
+          </div>
+        </div>
+
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2">
@@ -351,6 +436,9 @@ import { ComputationResult } from './types/ComputationResult'
 import { useRouter } from 'vue-router'
 import { STORAGE_KEY } from './storage'
 import { useTimezone } from './compose/useTimezone'
+import TriStateCheckbox from 'primevue/tristatecheckbox'
+import Checkbox from 'primevue/checkbox'
+import InputSwitch from 'primevue/inputswitch'
 
 const router = useRouter()
 
@@ -401,6 +489,18 @@ const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x100', 'ATH', 'Tags']
 const INIT_MIN_CALLS = 100
 const INIT_TIMEZONE = 'UTC'
+const INIT_WITH_HOURS = false
+const INIT_WEEK = [true, true, true, true, true, true, true] as (boolean | null)[]
+// prettier-ignore
+const INIT_HOURS = [
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+  [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
+];
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -414,6 +514,9 @@ const state = reactive({
   minCallsForHash: INIT_MIN_CALLS,
   screenerUrl: INIT_SCREENER_URL,
   timezone: INIT_TIMEZONE,
+  withHours: INIT_WITH_HOURS,
+  week: INIT_WEEK,
+  hours: INIT_HOURS,
 })
 
 const STATE_STORAGE_KEY = 'state-sol-a'
@@ -437,6 +540,26 @@ function loadForm() {
   state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
   state.timezone = savedState.timezone ?? INIT_TIMEZONE
+  state.withHours = savedState.withHours ?? INIT_WITH_HOURS
+  state.week = savedState.week ?? INIT_WEEK
+  state.hours = savedState.hours ?? INIT_HOURS
+}
+
+const allDays = [
+  { index: 1, name: 'Monday' },
+  { index: 2, name: 'Tuesday' },
+  { index: 3, name: 'Wednesday' },
+  { index: 4, name: 'Thursday' },
+  { index: 5, name: 'Friday' },
+  { index: 6, name: 'Saturday' },
+  { index: 0, name: 'Sunday' },
+]
+const allHours = Array.from({ length: 24 }, (_, index) => index)
+const toggleHours = (dayIndex: number) => {
+  const previous = state.hours[dayIndex][0]
+  for (let h = 0; h <= 23; h++) {
+    state.hours[dayIndex][h] = !previous
+  }
 }
 
 const ignoreCa = (ca: string, isIgnored: boolean) => {
@@ -460,7 +583,20 @@ const exportXlsx = async (logs: Log[]) => {
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
 const filteredCalls = computed<SolCall[]>(() => {
-  return calls.value
+  return calls.value.filter(call => {
+    // filtering trading hours and days
+    if (state.withHours && state.week.some(active => !active)) {
+      const date = new Date(call.date)
+      const callDay = date.getUTCDay()
+      if (state.week[callDay]) return true
+      else if (state.week[callDay] === false) return false
+      // when null: custom hours
+      const callHour = date.getUTCHours()
+      return state.hours[callDay][callHour]
+    }
+
+    return true
+  })
 })
 
 async function storeData(rows: (string | number | Date)[][], fileName: string) {

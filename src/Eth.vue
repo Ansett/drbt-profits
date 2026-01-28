@@ -416,7 +416,7 @@
                 v-model="state.week[day.index]"
                 :inputId="day.name"
                 :pt="{
-                  checkbox: {
+                  box: {
                     class:
                       state.week[day.index] === false
                         ? 'bg-orange-300 border-orange-300'
@@ -432,7 +432,7 @@
                 {{ day.name + (state.week[day.index] === null ? ':' : '') }}
               </label>
 
-              <template v-for="hour in allHours" :key="`${day.name}-${hour}`">
+              <template v-if="state.week[day.index] === null" v-for="hour in allHours" :key="`${day.name}-${hour}`">
                 <Checkbox
                   v-model="state.hours[day.index][hour]"
                   binary
