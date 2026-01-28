@@ -919,7 +919,6 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   }
 
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-
   const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.CA }
   current.value = newArchive
   const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
