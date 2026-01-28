@@ -5,7 +5,7 @@
     :style="{ fontSize: '1rem', color: accent ? 'var(--cyan-300)' : '' }"
     v-tooltip:[options]="{ value: text, escape: false }"
     :key="options.position"
-    tabindex="0"
+    tabindex="-1"
     @click.prevent.stop
   ></i>
 </template>

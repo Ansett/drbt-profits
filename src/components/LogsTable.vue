@@ -6,6 +6,7 @@
       size="small"
       text
       raised
+      tabindex="-1"
       class="accordion-button"
       aria-label="Logs view"
       v-tooltip.left="{
@@ -24,8 +25,11 @@
           :key="log.ca"
           class="text-sm mb-3"
         >
-          <span class="">[{{ formatDate(log.date, timezone)[0] + ', ' + formatDate(log.date, timezone)[1] }}]</span><br /><span class="text-color-secondary">
-            bought </span
+          <span class=""
+            >[{{
+              formatDate(log.date, timezone)[0] + ', ' + formatDate(log.date, timezone)[1]
+            }}]</span
+          ><br /><span class="text-color-secondary"> bought </span
           ><span class="font-bold">{{ log.invested }}</span>
           <span class="text-color-secondary"> of </span>
           <CaLink :name="log.name + ''" :ca="log.ca" :screener-url="screenerUrl" />
@@ -168,7 +172,9 @@
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2">
             <span class="nowrap">{{ formatDate(data.date, timezone)[0] }}</span>
-            <span class="nowrap text-color-secondary">{{ formatDate(data.date, timezone)[1] }}</span>
+            <span class="nowrap text-color-secondary">{{
+              formatDate(data.date, timezone)[1]
+            }}</span>
           </span>
         </template>
       </Column>
@@ -389,7 +395,7 @@ const {
   withActions,
   screenerUrl,
   chain = 'ETH',
-  timezone = 'UTC'
+  timezone = 'UTC',
 } = defineProps<{
   logs: Log[]
   rows?: number

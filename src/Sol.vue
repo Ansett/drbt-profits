@@ -1,7 +1,7 @@
 <template>
   <main>
     <div
-      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
+      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-stretch justify-content-center"
     >
       <div class="w-screen xl:w-6 m-1 xl:m-4" style="max-width: min(95vw, 75rem)">
         <FileUpload
@@ -110,9 +110,28 @@
 
         <Message v-if="error" severity="error" :icon="'none'" class="m-6">{{ error }}</Message>
 
-        <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
+        <Accordion :activeIndex="[0]" multiple lazy class="mt-5 h-full">
           <!-- RESULTS -->
-          <AccordionTab header="STATISTICS">
+          <AccordionTab
+            header="STATISTICS"
+            :pt="{
+              root: { class: 'relative ' + (isSticky ? 'sticky' : '') },
+            }"
+          >
+            <Button
+              :icon="'pi pi-thumbtack'"
+              size="small"
+              text
+              :severity="isSticky ? 'primary' : 'secondary'"
+              tabindex="-1"
+              class="stickyButton"
+              aria-label="Pin"
+              v-tooltip.left="{
+                value: isSticky ? 'Unpin' : 'Pin',
+                showDelay: 500,
+              }"
+              @click.stop="isSticky = !isSticky"
+            />
             <Statistics
               :loading="loading"
               info
@@ -196,7 +215,7 @@
               <InputGroupAddon>
                 <i class="pi pi-wallet"></i>
               </InputGroupAddon>
-              <InputNumber 
+              <InputNumber
                 v-model="state.position"
                 v-bind="{ id: 'position-input' }"
                 showButtons
@@ -263,7 +282,11 @@
                 {{ day.name + (state.week[day.index] === null ? ':' : '') }}
               </label>
 
-              <template v-if="state.week[day.index] === null" v-for="hour in allHours" :key="`${day.name}-${hour}`">
+              <template
+                v-if="state.week[day.index] === null"
+                v-for="hour in allHours"
+                :key="`${day.name}-${hour}`"
+              >
                 <Checkbox
                   v-model="state.hours[day.index][hour]"
                   binary
@@ -349,7 +372,7 @@
               />
             </InputGroup>
           </div>
-           <!-- Timezone -->
+          <!-- Timezone -->
           <div class="flex flex-column gap-2">
             <label for="timezone-input">Timezone</label>
             <InputGroup>
@@ -398,7 +421,12 @@ import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } fr
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import { CallArchive, SolCall } from './types/Call'
-import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE, SOL_PRICE } from './constants'
+import {
+  DEFAULT_SOL_SCREENER_URL,
+  getPtNumberInput,
+  INITIAL_TP_SIZE_CODE,
+  SOL_PRICE,
+} from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -518,6 +546,7 @@ const state = reactive({
   week: INIT_WEEK,
   hours: INIT_HOURS,
 })
+const isSticky = ref(false)
 
 const STATE_STORAGE_KEY = 'state-sol-a'
 function storeForm() {
@@ -670,13 +699,13 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       lpRatio: row[indexes.lp_ratio] as number,
     })
   }
-  
-    newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-    const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.mint }
-    current.value = newArchive
-    const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
-    if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)
-    else archives.value.push(newArchive)
+
+  newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+  const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.mint }
+  current.value = newArchive
+  const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
+  if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)
+  else archives.value.push(newArchive)
 }
 
 const runCompute = async () => {
@@ -787,3 +816,17 @@ const showWalletsView = () => {
   window.open(route.href, '_blank')
 }
 </script>
+
+<style scoped>
+.stickyButton {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+}
+.stickyButton:focus,
+.stickyButton:active {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+</style>

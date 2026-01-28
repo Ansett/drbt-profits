@@ -2,7 +2,7 @@
   <main>
     <!-- CONFIG -->
     <div
-      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-start justify-content-center"
+      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-stretch justify-content-center"
     >
       <div class="w-screen xl:w-6 m-1 xl:m-4" style="max-width: min(95vw, 75rem)">
         <FileUpload
@@ -102,7 +102,26 @@
 
         <Accordion :activeIndex="[0]" multiple lazy class="mt-5">
           <!-- RESULTS -->
-          <AccordionTab header="STATISTICS">
+          <AccordionTab
+            header="STATISTICS"
+            :pt="{
+              root: { class: 'relative ' + (isSticky ? 'sticky' : '') },
+            }"
+          >
+            <Button
+              :icon="'pi pi-thumbtack'"
+              size="small"
+              text
+              :severity="isSticky ? 'primary' : 'secondary'"
+              tabindex="-1"
+              class="stickyButton"
+              aria-label="Pin"
+              v-tooltip.left="{
+                value: isSticky ? 'Unpin' : 'Pin',
+                showDelay: 500,
+              }"
+              @click.stop="isSticky = !isSticky"
+            />
             <Button
               v-if="withAccuracyAddy"
               icon="pi pi-info"
@@ -184,7 +203,7 @@
               :lines="hashesWithTags"
               filter-template="~HashF.str.contains('{}', na=False)"
               v-model:selectedColumns="state.hashColumns"
-              :screener-url="state.screenerUrl" 
+              :screener-url="state.screenerUrl"
               :timezone="state.timezone"
               @removeTag="removeTag"
               @addTag="addTag"
@@ -432,7 +451,11 @@
                 {{ day.name + (state.week[day.index] === null ? ':' : '') }}
               </label>
 
-              <template v-if="state.week[day.index] === null" v-for="hour in allHours" :key="`${day.name}-${hour}`">
+              <template
+                v-if="state.week[day.index] === null"
+                v-for="hour in allHours"
+                :key="`${day.name}-${hour}`"
+              >
                 <Checkbox
                   v-model="state.hours[day.index][hour]"
                   binary
@@ -518,7 +541,7 @@
               />
             </InputGroup>
           </div>
-           <!-- Timezone -->
+          <!-- Timezone -->
           <div class="flex flex-column gap-2">
             <label for="timezone-input">Timezone</label>
             <InputGroup>
@@ -1036,6 +1059,8 @@ const counters = ref<ComputationResult['counters']>({
   x2: 0,
 })
 
+const isSticky = ref(false)
+
 const STATE_STORAGE_KEY = 'state-c'
 function storeForm() {
   localStorageSetObject(STATE_STORAGE_KEY, state)
@@ -1291,5 +1316,17 @@ async function handleWorkerMessage({ data }: any) {
 .target-parent:focus .target-remove,
 .target-parent:active .target-remove {
   opacity: 1;
+}
+
+.stickyButton {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+}
+.stickyButton:focus,
+.stickyButton:active {
+  box-shadow: none !important;
+  border-color: transparent !important;
 }
 </style>
