@@ -533,15 +533,14 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       programIds,
       lpRatio: row[indexes.lp_ratio] as number,
     })
-
+  }
+  
     newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-
     const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.mint }
     current.value = newArchive
     const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
     if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)
     else archives.value.push(newArchive)
-  }
 }
 
 const runCompute = async () => {
