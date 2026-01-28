@@ -328,15 +328,22 @@ onMounted(async () => {
 
 async function handleWorkerMessage({ data }: any) {
   if (data.type === 'DIFF') {
+    console.time('Ventil1')
     left.diff = (data.diff as CallDiff[])
       .filter(data => data.status === 'REMOVED')
       .map(data => data.call)
+    console.timeEnd('Ventil1')
+    console.time('Ventil2')
     right.diff = (data.diff as CallDiff[])
       .filter(data => data.status === 'ADDED')
       .map(data => data.call)
+    console.timeEnd('Ventil2')
+    console.time('Ventil3')
     common.diff = (data.diff as CallDiff[])
       .filter(data => data.status === 'IN-BOTH')
       .map(data => data.call)
+    console.timeEnd('Ventil3')
+
     loadingDiffs.value = false
   } else if (data.type === 'COMPUTE') {
     if (data.variant === ComputeVariant.LEFT) {

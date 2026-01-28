@@ -39,10 +39,13 @@ onmessage = async function ({ data }) {
   }
   if (data.type === 'COMPUTE') {
     const variant: ComputeVariant = data.variant || ComputeVariant.MAIN
+  console.time('Comp '+variant)
+
     computeControllers[variant]?.abort()
     computeControllers[variant] = new AbortController()
     const computation = await compute(data, computeControllers[variant]!.signal)
     if (computation.finalWorth === undefined) return
+  console.timeEnd('Comp '+variant)
 
     return postMessage({
       type: 'COMPUTE',
@@ -282,6 +285,7 @@ async function compute(
 function getCallsDiff(previousCalls: SolCall[], newCalls: SolCall[]): CallDiff<SolCall>[] {
   if (!previousCalls.length || !newCalls.length) return []
   const diff = [] as CallDiff<SolCall>[]
+  console.time('Diff1')
 
   for (const call of newCalls) {
     diff.push({
@@ -289,9 +293,13 @@ function getCallsDiff(previousCalls: SolCall[], newCalls: SolCall[]): CallDiff<S
       status: previousCalls.some(c => c.ca === call.ca) ? 'IN-BOTH' : 'ADDED',
     })
   }
+  console.timeEnd('Diff1')
+  console.time('Diff2')
+
   for (const call of previousCalls) {
     if (newCalls.every(c => c.ca !== call.ca)) diff.push({ call, status: 'REMOVED' })
   }
+  console.timeEnd('Diff2')
 
   return diff
 }

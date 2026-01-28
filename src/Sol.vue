@@ -596,6 +596,7 @@ onMounted(async () => {
 
 async function handleWorkerMessage({ data }: any) {
   if (data.type === 'XLSX') {
+    console.timeEnd('Uploading')
     uploading.value = Math.max(0, uploading.value - 1)
     return storeData(data.rows, data.fileName)
   } else if (data.type === 'COMPUTE') {
@@ -618,6 +619,7 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   ;(uploader.value as any)?.clear()
 
   uploading.value = allXlsx.length
+  console.time('Uploading')
   worker.value?.postMessage({ type: 'XLSX', allXlsx })
 }
 
