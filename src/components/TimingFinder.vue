@@ -11,7 +11,12 @@
       hours of the week
     </div>
 
-    <DataTable :value="daysData" dataKey="id" size="small" class="pt-4">
+    <div class="flex gap-2 pt-1 pl-2 pt-4">
+      <InputSwitch v-model="onlyWinners" inputId="only-winners" />
+      <label for="only-winners">Only winners</label>
+    </div>
+
+    <DataTable :value="daysData" dataKey="id" size="small" class="pt-3">
       <Column field="dayName" header="Day (from 9am to next day 9am UTC)" />
       <Column field="count" header="Gain" style="width: 38%">
         <template #body="{ data }">
@@ -54,6 +59,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import InputSwitch from 'primevue/inputswitch'
 import type { Log } from '@/types/Log'
 import { round } from '@/lib'
 import { DAY_DELIMITATION } from '@/constants'
@@ -115,6 +121,7 @@ const { logs, limited } = defineProps<{
 
 const loading = ref(false)
 const week = ref(structuredClone(INIT_WEEK))
+const onlyWinners = ref(false)
 
 // table with 1 hour each row
 const hoursData = computed(() =>
@@ -156,6 +163,8 @@ const compute = () => {
   week.value = structuredClone(INIT_WEEK)
 
   for (const log of logs) {
+    if (onlyWinners.value && log.gain <= 0) continue
+
     let dateStr = log.date.replace(' ', 'T')
     if (!dateStr.endsWith('Z')) dateStr += '.000Z'
     const date = new Date(dateStr)
@@ -173,8 +182,5 @@ const compute = () => {
   loading.value = false
 }
 onMounted(() => compute())
-watch(
-  () => logs,
-  () => compute(),
-)
+watch([() => logs, onlyWinners], () => compute())
 </script>
