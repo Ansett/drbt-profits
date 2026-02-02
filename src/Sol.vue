@@ -426,6 +426,7 @@ import {
   getPtNumberInput,
   INITIAL_TP_SIZE_CODE,
   SOL_PRICE,
+  STATE_STORAGE_KEY,
 } from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
@@ -548,7 +549,6 @@ const state = reactive({
 })
 const isSticky = ref(false)
 
-const STATE_STORAGE_KEY = 'state-sol-a'
 function storeForm() {
   localStorageSetObject(STATE_STORAGE_KEY, state)
 }

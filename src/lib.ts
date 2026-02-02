@@ -70,6 +70,11 @@ export function extractDate(rawDate: string) {
   return date
 }
 
+export function extractTime(rawDate: string) {
+  let [date, hour, tz] = rawDate.split(/[TZ]/)
+  return hour
+}
+
 export function decimalHourToString(num: number) {
   var minutes = (num % 1) * 60
   const hours = num - (num % 1)

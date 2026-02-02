@@ -2,5 +2,11 @@ export type SolTokenHistory = {
   fileName: string
   mint: string
   name: string
-  history: Record<string, string | number>[]
+  snapshots: Record<string, string | number>[]
 }
+
+export type MatchingResults = Map<string, {
+  mc: number
+  date: string
+  failedConditions: string[]
+}>

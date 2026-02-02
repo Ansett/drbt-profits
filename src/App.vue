@@ -96,11 +96,11 @@ const menu = [
     icon: 'electric_bolt',
     route: '/sol',
   },
-  // {
-  //   label: 'SOL token match',
-  //   icon: 'poker_chip',
-  //   route: '/token-sol',
-  // },
+  {
+    label: 'SOL token match',
+    icon: 'poker_chip',
+    route: '/token-sol',
+  },
   {
     label: 'ETH profits',
     icon: 'pi pi-ethereum',
