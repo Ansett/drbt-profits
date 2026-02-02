@@ -22,7 +22,7 @@
             <ProgressSpinner
               v-if="uploading"
               class="absolute top-50 left-50"
-              style="width: 99px; height: 99px; transform: translate(-50%, -88%); zindex: 99"
+              style="width: 99px; height: 99px; transform: translate(-50%, -88%); z-index: 99"
               :pt="{
                 spinner: { style: { animationDuration: '0s' } },
               }"
@@ -85,7 +85,7 @@
                 </InputGroup>
               </template>
               <template v-else>
-                <p class="text-center">Drag and drop a DRBT backtest export</p>
+                <p class="text-center">Drag and drop a DRBT <strong>backtest export</strong></p>
                 <p class="text-center text-sm font-italic text-color-secondary">
                   Nothing is uploaded, computation is done by your browser
                 </p>

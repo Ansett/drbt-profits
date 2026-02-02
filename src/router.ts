@@ -5,7 +5,7 @@ import SolView from './Sol.vue'
 import WalletsView from './Wallets.vue'
 
 const routes = [
-  { path: '/', redirect: '/eth', },
+  { path: '/', redirect: '/sol', },
   { path: '/eth', component: EthView },
   { path: '/sol', component: SolView },
   { path: '/wallets', component: WalletsView },
