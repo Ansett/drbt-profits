@@ -117,42 +117,63 @@
                 }"
               />
               <template v-else>
-                <div
-                  v-for="[time, result] of evaluationResults"
-                  :key="time"
-                  class="flex flex-row flex-wrap row-gap-1 column-gap-2 align-items-center mb-2"
-                >
-                  <!-- TIME -->
-                  <span
-                    class="font-semibold pr-1"
-                    v-tooltip.top="{
-                      value: result.date,
-                      showDelay: 500,
-                    }"
-                    >{{ time.split('.')[0]
-                    }}<span class="font-normal text-color-secondary"
-                      >.{{ time.split('.')[1] }}</span
-                    ></span
+                <div v-for="[time, result] of evaluationResults" :key="time">
+                  <div
+                    class="flex flex-row flex-wrap row-gap-1 column-gap-3 align-items-center mb-2"
                   >
-                  <!-- MC -->
-                  <span class="font-semibold pr-1">{{ prettifyMc(result.mc) }}</span>
-                  <!-- No-match count -->
-                  <span
-                    :class="[
-                      'text-xs line-height-1 pr-1',
-                      minFailed && result.failedConditions.length <= minFailed
-                        ? 'text-primary'
-                        : 'text-color-secondary',
-                    ]"
-                    >{{ result.failedConditions.length }} not matching&hairsp;:</span
+                    <!-- TIME -->
+                    <span
+                      class="font-semibold"
+                      v-tooltip.top="{
+                        value: result.date,
+                        showDelay: 500,
+                      }"
+                      >{{ time.split('.')[0]
+                      }}<span class="font-normal text-xs text-color-secondary"
+                        >.{{ time.split('.')[1] }}</span
+                      ></span
+                    >
+                    <!-- MC -->
+                    <span class="font-semibold">{{ prettifyMc(result.mc) }}</span>
+                    <!-- No-match count -->
+                    <span
+                      :class="[
+                        'text-xs line-height-1 font-italic',
+                        minFailed && result.failedConditions.length <= minFailed
+                          ? 'text-primary'
+                          : 'text-color-secondary',
+                      ]"
+                      >{{ result.failedConditions.length }} not matching&hairsp;:</span
+                    >
+                    <!-- Query chunks -->
+                    <span
+                      v-for="chunk of result.failedConditions"
+                      :key="chunk"
+                      class="queryChunk text-sm text-white border-dotted border-200 border-round px-1"
+                      @mouseenter="onChunkEnter(time, chunk)"
+                      @mouseleave="onChunkLeave"
+                      v-html="highlightSql(chunk)"
+                    ></span>
+                  </div>
+
+                  <div
+                    class="flex flex-row flex-wrap row-gap-1 column-gap-3 align-items-center mb-2"
                   >
-                  <!-- Query chunks -->
-                  <span
-                    v-for="q of result.failedConditions"
-                    :key="q"
-                    class="text-sm text-white queryChunk border-dotted border-200 border-round px-2"
-                    v-html="highlightSql(q)"
-                  ></span>
+                    <span class="text-xs text-color-secondary font-italic line-height-1 pr-1"
+                      >Current values&hairsp;:</span
+                    >
+                    <!-- Values -->
+                    <span
+                      v-for="[field, value] of result.currentValues"
+                      :key="field"
+                      :class="[
+                        'snapshotValue text-sm text-secondary',
+                        { corresponding: isValueHighlighted(field, time) },
+                      ]"
+                      ><span>{{ field + '=' }}</span
+                      >{{ value }}</span
+                    >
+                  </div>
                 </div>
               </template>
             </div>
@@ -196,6 +217,22 @@ const minFailed = computed(() => {
 const worker = shallowRef<Worker | null>(null)
 const screenerUrl =
   localStorageGetObject(STATE_STORAGE_KEY)?.screenerUrl ?? DEFAULT_SOL_SCREENER_URL
+
+const hoveredChunk = ref<{ time: string; chunk: string } | null>(null)
+const changeHoveredChunk = (value: { time: string; chunk: string }) => {
+  hoveredChunk.value = value
+}
+const debouncedHoveredChunk = debounce(changeHoveredChunk)
+const onChunkEnter = (time: string, chunk: string) => {
+  debouncedHoveredChunk({ time, chunk })
+}
+const onChunkLeave = () => {
+  debouncedHoveredChunk(null)
+}
+const isValueHighlighted = (field: string, time: string): boolean => {
+  if (!hoveredChunk.value || hoveredChunk.value.time !== time) return false
+  return new RegExp(`\\b${escapeRegExp(field)}\\b`, 'i').test(hoveredChunk.value.chunk)
+}
 
 onMounted(async () => {
   await nextTick(initEditor)
@@ -394,6 +431,10 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function highlightSql(code: string): string {
   const lang = sqlParser({ dialect: PostgreParser })
   const tree = lang.language.parser.parse(code)
@@ -467,5 +508,21 @@ function highlightSql(code: string): string {
 }
 .cm-host :deep(.cm-editor) {
   background-color: transparent;
+}
+
+.snapshotValue {
+  max-width: 40rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.corresponding,
+  &.corresponding > span {
+    color: var(--primary-color);
+  }
+
+  & > span {
+    color: var(--text-color-secondary);
+  }
 }
 </style>

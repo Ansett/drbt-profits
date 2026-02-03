@@ -41,7 +41,17 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   for (const snapshot of history.snapshots || []) {
     const failedConditions = evaluateWhereClause(ast.where, snapshot, query)
 
-    results.set(extractTime(snapshot.snapshot_at as string), { date: extractDate(snapshot.snapshot_at as string), mc: Number(snapshot.mc), failedConditions })
+    const currentValues: Map<string, string> = new Map()
+    for (const field in snapshot) {
+      if (failedConditions.some(cond => cond.match(new RegExp(`\\b${field}\\b`))) && !currentValues.has(field)) currentValues.set(field, String(snapshot[field]))
+    }
+
+    results.set(extractTime(snapshot.snapshot_at as string), {
+      date: extractDate(snapshot.snapshot_at as string),
+      mc: Number(snapshot.mc),
+      failedConditions,
+      currentValues
+    })
   }
 
   return results

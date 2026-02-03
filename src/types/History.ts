@@ -9,4 +9,5 @@ export type MatchingResults = Map<string, {
   mc: number
   date: string
   failedConditions: string[]
+  currentValues: Map<string, string>
 }>
