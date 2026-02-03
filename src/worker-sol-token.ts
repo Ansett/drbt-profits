@@ -36,10 +36,12 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
 
   if (!ast.where) return new Map([])
 
+  const normalizedWhere = normalizeWhereAst(ast.where)
+
   const results: MatchingResults = new Map()
 
   for (const snapshot of history.snapshots || []) {
-    const failedConditions = evaluateWhereClause(ast.where, snapshot, query)
+    const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query)
 
     const currentValues: Map<string, string> = new Map()
     for (const field in snapshot) {
@@ -57,34 +59,35 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   return results
 }
 
-function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: Record<string, any>, originalQuery: string): string[] {
-  const failed: string[] = []
+type WhereEvalResult = { passed: boolean; failed: string[] }
 
+function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: Record<string, any>, originalQuery: string): WhereEvalResult {
   if (node.type === 'binary_expr') {
     const { operator, left, right } = node as Binary
+    const opUpper = String(operator).toUpperCase()
 
-    if (operator === 'AND') {
-      failed.push(...evaluateWhereClause(left, record, originalQuery))
-      failed.push(...evaluateWhereClause(right, record, originalQuery))
-    } else if (operator === 'OR') {
-      const leftFailed = evaluateWhereClause(left, record, originalQuery)
-      const rightFailed = evaluateWhereClause(right, record, originalQuery)
-
-      // OR fails only if both sides fail
-      if (leftFailed.length > 0 && rightFailed.length > 0) {
-        const orCondition = extractConditionText(node as Binary, originalQuery)
-        failed.push(orCondition)
-      }
-    } else {
-      // Leaf condition (comparison operator)
-      if (!evaluateBinaryCondition(node as Binary, record)) {
-        const conditionText = extractConditionText(node as Binary, originalQuery)
-        failed.push(conditionText)
-      }
+    if (opUpper === 'AND') {
+      const leftRes = evaluateWhereClause(left, record, originalQuery)
+      const rightRes = evaluateWhereClause(right, record, originalQuery)
+      return { passed: leftRes.passed && rightRes.passed, failed: [...leftRes.failed, ...rightRes.failed] }
     }
+
+    if (opUpper === 'OR') {
+      const leftRes = evaluateWhereClause(left, record, originalQuery)
+      if (leftRes.passed) return { passed: true, failed: [] }
+
+      const rightRes = evaluateWhereClause(right, record, originalQuery)
+      if (rightRes.passed) return { passed: true, failed: [] }
+
+      const orCondition = extractConditionText(node as Binary, originalQuery)
+      return { passed: false, failed: [orCondition] }
+    }
+
+    const passed = evaluateBinaryCondition(node as Binary, record)
+    return { passed, failed: passed ? [] : [extractConditionText(node as Binary, originalQuery)] }
   }
 
-  return failed
+  return { passed: true, failed: [] }
 }
 
 function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boolean {
@@ -301,4 +304,28 @@ function getFunctionArgs(node: any): any[] {
   if (args.expr) return [args.expr]
   if (Array.isArray(args.expr?.value)) return args.expr.value
   return []
+}
+
+// Make sure AND and OR are ordered properly
+function normalizeWhereAst(node: Binary | ExpressionValue | ExprList): Binary | ExpressionValue | ExprList {
+  if (!node || node.type !== 'binary_expr') return node
+
+  const left = normalizeWhereAst((node as Binary).left) as any
+  const right = normalizeWhereAst((node as Binary).right) as any
+  const opUpper = String((node as Binary).operator).toUpperCase()
+
+  const current = { ...(node as any), left, right }
+
+  if (opUpper === 'AND') {
+    const leftOpUpper = left?.type === 'binary_expr' ? String(left.operator).toUpperCase() : ''
+    if (leftOpUpper === 'OR') {
+      const a = left.left
+      const b = left.right
+      const c = right
+      const rotatedRight = normalizeWhereAst({ ...current, operator: 'AND', left: b, right: c } as any)
+      return { ...left, operator: 'OR', left: a, right: rotatedRight } as any
+    }
+  }
+
+  return current as any
 }

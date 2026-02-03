@@ -152,6 +152,7 @@
                       class="queryChunk text-sm text-white border-dotted border-200 border-round px-1"
                       @mouseenter="onChunkEnter(time, chunk)"
                       @mouseleave="onChunkLeave"
+                      @click="onChunkEnter(time, chunk)"
                       v-html="highlightSql(chunk)"
                     ></span>
                   </div>
