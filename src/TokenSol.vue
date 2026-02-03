@@ -162,7 +162,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, nextTick, ref, shallowRef, watch, onUnmounted } from 'vue'
-import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
@@ -176,8 +175,6 @@ import { MatchingResults, SolTokenHistory } from './types/History'
 import { debounce, localStorageGetObject, prettifyMc, sleep } from './lib'
 import CaLink from './components/CaLink.vue'
 import { DEFAULT_SOL_SCREENER_URL, STATE_STORAGE_KEY } from './constants'
-
-const toast = useToast()
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -322,15 +319,54 @@ let PostgreParser: typeof import('@codemirror/lang-sql')['PostgreSQL']
 async function initEditor() {
   if (!editorEl.value || editorView.value) return
 
-  const [{ EditorView, minimalSetup }, { EditorState }, { sql, PostgreSQL }, { cobalt2 }] =
-    await Promise.all([
-      import('codemirror'),
-      import('@codemirror/state'),
-      import('@codemirror/lang-sql'),
-      import('@fsegurai/codemirror-theme-cobalt2'),
-    ])
+  const [
+    { EditorView, minimalSetup },
+    { EditorState },
+    { sql, PostgreSQL },
+    { cobalt2 },
+    { ViewPlugin, Decoration, MatchDecorator },
+  ] = await Promise.all([
+    import('codemirror'),
+    import('@codemirror/state'),
+    import('@codemirror/lang-sql'),
+    import('@fsegurai/codemirror-theme-cobalt2'),
+    import('@codemirror/view'),
+  ])
   sqlParser = sql
   PostgreParser = PostgreSQL
+
+  const opDecorator = new MatchDecorator({
+    regexp: /\b(?:AND|OR)\b/g,
+    decoration: Decoration.mark({ class: 'cm-syntax-logic' }),
+  })
+  const opPlugin = ViewPlugin.fromClass(
+    class {
+      decorations
+      constructor(readonly view: any) {
+        this.decorations = opDecorator.createDeco(view)
+      }
+      update(update: any) {
+        this.decorations = opDecorator.updateDeco(update, this.decorations)
+      }
+    },
+    { decorations: v => v.decorations },
+  )
+  const nameDecorator = new MatchDecorator({
+    regexp: /\bname\b/g,
+    decoration: Decoration.mark({ class: 'cm-syntax-name' }),
+  })
+  const namePlugin = ViewPlugin.fromClass(
+    class {
+      decorations
+      constructor(readonly view: any) {
+        this.decorations = nameDecorator.createDeco(view)
+      }
+      update(update: any) {
+        this.decorations = nameDecorator.updateDeco(update, this.decorations)
+      }
+    },
+    { decorations: v => v.decorations },
+  )
 
   const state = EditorState.create({
     doc: query.value || '',
@@ -339,6 +375,8 @@ async function initEditor() {
       cobalt2,
       sql({ dialect: PostgreSQL }),
       EditorView.lineWrapping,
+      opPlugin,
+      namePlugin,
       EditorView.updateListener.of(update => {
         if (update.docChanged) {
           const text = update.state.doc.toString()
@@ -362,7 +400,15 @@ function highlightSql(code: string): string {
 
   highlightTree(tree, classHighlighter, (from, to, classes) => {
     if (from > pos) html += escapeHtml(code.slice(pos, from))
-    html += `<span class="${classes}">${escapeHtml(code.slice(from, to))}</span>`
+    const token = code.slice(from, to)
+    const upper = token.toUpperCase()
+    const extraClass =
+      upper === 'AND' || upper === 'OR'
+        ? ' tok-syntax-logic'
+        : upper === 'NAME'
+        ? 'tok-syntax-name'
+        : ''
+    html += `<span class="${classes}${extraClass}">${escapeHtml(token)}</span>`
     pos = to
   })
 
@@ -390,8 +436,15 @@ function highlightSql(code: string): string {
 .queryChunk :deep(.tok-bool) {
   color: #ff628c;
 }
-.queryChunk :deep(.tok-variableName) {
-  color: #ffc600;
+/* AND/OR operators */
+.queryChunk :deep(.tok-syntax-logic),
+.cm-host :deep(.cm-syntax-logic) > * {
+  color: #ffee80;
+}
+/* 'name' variable  */
+.queryChunk :deep(.tok-syntax-name),
+.cm-host :deep(.cm-syntax-name) > * {
+  color: inherit;
 }
 
 .cm-host {

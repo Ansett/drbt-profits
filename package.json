@@ -22,6 +22,7 @@
     "@bugsnag/plugin-vue": "^7.22.3",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/state": "^6.5.4",
+    "@codemirror/view": "^6.39.12",
     "@fsegurai/codemirror-theme-cobalt2": "^6.0.3",
     "@lezer/highlight": "^1.2.3",
     "codemirror": "^6.0.2",
