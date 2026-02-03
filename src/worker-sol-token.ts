@@ -31,10 +31,10 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
     ast = parser.astify(fullQuery, { database: 'PostgresQL', trimQuery: true, parseOptions: { includeLocations: true } }) as Select
   } catch (error) {
     self.postMessage({ type: 'ERROR', message: error.message })
-    return new Map([])
+    return new Map()
   }
 
-  if (!ast.where) return new Map([])
+  if (!ast.where) return new Map()
 
   const normalizedWhere = normalizeWhereAst(ast.where)
 

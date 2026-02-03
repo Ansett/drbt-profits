@@ -107,7 +107,7 @@
               text
               :severity="isSticky ? 'primary' : 'secondary'"
               tabindex="-1"
-              class="stickyButton"
+              class="cardButton"
               aria-label="Pin"
               v-tooltip.left="{
                 value: isSticky ? 'Unpin' : 'Pin',
@@ -124,10 +124,34 @@
           </AccordionTab>
 
           <!-- RESULTS -->
-          <AccordionTab header="RESULTS">
+          <AccordionTab
+            header="RESULTS"
+            :pt="{
+              root: { class: 'mb-4 relative ' },
+            }"
+          >
+            <!-- light mode button -->
+            <Button
+              size="small"
+              text
+              :severity="lightMode ? 'primary' : 'secondary'"
+              tabindex="-1"
+              class="cardButton"
+              aria-label="Filter"
+              v-tooltip.left="{
+                value: lightMode ? 'Show all' : 'Show only when conditions change',
+                showDelay: 500,
+              }"
+              @click.stop="lightMode = !lightMode"
+            >
+              <template #icon>
+                <span class="material-symbols-outlined cursor-pointer">filter_list</span>
+              </template></Button
+            >
+
             <div class="flex flex-column relative gap-4">
               <i
-                v-if="!evaluationResults.size"
+                v-if="!failedConditionsToShow.size"
                 class="pi pi-list my-2 mx-auto"
                 :style="{
                   fontSize: '4rem',
@@ -135,7 +159,7 @@
                 }"
               />
               <template v-else>
-                <div v-for="[time, result] of evaluationResults" :key="time">
+                <div v-for="[time, result] of failedConditionsToShow" :key="time">
                   <div
                     class="flex flex-row flex-wrap row-gap-1 column-gap-3 align-items-center mb-2"
                   >
@@ -217,7 +241,7 @@ import { highlightTree, classHighlighter } from '@lezer/highlight'
 import { MatchingResults, SolTokenHistory } from './types/History'
 import { debounce, localStorageGetObject, prettifyMc, sleep } from './lib'
 import CaLink from './components/CaLink.vue'
-import { DEFAULT_SOL_SCREENER_URL, STATE_STORAGE_KEY } from './constants'
+import { DEFAULT_SOL_SCREENER_URL, SOL_STATE_STORAGE_KEY } from './constants'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -226,17 +250,35 @@ const uploader = ref<InstanceType<typeof FileUpload>>()
 const initialized = ref(false)
 const isSticky = ref(false)
 const query = ref(window.location.hostname === 'localhost' ? localStorage.getItem('query') : '')
+
+const lightMode = ref(true)
 const evaluationResults = ref<MatchingResults>(new Map())
+
+const failedConditionsToShow = computed(() => {
+  if (!lightMode.value) return evaluationResults.value
+  const entries = Array.from(evaluationResults.value.entries())
+  let previousKey: string | null = null
+  const filtered: [string, any][] = []
+  for (const [time, result] of entries) {
+    const key = JSON.stringify(result.failedConditions ?? [])
+    if (key !== previousKey) {
+      filtered.push([time, result])
+      previousKey = key
+    }
+  }
+  return new Map(filtered)
+})
+
 const minFailed = computed(() => {
-  if (!evaluationResults.value.size) return 0
+  if (!failedConditionsToShow.value.size) return 0
   return Math.min(
-    ...Array.from(evaluationResults.value.values()).map(v => v.failedConditions.length),
+    ...Array.from(failedConditionsToShow.value.values()).map(v => v.failedConditions.length),
   )
 })
 
 const worker = shallowRef<Worker | null>(null)
 const screenerUrl =
-  localStorageGetObject(STATE_STORAGE_KEY)?.screenerUrl ?? DEFAULT_SOL_SCREENER_URL
+  localStorageGetObject(SOL_STATE_STORAGE_KEY)?.screenerUrl ?? DEFAULT_SOL_SCREENER_URL
 
 const hoveredChunk = ref<{ time: string; chunk: string } | null>(null)
 const changeHoveredChunk = (value: { time: string; chunk: string }) => {
@@ -481,14 +523,14 @@ function highlightSql(code: string): string {
 </script>
 
 <style scoped>
-.stickyButton {
+.cardButton {
   position: absolute;
   right: 0.5rem;
   top: 0.5rem;
   z-index: 2;
 }
-.stickyButton:focus,
-.stickyButton:active {
+.cardButton:focus,
+.cardButton:active {
   box-shadow: none !important;
   border-color: transparent !important;
 }
