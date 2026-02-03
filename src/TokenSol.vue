@@ -97,14 +97,32 @@
           <AccordionTab
             header="QUERY"
             :pt="{
-              root: { class: 'mb-4' },
+              root: { class: 'mb-4 relative ' + (isSticky ? 'sticky' : '') },
             }"
           >
+            <!-- pin button -->
+            <Button
+              :icon="'pi pi-thumbtack'"
+              size="small"
+              text
+              :severity="isSticky ? 'primary' : 'secondary'"
+              tabindex="-1"
+              class="stickyButton"
+              aria-label="Pin"
+              v-tooltip.left="{
+                value: isSticky ? 'Unpin' : 'Pin',
+                showDelay: 500,
+              }"
+              @click.stop="isSticky = !isSticky"
+            />
+
+            <!-- EDITOR and error message -->
             <div class="flex flex-column gap-2">
               <div ref="editorEl" class="cm-host" />
               <Message v-if="error" severity="error" :icon="'none'">{{ error }}</Message>
             </div>
           </AccordionTab>
+
           <!-- RESULTS -->
           <AccordionTab header="RESULTS">
             <div class="flex flex-column relative gap-4">
@@ -206,6 +224,7 @@ const loading = ref<string | boolean>(false)
 const uploading = ref(0)
 const uploader = ref<InstanceType<typeof FileUpload>>()
 const initialized = ref(false)
+const isSticky = ref(false)
 const query = ref(window.location.hostname === 'localhost' ? localStorage.getItem('query') : '')
 const evaluationResults = ref<MatchingResults>(new Map())
 const minFailed = computed(() => {
@@ -462,6 +481,18 @@ function highlightSql(code: string): string {
 </script>
 
 <style scoped>
+.stickyButton {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+}
+.stickyButton:focus,
+.stickyButton:active {
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
 .queryChunk {
   font-family: 'Courier New', Courier, monospace;
   display: inline-block;
