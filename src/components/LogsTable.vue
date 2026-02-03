@@ -5,7 +5,6 @@
       :icon="'pi ' + (textual ? 'pi-table' : 'pi-list')"
       size="small"
       text
-      raised
       tabindex="-1"
       class="accordion-button"
       aria-label="Logs view"

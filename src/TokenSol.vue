@@ -11,9 +11,12 @@
           multiple
           :showUploadButton="false"
           :showCancelButton="false"
-          chooseLabel="&nbsp;Import"
+          chooseLabel="&hairsp;"
           :pt="{
-            content: 'p-3 xl:p-5',
+            content: { class: 'p-3 xl:p-5' },
+            chooseicon: { class: 'm-0' },
+            buttonbar: { class: 'p-0' },
+            choosebutton: { class: 'absolute mt-2 ml-2 z-1' },
           }"
           @select="onUpload($event)"
         >
@@ -218,7 +221,6 @@ async function handleWorkerMessage({ data }: any) {
     return storeData(data.rows, data.fileName)
   } else if (data.type === 'QUERY_EVALUATION') {
     evaluationResults.value = data.results
-    console.log(data.results)
     loading.value = false
   } else if (data.type === 'ERROR') {
     error.value = data.message

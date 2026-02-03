@@ -12,9 +12,12 @@
           multiple
           :showUploadButton="false"
           :showCancelButton="false"
-          chooseLabel="&nbsp;Import"
+          chooseLabel="&hairsp;"
           :pt="{
-            content: 'p-3 xl:p-5',
+            content: { class: 'p-3 xl:p-5' },
+            chooseicon: { class: 'm-0' },
+            buttonbar: { class: 'p-0' },
+            choosebutton: { class: 'absolute mt-2 ml-2 z-1' },
           }"
           @select="onUpload($event)"
         >
@@ -32,7 +35,7 @@
               <i
                 class="pi pi-file mb-4"
                 :style="{
-                  fontSize: '5.25rem',
+                  fontSize: '4rem',
                   color: selectedFile ? 'var(--primary-color)' : 'var(--cyan-300)',
                 }"
               />
