@@ -43,7 +43,10 @@ export async function getBlockDataFromStore(
   blockEnd: number,
 ): Promise<BlockTx[] | undefined> {
   const db = await openDB<MyDB>(dbName, dbVersion)
-  const entry = await db.get(blockStore, compoundId(ca, blockStart, blockEnd))
+  let entry
+  try {
+    entry = await db.get(blockStore, compoundId(ca, blockStart, blockEnd))
+  } catch (e) { }
   return areBlockTxsInvalid(entry) ? undefined : entry
 }
 

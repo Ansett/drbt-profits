@@ -17,14 +17,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
-import { VueUiScatter } from 'vue-data-ui'
+import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue'
 import Dialog from 'primevue/dialog'
 import { sleep } from '@/lib'
 import type { AccuracyLog } from '@/types/Log'
 import { EXCLUDED_FROM_ACCURACY } from '../constants'
 
-import 'vue-data-ui/style.css'
+const VueUiScatter = defineAsyncComponent(async () => {
+  await import('vue-data-ui/style.css')
+  return (await import('vue-data-ui')).VueUiScatter
+})
 
 const props = defineProps<{
   data: AccuracyLog[] | null

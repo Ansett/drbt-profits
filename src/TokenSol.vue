@@ -171,10 +171,6 @@ import Message from 'primevue/message'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
 import vTooltip from 'primevue/tooltip'
-import { EditorView, minimalSetup } from 'codemirror'
-import { EditorState } from '@codemirror/state'
-import { sql, PostgreSQL } from '@codemirror/lang-sql'
-import { cobalt2 as editorTheme } from '@fsegurai/codemirror-theme-cobalt2'
 import { highlightTree, classHighlighter } from '@lezer/highlight'
 import { MatchingResults, SolTokenHistory } from './types/History'
 import { debounce, localStorageGetObject, prettifyMc, sleep } from './lib'
@@ -202,14 +198,21 @@ const screenerUrl =
   localStorageGetObject(STATE_STORAGE_KEY)?.screenerUrl ?? DEFAULT_SOL_SCREENER_URL
 
 onMounted(async () => {
+  await nextTick(initEditor)
+  await createWorker()
   initialized.value = true
-
+})
+const createWorker = async () => {
   const WorkerConstructor = (await import('@/worker-sol-token?worker')).default
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage
   worker.value!.onerror = ({ message }) => {
     error.value = message
   }
+}
+onUnmounted(() => {
+  editorView.value?.destroy()
+  editorView.value = null
 })
 
 async function handleWorkerMessage({ data }: any) {
@@ -312,15 +315,28 @@ watch(query, val => {
 })
 
 const editorEl = ref<HTMLDivElement | null>(null)
-const editorView = shallowRef<EditorView | null>(null)
+const editorView = shallowRef<any | null>(null)
+let sqlParser: typeof import('@codemirror/lang-sql')['sql']
+let PostgreParser: typeof import('@codemirror/lang-sql')['PostgreSQL']
 
-function initEditor() {
+async function initEditor() {
   if (!editorEl.value || editorView.value) return
+
+  const [{ EditorView, minimalSetup }, { EditorState }, { sql, PostgreSQL }, { cobalt2 }] =
+    await Promise.all([
+      import('codemirror'),
+      import('@codemirror/state'),
+      import('@codemirror/lang-sql'),
+      import('@fsegurai/codemirror-theme-cobalt2'),
+    ])
+  sqlParser = sql
+  PostgreParser = PostgreSQL
+
   const state = EditorState.create({
     doc: query.value || '',
     extensions: [
       minimalSetup,
-      editorTheme,
+      cobalt2,
       sql({ dialect: PostgreSQL }),
       EditorView.lineWrapping,
       EditorView.updateListener.of(update => {
@@ -334,22 +350,12 @@ function initEditor() {
   editorView.value = new EditorView({ state, parent: editorEl.value })
 }
 
-onMounted(async () => {
-  await nextTick()
-  initEditor()
-})
-
-onUnmounted(() => {
-  editorView.value?.destroy()
-  editorView.value = null
-})
-
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function highlightSql(code: string): string {
-  const lang = sql({ dialect: PostgreSQL })
+  const lang = sqlParser({ dialect: PostgreParser })
   const tree = lang.language.parser.parse(code)
   let html = ''
   let pos = 0
