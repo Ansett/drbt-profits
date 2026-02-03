@@ -92,7 +92,7 @@
           v-bind="{ 'data-info': typeof loading === 'string' ? loading : '' }"
         />
 
-        <Accordion :activeIndex="[0, 1]" multiple lazy class="mt-4 h-full">
+        <Accordion :activeIndex="[0, 1]" multiple class="mt-4 h-full">
           <!-- QUERY -->
           <AccordionTab
             header="QUERY"
@@ -531,6 +531,7 @@ function highlightSql(code: string): string {
 }
 .cm-host :deep(.cm-editor) {
   outline: none;
+  max-height: 25vh;
 }
 .cm-host :deep(.cm-scroller) {
   font-family: 'Courier New', Courier, monospace;
