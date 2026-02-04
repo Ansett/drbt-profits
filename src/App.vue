@@ -1,6 +1,6 @@
 <template>
   <header
-    class="flex flex-row column-gap-3 row-gap-3 align-items-center mb-3 pt-2 pb-2 lg:pb-4 px-2 flex-wrap"
+    class="flex flex-row column-gap-3 row-gap-3 align-items-center mb-3 pt-2 pb-2 xl:pb-4 px-2 flex-wrap"
   >
     <div
       class="flex-grow-0 flex-order-0 lg:flex-order-3 lg:w-full flex flex-row justify-content-left lg:justify-content-center"

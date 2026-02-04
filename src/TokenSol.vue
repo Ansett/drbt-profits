@@ -3,7 +3,7 @@
     <div
       class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-stretch justify-content-center"
     >
-      <div class="w-screen lg:w-11 m-1 xl:m-4" style="max-width: min(95vw, 100rem)">
+      <div class="w-screen lg:w-11 m-1" style="max-width: min(95vw, 100rem)">
         <FileUpload
           ref="uploader"
           mode="advanced"
@@ -64,13 +64,25 @@
                   </template>
                 </Dropdown>
 
-                <CaLink
-                  v-if="current"
-                  :name="current.name"
-                  :ca="current.mint"
-                  :screener-url="state.screenerUrl"
-                  class="mt-2"
-                />
+                <div
+                  class="flex flex-row align-items-center gap-2 flex-wrap align-items-baseline justify-content-center"
+                >
+                  <CaLink
+                    v-if="current"
+                    :name="current.name"
+                    :ca="current.mint"
+                    :screener-url="state.screenerUrl"
+                    class="mt-2"
+                  />
+                  <span class="flex flex-wrap column-gap-2 text-sm">
+                    (
+                    <span class="nowrap">{{ current?.created[0] }}</span>
+                    <span class="nowrap text-color-secondary">{{
+                      current?.created[1] + ' UTC'
+                    }}</span>
+                    )
+                  </span>
+                </div>
               </template>
               <template v-else>
                 <p class="text-center">Drag and drop a DRBT <strong>token history</strong></p>
@@ -96,9 +108,7 @@
           <!-- QUERY -->
           <AccordionTab
             header="QUERY"
-            :pt="{
-              root: { class: 'mb-4 relative ' + (isSticky ? 'sticky' : '') },
-            }"
+            :pt="{ root: { class: 'mb-4 relative ' + (isSticky ? 'sticky' : '') } }"
           >
             <!-- pin button -->
             <Button
@@ -128,13 +138,7 @@
             </div>
           </AccordionTab>
 
-          <!-- RESULTS -->
-          <AccordionTab
-            header="RESULTS"
-            :pt="{
-              root: { class: 'mb-5 relative ' },
-            }"
-          >
+          <AccordionTab header="RESULTS" :pt="{ root: { class: 'mb-5 relative ' } }">
             <!-- light mode button -->
             <Button
               size="small"
@@ -156,6 +160,7 @@
               </template></Button
             >
 
+            <!-- RESULTS -->
             <div class="flex flex-column relative gap-4">
               <i
                 v-if="!failedConditionsToShow.length"
@@ -197,7 +202,7 @@
                       ]"
                       >{{ result.failedConditions.length }} not matching&hairsp;:</span
                     >
-                    <span v-else class="text-xs line-height-1 font-italic text-green-500"
+                    <span v-else class="text-xs line-height-1 font-italic text-green-300"
                       >ALL matching</span
                     >
                     <!-- Query chunks -->
@@ -315,6 +320,9 @@ import CaLink from './components/CaLink.vue'
 import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput } from './constants'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
+import { useTimezone } from './compose/useTimezone'
+
+const { formatDate } = useTimezone()
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -365,6 +373,8 @@ const failedConditionsToShow = computed(() => {
   return lightMode.value
     ? mcFiltered.filter((result, index, arr) => {
         const prev = arr[index - 1]
+        if (!prev) return true
+
         const prevKey = JSON.stringify(prev?.failedConditions ?? [])
         const key = JSON.stringify(result.failedConditions ?? [])
         return key !== prevKey
@@ -442,6 +452,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   const headers = rows.shift() as string[]
   const name = rows[0][headers.indexOf('name')] as string
   const mint = rows[0][headers.indexOf('mint')] as string
+  const created = rows[0][headers.indexOf('created_at')] as Date
 
   const snapshots: SolTokenHistory['snapshots'] = []
   for (const row of rows) {
@@ -452,7 +463,13 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     snapshots.push(entry)
   }
 
-  const newArchive: SolTokenHistory = { snapshots, fileName, name, mint }
+  const newArchive: SolTokenHistory = {
+    snapshots,
+    fileName,
+    name,
+    mint,
+    created: formatDate(created),
+  }
   current.value = newArchive
   const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
   if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)

@@ -15,9 +15,11 @@ export function useTimezone() {
     value: tz,
   }))
 
-  const formatDate = (dateString: string, timezone: string): [string, string] => {
-    if (!dateString || !timezone) return ['', '']
-    
+  const formatDate = (date?: string | Date, timezone = 'UTC'): [string, string] => {
+    if (!date) return ['', '']
+
+    const dateString = typeof date === 'string' ? date : date.toISOString()
+
     const formatWithTimezone = (tz: string): [string, string] => {
       const date = new Date(dateString)
       const dateOnly = new Intl.DateTimeFormat(undefined, {
@@ -26,7 +28,7 @@ export function useTimezone() {
         day: '2-digit',
         timeZone: tz,
       }).format(date)
-      
+
       const timeOnly = new Intl.DateTimeFormat(undefined, {
         hour: '2-digit',
         minute: '2-digit',
@@ -34,10 +36,10 @@ export function useTimezone() {
         hour12: false,
         timeZone: tz,
       }).format(date)
-      
+
       return [dateOnly, timeOnly]
     }
-    
+
     try {
       return formatWithTimezone(timezone)
     } catch (e) {
@@ -46,7 +48,7 @@ export function useTimezone() {
         return formatWithTimezone('UTC')
       } catch (fallbackError) {
         console.error('Error formatting date with UTC fallback:', fallbackError)
-        return ['', '']
+        return dateString.split('T') as [string, string]
       }
     }
   }

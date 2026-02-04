@@ -3,6 +3,8 @@ import { Binary, ColumnRef, ExpressionValue, ExprList, Parser, Select, Value } f
 import { MatchingResults, SolTokenHistory } from './types/History'
 import { extractDate, extractTime } from './lib'
 
+type WhereEvalResult = { passed: boolean; failed: string[] }
+
 const parser = new Parser()
 
 self.onmessage = async ({ data }: MessageEvent) => {
@@ -40,7 +42,7 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   const results: MatchingResults = []
   if (!history.snapshots) return results
 
-  let line = 0
+  let line = 1 // first line on XLSX is header
   for (const snapshot of history.snapshots) {
     line += 1
     const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query)
@@ -69,8 +71,6 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
 
   return results
 }
-
-type WhereEvalResult = { passed: boolean; failed: string[] }
 
 function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: Record<string, any>, originalQuery: string): WhereEvalResult {
   if (node.type === 'binary_expr') {
@@ -108,8 +108,8 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
   const rightValue = evaluateExpression(right as any, record)
   const opUpper = operator.toUpperCase()
 
-  if ((node.left as any)?.column?.expr?.value === 'rugcheck_risks')
-    console.debug({ node, leftValue, operator, rightValue })
+  // if ((node.left as any)?.column?.expr?.value === 'rugcheck_risks')
+  // console.debug({ node, leftValue, operator, rightValue })
 
   // nullish values
   if (leftValue === undefined || leftValue === null) {
@@ -117,10 +117,10 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
     if (opUpper === 'IS NOT' && (rightValue === true || rightValue === 'TRUE' || rightValue === false || rightValue === 'FALSE')) return true
     if (opUpper === 'IS' && rightValue === null) return true
     if (opUpper === 'IS NOT' && rightValue === null) return false
+
     return opUpper.includes('NULL')
   }
 
-  // Handle BETWEEN operator
   if (opUpper === 'BETWEEN' || opUpper === 'NOT BETWEEN') {
     if (right.type === 'expr_list' && right.value.length === 2) {
       const min = evaluateExpression(right.value[0], record)
@@ -132,7 +132,6 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
     return false
   }
 
-  // Handle IN operator
   if (opUpper === 'IN' || opUpper === 'NOT IN') {
     if (right.type === 'expr_list') {
       const values = right.value.map((v: any) => evaluateExpression(v, record))
