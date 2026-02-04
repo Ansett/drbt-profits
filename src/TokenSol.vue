@@ -1,7 +1,7 @@
 <template>
   <main>
     <div
-      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center xl:align-items-stretch justify-content-center"
+      class="flex flex-column xl:flex-row gap-3 xl:gap-1 align-items-center justify-content-center"
     >
       <div class="w-screen lg:w-11 m-1" style="max-width: min(95vw, 100rem)">
         <FileUpload
