@@ -135,7 +135,7 @@
 
             <!-- EDITOR and error message -->
             <div class="flex flex-column gap-2">
-              <div ref="editorEl" class="cm-host" />
+              <div ref="editorEl" class="editor" @click="onEditorClick" />
               <Message v-if="errorQuery" severity="error" :icon="'none'">{{ errorQuery }}</Message>
             </div>
           </AccordionTab>
@@ -350,6 +350,7 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import vTooltip from 'primevue/tooltip'
 import { highlightTree, classHighlighter } from '@lezer/highlight'
+import type { EditorView } from '@codemirror/view'
 import { MatchingResults, SolTokenHistory } from './types/History'
 import { debounce, localStorageGetObject, localStorageSetObject, prettifyMc, sleep } from './lib'
 import CaLink from './components/CaLink.vue'
@@ -462,8 +463,8 @@ const createWorker = async () => {
   }
 }
 onUnmounted(() => {
-  editorView.value?.destroy()
-  editorView.value = null
+  editorView?.destroy()
+  editorView = null
 })
 
 async function handleWorkerMessage({ data }: any) {
@@ -573,11 +574,12 @@ watch(query, val => {
 
   if (val && window.location.hostname === 'localhost') localStorage.setItem('query', val)
 
-  const view = editorView.value
-  if (view) {
-    const current = view.state.doc.toString()
+  if (editorView) {
+    const current = editorView.state.doc.toString()
     if (current !== val) {
-      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: val || '' } })
+      editorView.dispatch({
+        changes: { from: 0, to: editorView.state.doc.length, insert: val || '' },
+      })
     }
   }
 
@@ -585,12 +587,14 @@ watch(query, val => {
 })
 
 const editorEl = ref<HTMLDivElement | null>(null)
-const editorView = shallowRef<any | null>(null)
+let editorView: EditorView | null = null
 let sqlParser: typeof import('@codemirror/lang-sql')['sql']
 let PostgreParser: typeof import('@codemirror/lang-sql')['PostgreSQL']
 
+const onEditorClick = () => editorView?.focus()
+
 async function initEditor() {
-  if (!editorEl.value || editorView.value) return
+  if (!editorEl.value || editorView) return
 
   const [
     { EditorView, minimalSetup },
@@ -658,7 +662,7 @@ async function initEditor() {
       }),
     ],
   })
-  editorView.value = new EditorView({ state, parent: editorEl.value })
+  editorView = new EditorView({ state, parent: editorEl.value })
 }
 
 function escapeHtml(text: string): string {
@@ -728,33 +732,35 @@ function highlightSql(code: string): string {
 }
 /* AND/OR operators */
 .queryChunk :deep(.tok-syntax-logic),
-.cm-host :deep(.cm-syntax-logic) > * {
+.editor :deep(.cm-syntax-logic) > * {
   color: #ffee80;
 }
 /* 'name' variable  */
 .queryChunk :deep(.tok-syntax-name),
-.cm-host :deep(.cm-syntax-name) > * {
+.editor :deep(.cm-syntax-name) > * {
   color: inherit;
 }
 
-.cm-host {
+.editor {
+  background-color: rgba(0 0 0 / 10%);
   border: 1px solid var(--surface-200);
   border-radius: 6px;
   min-height: 8rem;
   font-family: 'Courier New', Courier, monospace;
   padding: 5px;
+  cursor: text;
 }
-.cm-host :deep(.cm-editor) {
+.editor :deep(.cm-editor) {
   outline: none;
   max-height: 25vh;
 }
-.cm-host :deep(.cm-scroller) {
+.editor :deep(.cm-scroller) {
   font-family: 'Courier New', Courier, monospace;
 }
-.cm-host :deep(.cm-cursor) {
+.editor :deep(.cm-cursor) {
   border-left-color: white;
 }
-.cm-host :deep(.cm-editor) {
+.editor :deep(.cm-editor) {
   background-color: transparent;
 }
 
