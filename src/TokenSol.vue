@@ -104,6 +104,8 @@
           v-bind="{ 'data-info': typeof loading === 'string' ? loading : '' }"
         />
 
+        <Message v-if="errorFile" severity="error" :icon="'none'">{{ errorFile }}</Message>
+
         <Accordion :activeIndex="[0, 1]" multiple class="mt-4 h-full">
           <!-- QUERY -->
           <AccordionTab
@@ -134,7 +136,7 @@
             <!-- EDITOR and error message -->
             <div class="flex flex-column gap-2">
               <div ref="editorEl" class="cm-host" />
-              <Message v-if="error" severity="error" :icon="'none'">{{ error }}</Message>
+              <Message v-if="errorQuery" severity="error" :icon="'none'">{{ errorQuery }}</Message>
             </div>
           </AccordionTab>
 
@@ -324,7 +326,8 @@ import { useTimezone } from './compose/useTimezone'
 
 const { formatDate } = useTimezone()
 
-const error = ref('')
+const errorFile = ref('')
+const errorQuery = ref('')
 const loading = ref<string | boolean>(false)
 const uploading = ref(0)
 const uploader = ref<InstanceType<typeof FileUpload>>()
@@ -418,7 +421,7 @@ const createWorker = async () => {
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage
   worker.value!.onerror = ({ message }) => {
-    error.value = message
+    errorQuery.value = message
   }
 }
 onUnmounted(() => {
@@ -434,7 +437,7 @@ async function handleWorkerMessage({ data }: any) {
     evaluationResults.value = data.results
     loading.value = false
   } else if (data.type === 'ERROR') {
-    error.value = data.message
+    errorQuery.value = data.message
     loading.value = false
   }
 }
@@ -449,10 +452,15 @@ const selectedFile = computed(() => current.value?.fileName || '')
 
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (rows.length < 2) return
+
   const headers = rows.shift() as string[]
   const name = rows[0][headers.indexOf('name')] as string
   const mint = rows[0][headers.indexOf('mint')] as string
   const created = rows[0][headers.indexOf('created_at')] as Date
+  if (!mint) {
+    errorFile.value = `mint header not found`
+    return
+  }
 
   const snapshots: SolTokenHistory['snapshots'] = []
   for (const row of rows) {
@@ -498,7 +506,7 @@ const runCompute = async () => {
   if (!current.value?.snapshots.length) return
 
   loading.value = true
-  error.value = ''
+  errorQuery.value = ''
   await nextTick()
   await sleep(500) // waiting for color transition on inputs
 
