@@ -28,6 +28,10 @@
     >
       <a href="https://t.me/DeFi_Robot_Portal" style="color: inherit" target="_blank">DRBT</a>
       tools
+      <a v-if="oldHost" class="text-xs font-normal block" href="https://drbt-tools.ansett.xyz"
+        >(&hairsp;new address
+        <i class="pi pi-external-link inline" style="font-size: 9px"></i>&hairsp;)</a
+      >
     </h1>
 
     <Button
@@ -86,6 +90,7 @@ import Menubar from 'primevue/menubar'
 import CaLink from './components/CaLink.vue'
 
 const redirect = computed<boolean>(() => window.location.hostname === 'drbt-profits.onrender.com')
+const oldHost = computed<boolean>(() => !!window.location.hostname.match(/drbt-?profits/))
 const showDonation = ref(false)
 
 const route = useRoute()
