@@ -26,6 +26,8 @@ self.onmessage = async ({ data }: MessageEvent) => {
 }
 
 function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults {
+  if (!query.trim()) return []
+
   const fullQuery = `SELECT * FROM tokens WHERE ${query}`
   let ast: Select
   try {
@@ -216,32 +218,7 @@ function evaluateExpression(node: any, record: Record<string, any>): any {
   if (node.type === 'function' || node.type === 'aggr_func') {
     const fn = String(getFunctionName(node)).toUpperCase()
     const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record))
-    // length(name) function
-    if (fn === 'LENGTH') return String(args[0] ?? '').length
-    // kol(50, 22) function
-    if (fn === 'KOL') {
-      const ids = args.map((v: any) => Number(v)).filter((v: number) => !Number.isNaN(v))
-      if (ids.length === 0) return false
-
-      const raw = record.kol_wallets
-      let values: any = raw
-      if (typeof raw === 'string') {
-        try {
-          values = JSON.parse(raw)
-        } catch {
-          return false
-        }
-      }
-
-      if (!Array.isArray(values)) return false
-
-      return ids.some((id: number) =>
-        values.some((entry: any) =>
-          (entry && typeof entry === 'object' && 'id' in entry && Number(entry.id) === id) || Number(entry) === id
-        )
-      )
-    }
-    return undefined
+    return evaluateSqlFunction(fn, args, record)
   }
 
   // Handle casts like uri_content::text
@@ -368,4 +345,39 @@ function normalizeWhereAst(node: Binary | ExpressionValue | ExprList): Binary | 
   }
 
   return current as any
+}
+
+function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any>): any {
+  // length(name) function
+  if (fn === 'LENGTH') return String(args[0] ?? '').length
+
+  // nullif(x, 0) returns null if x is equal to 0
+  if (fn === 'NULLIF') return args[0] == args[1] ? null : args[0]
+
+
+  // kol(50, 22) function
+  if (fn === 'KOL') {
+    const ids = args.map((v: any) => Number(v)).filter((v: number) => !Number.isNaN(v))
+    if (ids.length === 0) return false
+
+    const raw = record.kol_wallets
+    let values: any = raw
+    if (typeof raw === 'string') {
+      try {
+        values = JSON.parse(raw)
+      } catch {
+        return false
+      }
+    }
+
+    if (!Array.isArray(values)) return false
+
+    return ids.some((id: number) =>
+      values.some((entry: any) =>
+        (entry && typeof entry === 'object' && 'id' in entry && Number(entry.id) === id) || Number(entry) === id
+      )
+    )
+  }
+
+  return undefined
 }
