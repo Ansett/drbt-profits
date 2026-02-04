@@ -46,8 +46,13 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
     const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query)
 
     const currentValues: Map<string, string> = new Map()
-    for (const field in snapshot) {
-      if (failedConditions.some(cond => cond.match(new RegExp(`\\b${field}\\b`))) && !currentValues.has(field)) currentValues.set(field, String(snapshot[field]))
+    const orderedFields = Array.from(new Set(
+      failedConditions.flatMap(cond =>
+        Object.keys(snapshot).filter(field => new RegExp(`\\b${field}\\b`).test(cond))
+      )
+    ))
+    for (const field of orderedFields) {
+      if (!currentValues.has(field)) currentValues.set(field, String(snapshot[field]))
     }
 
     const timestamp = snapshot.snapshot_at as string
