@@ -112,10 +112,9 @@
             }"
           >
             <Button
-              :icon="'pi pi-thumbtack'"
               size="small"
               text
-              :severity="isSticky ? 'primary' : 'secondary'"
+              severity="secondary"
               tabindex="-1"
               class="stickyButton"
               aria-label="Pin"
@@ -124,7 +123,14 @@
                 showDelay: 500,
               }"
               @click.stop="isSticky = !isSticky"
-            />
+            >
+              <template #icon>
+                <span class="material-symbols-outlined cursor-pointer">{{
+                  isSticky ? 'keep_off' : 'keep'
+                }}</span>
+              </template>
+            </Button>
+
             <Button
               v-if="withAccuracyAddy"
               icon="pi pi-info"
@@ -552,7 +558,7 @@
               </InputGroupAddon>
               <Dropdown
                 v-model="state.timezone"
-                id="timezone-input"
+                v-bind="{ id: 'timezone-input' }"
                 :options="timezoneOptions"
                 optionLabel="label"
                 optionValue="value"

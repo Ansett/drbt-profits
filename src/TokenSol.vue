@@ -102,10 +102,9 @@
           >
             <!-- pin button -->
             <Button
-              :icon="'pi pi-thumbtack'"
               size="small"
               text
-              :severity="isSticky ? 'primary' : 'secondary'"
+              severity="secondary"
               tabindex="-1"
               class="cardButton"
               aria-label="Pin"
@@ -114,7 +113,13 @@
                 showDelay: 500,
               }"
               @click.stop="isSticky = !isSticky"
-            />
+            >
+              <template #icon>
+                <span class="material-symbols-outlined cursor-pointer">{{
+                  isSticky ? 'keep_off' : 'keep'
+                }}</span>
+              </template>
+            </Button>
 
             <!-- EDITOR and error message -->
             <div class="flex flex-column gap-2">
@@ -134,7 +139,7 @@
             <Button
               size="small"
               text
-              :severity="lightMode ? 'primary' : 'secondary'"
+              severity="secondary"
               tabindex="-1"
               class="cardButton"
               aria-label="Filter"
@@ -145,7 +150,9 @@
               @click.stop="lightMode = !lightMode"
             >
               <template #icon>
-                <span class="material-symbols-outlined cursor-pointer">filter_list</span>
+                <span class="material-symbols-outlined cursor-pointer">{{
+                  lightMode ? 'filter_list_off' : 'filter_list'
+                }}</span>
               </template></Button
             >
 
