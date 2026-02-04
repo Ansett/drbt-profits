@@ -50,7 +50,7 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
     const currentValues: Map<string, string> = new Map()
     const orderedFields = Array.from(new Set(
       failedConditions.flatMap(cond =>
-        Object.keys(snapshot).filter(field => new RegExp(`\\b${field}\\b`).test(cond))
+        Object.keys(snapshot).filter(field => new RegExp(`\\b${field}\\b`).test(cond) || cond.includes('kol(') && field === 'kol_wallets')
       )
     ))
     for (const field of orderedFields) {
@@ -73,6 +73,12 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
 }
 
 function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: Record<string, any>, originalQuery: string): WhereEvalResult {
+  if (node.type === 'function' || node.type === 'aggr_func') {
+    const value = evaluateExpression(node, record)
+    const passed = value === true
+    return { passed, failed: passed ? [] : [extractValueText(node)] }
+  }
+
   if (node.type === 'binary_expr') {
     const { operator, left, right } = node as Binary
     const opUpper = String(operator).toUpperCase()
@@ -210,7 +216,31 @@ function evaluateExpression(node: any, record: Record<string, any>): any {
   if (node.type === 'function' || node.type === 'aggr_func') {
     const fn = String(getFunctionName(node)).toUpperCase()
     const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record))
+    // length(name) function
     if (fn === 'LENGTH') return String(args[0] ?? '').length
+    // kol(50, 22) function
+    if (fn === 'KOL') {
+      const ids = args.map((v: any) => Number(v)).filter((v: number) => !Number.isNaN(v))
+      if (ids.length === 0) return false
+
+      const raw = record.kol_wallets
+      let values: any = raw
+      if (typeof raw === 'string') {
+        try {
+          values = JSON.parse(raw)
+        } catch {
+          return false
+        }
+      }
+
+      if (!Array.isArray(values)) return false
+
+      return ids.some((id: number) =>
+        values.some((entry: any) =>
+          (entry && typeof entry === 'object' && 'id' in entry && Number(entry.id) === id) || Number(entry) === id
+        )
+      )
+    }
     return undefined
   }
 

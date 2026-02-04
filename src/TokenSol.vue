@@ -138,7 +138,7 @@
             </div>
           </AccordionTab>
 
-          <AccordionTab header="RESULTS" :pt="{ root: { class: 'mb-5 relative ' } }">
+          <AccordionTab header="SNAPSHOTS" :pt="{ root: { class: 'mb-5 relative ' } }">
             <!-- light mode button -->
             <Button
               size="small"
@@ -686,7 +686,7 @@ function highlightSql(code: string): string {
 .cm-host {
   border: 1px solid var(--surface-200);
   border-radius: 6px;
-  min-height: 12rem;
+  min-height: 8rem;
   font-family: 'Courier New', Courier, monospace;
   padding: 5px;
 }
