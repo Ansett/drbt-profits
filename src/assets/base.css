@@ -132,3 +132,7 @@ body {
 .material-symbols-outlined {
   font-size: 20px;
 }
+
+.monospace {
+  font-family: 'Courier New', Courier, monospace;
+}

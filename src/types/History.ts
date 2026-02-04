@@ -3,6 +3,7 @@ export type SolTokenHistory = {
   mint: string
   name: string
   created: [string, string]
+  allFields: string[]
   snapshots: Record<string, string | number>[]
 }
 

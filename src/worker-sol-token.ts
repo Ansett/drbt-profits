@@ -5,7 +5,14 @@ import { extractDate, extractTime } from './lib'
 
 type WhereEvalResult = { passed: boolean; failed: string[] }
 
+export const SUPPORTED_FUNCTIONS = [
+  "LENGTH", "NULLIF", "KOL", "SUM", "MAX", "MIN", "UPPER", "LOWER"
+]
+
 const parser = new Parser()
+
+const UNSUPPORTED_ELEMENT = Symbol('UNSUPPORTED_ELEMENT')
+const isUnsupportedValue = (v: any) => v === UNSUPPORTED_ELEMENT
 
 self.onmessage = async ({ data }: MessageEvent) => {
   if (!data?.type) return
@@ -25,29 +32,31 @@ self.onmessage = async ({ data }: MessageEvent) => {
   }
 }
 
+function showError(message: string) {
+  self.postMessage({ type: 'ERROR', message: message })
+}
+
 function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults {
-  if (!query.trim()) return []
+  if (!query.trim() || !history.snapshots) return []
 
   const fullQuery = `SELECT * FROM tokens WHERE ${query}`
   let ast: Select
   try {
     ast = parser.astify(fullQuery, { database: 'PostgresQL', trimQuery: true, parseOptions: { includeLocations: true } }) as Select
   } catch (error) {
-    self.postMessage({ type: 'ERROR', message: error.message })
+    showError(error.message)
     return []
   }
-
   if (!ast.where) return []
 
+  const allowedFields = new Set(history.allFields)
   const normalizedWhere = normalizeWhereAst(ast.where)
-
   const results: MatchingResults = []
-  if (!history.snapshots) return results
 
   let line = 1 // first line on XLSX is header
   for (const snapshot of history.snapshots) {
     line += 1
-    const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query)
+    const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query, allowedFields)
 
     const currentValues: Map<string, string> = new Map()
     const orderedFields = Array.from(new Set(
@@ -74,9 +83,14 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   return results
 }
 
-function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: Record<string, any>, originalQuery: string): WhereEvalResult {
+function evaluateWhereClause(
+  node: Binary | ExpressionValue | ExprList,
+  record: Record<string, any>,
+  originalQuery: string,
+  allowedFields: Set<string>,
+): WhereEvalResult {
   if (node.type === 'function' || node.type === 'aggr_func') {
-    const value = evaluateExpression(node, record)
+    const value = evaluateExpression(node, record, allowedFields)
     const passed = value === true
     return { passed, failed: passed ? [] : [extractValueText(node)] }
   }
@@ -86,38 +100,45 @@ function evaluateWhereClause(node: Binary | ExpressionValue | ExprList, record: 
     const opUpper = String(operator).toUpperCase()
 
     if (opUpper === 'AND') {
-      const leftRes = evaluateWhereClause(left, record, originalQuery)
-      const rightRes = evaluateWhereClause(right, record, originalQuery)
+      const leftRes = evaluateWhereClause(left, record, originalQuery, allowedFields)
+      const rightRes = evaluateWhereClause(right, record, originalQuery, allowedFields)
       return { passed: leftRes.passed && rightRes.passed, failed: [...leftRes.failed, ...rightRes.failed] }
     }
 
     if (opUpper === 'OR') {
-      const leftRes = evaluateWhereClause(left, record, originalQuery)
+      const leftRes = evaluateWhereClause(left, record, originalQuery, allowedFields)
       if (leftRes.passed) return { passed: true, failed: [] }
 
-      const rightRes = evaluateWhereClause(right, record, originalQuery)
+      const rightRes = evaluateWhereClause(right, record, originalQuery, allowedFields)
       if (rightRes.passed) return { passed: true, failed: [] }
 
       const orCondition = extractConditionText(node as Binary, originalQuery)
       return { passed: false, failed: [orCondition] }
     }
 
-    const passed = evaluateBinaryCondition(node as Binary, record)
+    const passed = evaluateBinaryCondition(node as Binary, record, allowedFields)
     return { passed, failed: passed ? [] : [extractConditionText(node as Binary, originalQuery)] }
   }
 
   return { passed: true, failed: [] }
 }
 
-function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boolean {
+function evaluateBinaryCondition(
+  node: Binary,
+  record: Record<string, any>,
+  allowedFields: Set<string>,
+): boolean {
   const { operator, left, right } = node
 
-  const leftValue = normalizeNullish(evaluateExpression(left as any, record))
-  const rightValue = evaluateExpression(right as any, record)
+  const leftValue = normalizeNullish(evaluateExpression(left as any, record, allowedFields))
+  const rightValue = evaluateExpression(right as any, record, allowedFields)
   const opUpper = operator.toUpperCase()
 
   // if ((node.left as any)?.column?.expr?.value === 'rugcheck_risks')
   // console.debug({ node, leftValue, operator, rightValue })
+
+  // unsupported fields are ignored (evaluation is truthy)
+  if (isUnsupportedValue(leftValue) || isUnsupportedValue(rightValue)) return true
 
   // nullish values
   if (leftValue === undefined || leftValue === null) {
@@ -131,8 +152,10 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
 
   if (opUpper === 'BETWEEN' || opUpper === 'NOT BETWEEN') {
     if (right.type === 'expr_list' && right.value.length === 2) {
-      const min = evaluateExpression(right.value[0], record)
-      const max = evaluateExpression(right.value[1], record)
+      const min = evaluateExpression(right.value[0], record, allowedFields)
+      const max = evaluateExpression(right.value[1], record, allowedFields)
+      if (isUnsupportedValue(min) || isUnsupportedValue(max)) return true
+
       const numValue = Number(leftValue)
       const isBetween = numValue >= Number(min) && numValue <= Number(max)
       return opUpper === 'BETWEEN' ? isBetween : !isBetween
@@ -142,7 +165,9 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
 
   if (opUpper === 'IN' || opUpper === 'NOT IN') {
     if (right.type === 'expr_list') {
-      const values = right.value.map((v: any) => evaluateExpression(v, record))
+      const values = right.value.map((v: any) => evaluateExpression(v, record, allowedFields))
+      if (values.some(isUnsupportedValue)) return true
+
       const isIn = values.includes(leftValue)
       return opUpper === 'IN' ? isIn : !isIn
     }
@@ -173,15 +198,25 @@ function evaluateBinaryCondition(node: Binary, record: Record<string, any>): boo
       if (rightValue === null) return leftValue !== null
       return false
     }
-    default: return false
+    default:
+      postMessage({ type: 'UNSUPPORTED_FUNCTION', name: opUpper })
+      return true
   }
 }
 
-function evaluateExpression(node: any, record: Record<string, any>): any {
+function evaluateExpression(
+  node: any,
+  record: Record<string, any>,
+  allowedFields: Set<string>,
+): any {
   if (!node) return undefined
 
   if (node.type === 'column_ref') {
     const key = getNodeValue(node)
+    if (!allowedFields.has(key)) {
+      postMessage({ type: 'UNSUPPORTED_FIELD', name: key })
+      return UNSUPPORTED_ELEMENT
+    }
     return record[key]
   }
 
@@ -193,8 +228,10 @@ function evaluateExpression(node: any, record: Record<string, any>): any {
 
   if (node.type === 'binary_expr') {
     const op = String(node.operator).toUpperCase()
-    const leftVal = evaluateExpression(node.left, record)
-    const rightVal = evaluateExpression(node.right, record)
+    const leftVal = evaluateExpression(node.left, record, allowedFields)
+    const rightVal = evaluateExpression(node.right, record, allowedFields)
+
+    if (isUnsupportedValue(leftVal) || isUnsupportedValue(rightVal)) return UNSUPPORTED_ELEMENT
 
     if (['+', '-', '*', '/'].includes(op)) {
       const l = Number(leftVal)
@@ -212,18 +249,19 @@ function evaluateExpression(node: any, record: Record<string, any>): any {
   }
 
   if (node.type === 'expr_list') {
-    return node.value.map((v: any) => evaluateExpression(v, record))
+    return node.value.map((v: any) => evaluateExpression(v, record, allowedFields))
   }
 
   if (node.type === 'function' || node.type === 'aggr_func') {
     const fn = String(getFunctionName(node)).toUpperCase()
-    const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record))
+    const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record, allowedFields))
+    if (args.some(isUnsupportedValue)) return UNSUPPORTED_ELEMENT
     return evaluateSqlFunction(fn, args, record)
   }
 
   // Handle casts like uri_content::text
   if (node.type === 'cast') {
-    const val = evaluateExpression(node.expr, record)
+    const val = evaluateExpression(node.expr, record, allowedFields)
     return String(val)
   }
 
@@ -348,12 +386,27 @@ function normalizeWhereAst(node: Binary | ExpressionValue | ExprList): Binary | 
 }
 
 function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any>): any {
-  // length(name) function
-  if (fn === 'LENGTH') return String(args[0] ?? '').length
-
+  if (!SUPPORTED_FUNCTIONS.includes(fn)) {
+    postMessage({ type: 'UNSUPPORTED_FUNCTION', name: fn + '()' })
+    return UNSUPPORTED_ELEMENT
+  }
   // nullif(x, 0) returns null if x is equal to 0
   if (fn === 'NULLIF') return args[0] == args[1] ? null : args[0]
-
+  if (fn === 'LENGTH') return String(args[0] ?? '').length
+  if (fn === 'SUM') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.reduce((acc, n) => acc + n, 0)
+  }
+  if (fn === 'MAX') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.length ? Math.max(...nums) : undefined
+  }
+  if (fn === 'MIN') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.length ? Math.min(...nums) : undefined
+  }
+  if (fn === 'UPPER') return String(args[0] ?? '').toUpperCase()
+  if (fn === 'LOWER') return String(args[0] ?? '').toLowerCase()
 
   // kol(50, 22) function
   if (fn === 'KOL') {
@@ -380,4 +433,34 @@ function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any
   }
 
   return undefined
+}
+
+function collectWhereFields(node: any): string[] {
+  const fields = new Set<string>()
+  const visit = (n: any) => {
+    if (!n) return
+    if (n.type === 'column_ref') {
+      fields.add(String(getNodeValue(n)))
+      return
+    }
+    if (n.type === 'binary_expr') {
+      visit(n.left)
+      visit(n.right)
+      return
+    }
+    if (n.type === 'function' || n.type === 'aggr_func') {
+      for (const arg of getFunctionArgs(n)) visit(arg)
+      return
+    }
+    if (n.type === 'expr_list' && Array.isArray(n.value)) {
+      for (const v of n.value) visit(v)
+      return
+    }
+    if (n.type === 'cast') {
+      visit(n.expr)
+      return
+    }
+  }
+  visit(node)
+  return Array.from(fields)
 }

@@ -163,7 +163,40 @@
             >
 
             <!-- RESULTS -->
+            <div
+              v-if="shownUnsupportedFields.length || shownUnsupportedFunctions.length"
+              class="mb-4"
+            >
+              <!-- Unsupported stuff -->
+              <div v-if="shownUnsupportedFields.length">
+                <i class="pi pi-exclamation-triangle text-yellow-200" />
+                &nbsp;
+                <span class="text-sm text-color-secondary"
+                  >Those fields are not included in token history so they're ignored (evaluate as
+                  true):</span
+                >
+                &nbsp;
+                <span class="text-sm monospace text-white">{{
+                  shownUnsupportedFields.join(', ')
+                }}</span>
+              </div>
+              <!-- Unsupported functions -->
+              <div v-if="shownUnsupportedFunctions.length">
+                <i class="pi pi-exclamation-triangle text-red-200" />
+                &nbsp;
+                <span class="text-sm text-color-secondary"
+                  >Those functions or operators are not yet supported by the app so they're ignored
+                  (evaluate as true), ask @ansettsan to add them:</span
+                >
+                &nbsp;
+                <span class="text-sm monospace text-white">{{
+                  shownUnsupportedFunctions.join(', ')
+                }}</span>
+              </div>
+            </div>
+
             <div class="flex flex-column relative gap-4">
+              <!-- PLACEHOLDER -->
               <i
                 v-if="!failedConditionsToShow.length"
                 class="pi pi-list my-2 mx-auto"
@@ -172,6 +205,7 @@
                   color: 'var(--surface-100)',
                 }"
               />
+              <!-- SNAPSHOTS -->
               <template v-else>
                 <div v-for="result of failedConditionsToShow" :key="result.timestamp">
                   <div
@@ -334,7 +368,10 @@ const uploader = ref<InstanceType<typeof FileUpload>>()
 const initialized = ref(false)
 const isSticky = ref(false)
 const query = ref(window.location.hostname === 'localhost' ? localStorage.getItem('query') : '')
-
+const unsupportedFields = new Set<string>()
+const unsupportedFunctions = new Set<string>()
+const shownUnsupportedFields = ref<string[]>([])
+const shownUnsupportedFunctions = ref<string[]>([])
 const lightMode = ref(true)
 const evaluationResults = ref<MatchingResults>([])
 
@@ -436,9 +473,15 @@ async function handleWorkerMessage({ data }: any) {
   } else if (data.type === 'QUERY_EVALUATION') {
     evaluationResults.value = data.results
     loading.value = false
+    shownUnsupportedFields.value = Array.from(unsupportedFields)
+    shownUnsupportedFunctions.value = Array.from(unsupportedFunctions)
   } else if (data.type === 'ERROR') {
     errorQuery.value = data.message
     loading.value = false
+  } else if (data.type === 'UNSUPPORTED_FIELD') {
+    if (!unsupportedFields.has(data.name)) unsupportedFields.add(data.name)
+  } else if (data.type === 'UNSUPPORTED_FUNCTION') {
+    if (!unsupportedFunctions.has(data.name)) unsupportedFunctions.add(data.name)
   }
 }
 
@@ -476,6 +519,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     fileName,
     name,
     mint,
+    allFields: headers,
     created: formatDate(created),
   }
   current.value = newArchive
@@ -507,6 +551,8 @@ const runCompute = async () => {
 
   loading.value = true
   errorQuery.value = ''
+  unsupportedFields.clear()
+  unsupportedFunctions.clear()
   await nextTick()
   await sleep(500) // waiting for color transition on inputs
 
