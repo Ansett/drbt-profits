@@ -5,9 +5,12 @@ export type SolTokenHistory = {
   snapshots: Record<string, string | number>[]
 }
 
-export type MatchingResults = Map<string, {
+export type MatchingResults = {
+  line: number,
   mc: number
+  timestamp: string,
+  time: string,
   date: string
   failedConditions: string[]
   currentValues: Map<string, string>
-}>
+}[]

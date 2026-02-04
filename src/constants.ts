@@ -28,7 +28,6 @@ export const DEFAULT_SCREENER_URL = 'https://gmgn.ai/eth/token/'
 export const DEFAULT_SOL_SCREENER_URL = 'https://gmgn.ai/sol/token/'
 export const REALISTIC_MAX_XS = 100000
 export const SOL_PRICE = 130
-export const SOL_STATE_STORAGE_KEY = 'state-sol-a'
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
 export const BUILDER_ADDYS = [

@@ -68,7 +68,7 @@
                   v-if="current"
                   :name="current.name"
                   :ca="current.mint"
-                  :screener-url="screenerUrl"
+                  :screener-url="state.screenerUrl"
                   class="mt-2"
                 />
               </template>
@@ -127,7 +127,7 @@
           <AccordionTab
             header="RESULTS"
             :pt="{
-              root: { class: 'mb-4 relative ' },
+              root: { class: 'mb-5 relative ' },
             }"
           >
             <!-- light mode button -->
@@ -151,7 +151,7 @@
 
             <div class="flex flex-column relative gap-4">
               <i
-                v-if="!failedConditionsToShow.size"
+                v-if="!failedConditionsToShow.length"
                 class="pi pi-list my-2 mx-auto"
                 :style="{
                   fontSize: '4rem',
@@ -159,10 +159,12 @@
                 }"
               />
               <template v-else>
-                <div v-for="[time, result] of failedConditionsToShow" :key="time">
+                <div v-for="result of failedConditionsToShow" :key="result.timestamp">
                   <div
-                    class="flex flex-row flex-wrap row-gap-1 column-gap-3 align-items-center mb-2"
+                    class="flex flex-row flex-wrap row-gap-2 column-gap-3 align-items-center mb-2"
                   >
+                    <!-- LINE -->
+                    <span class="text-sm text-color-secondary">#{{ result.line }}</span>
                     <!-- TIME -->
                     <span
                       class="font-semibold"
@@ -170,36 +172,41 @@
                         value: result.date,
                         showDelay: 500,
                       }"
-                      >{{ time.split('.')[0]
+                      >{{ result.time.split('.')[0]
                       }}<span class="font-normal text-xs text-color-secondary"
-                        >.{{ time.split('.')[1] }}</span
+                        >.{{ result.time.split('.')[1] }}</span
                       ></span
                     >
                     <!-- MC -->
                     <span class="font-semibold">{{ prettifyMc(result.mc) }}</span>
                     <!-- No-match count -->
                     <span
+                      v-if="result.failedConditions.length"
                       :class="[
                         'text-xs line-height-1 font-italic',
                         minFailed && result.failedConditions.length <= minFailed
-                          ? 'text-primary'
+                          ? 'text-green-500'
                           : 'text-color-secondary',
                       ]"
                       >{{ result.failedConditions.length }} not matching&hairsp;:</span
+                    >
+                    <span v-else class="text-xs line-height-1 font-italic text-green-500"
+                      >ALL matching</span
                     >
                     <!-- Query chunks -->
                     <span
                       v-for="chunk of result.failedConditions"
                       :key="chunk"
                       class="queryChunk text-sm text-white border-dotted border-200 border-round px-1"
-                      @mouseenter="onChunkEnter(time, chunk)"
+                      @mouseenter="onChunkEnter(result.time, chunk)"
                       @mouseleave="onChunkLeave"
-                      @click="onChunkEnter(time, chunk)"
+                      @click="onChunkEnter(result.time, chunk)"
                       v-html="highlightSql(chunk)"
                     ></span>
                   </div>
 
                   <div
+                    v-if="result.failedConditions.length"
                     class="flex flex-row flex-wrap row-gap-1 column-gap-3 align-items-center mb-2"
                   >
                     <span class="text-xs text-color-secondary font-italic line-height-1 pr-1"
@@ -211,7 +218,7 @@
                       :key="field"
                       :class="[
                         'snapshotValue text-sm text-secondary',
-                        { corresponding: isValueHighlighted(field, time) },
+                        { corresponding: isValueHighlighted(field, result.time) },
                       ]"
                       ><span>{{ field + '=' }}</span
                       >{{ value }}</span
@@ -222,13 +229,68 @@
             </div>
           </AccordionTab>
         </Accordion>
+
+        <div class="flex flex-column md:flex-row gap-3 mt-3">
+          <!-- Min MC -->
+          <div class="flex flex-column gap-2">
+            <label for="min-mc-input">Min MC</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <span class="material-symbols-outlined">south</span>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.minMc"
+                v-bind="{ id: 'min-mc-input' }"
+                showButtons
+                buttonLayout="stacked"
+                :min="0"
+                :step="1000"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+          <!-- Max MC -->
+          <div class="flex flex-column gap-2">
+            <label for="max-mc-input">Max MC</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <span class="material-symbols-outlined">north</span>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.maxMc"
+                v-bind="{ id: 'max-mc-input' }"
+                showButtons
+                buttonLayout="stacked"
+                :min="0"
+                :step="10000"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+          <!-- SCREENER URL -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="screener-url-input">Screener URL</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-chart-line"></i>
+              </InputGroupAddon>
+              <InputText
+                v-model.trim="state.screenerUrl"
+                id="screener-url-input"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
+        </div>
       </div>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, nextTick, ref, shallowRef, watch, onUnmounted } from 'vue'
+import { computed, onMounted, nextTick, ref, shallowRef, watch, onUnmounted, reactive } from 'vue'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
@@ -236,12 +298,16 @@ import Dropdown from 'primevue/dropdown'
 import Message from 'primevue/message'
 import Accordion from 'primevue/accordion'
 import AccordionTab from 'primevue/accordiontab'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
 import vTooltip from 'primevue/tooltip'
 import { highlightTree, classHighlighter } from '@lezer/highlight'
 import { MatchingResults, SolTokenHistory } from './types/History'
-import { debounce, localStorageGetObject, prettifyMc, sleep } from './lib'
+import { debounce, localStorageGetObject, localStorageSetObject, prettifyMc, sleep } from './lib'
 import CaLink from './components/CaLink.vue'
-import { DEFAULT_SOL_SCREENER_URL, SOL_STATE_STORAGE_KEY } from './constants'
+import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput } from './constants'
+import InputNumber from 'primevue/inputnumber'
+import InputText from 'primevue/inputtext'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -252,39 +318,67 @@ const isSticky = ref(false)
 const query = ref(window.location.hostname === 'localhost' ? localStorage.getItem('query') : '')
 
 const lightMode = ref(true)
-const evaluationResults = ref<MatchingResults>(new Map())
+const evaluationResults = ref<MatchingResults>([])
+
+const INIT_MIN_MC = 0
+const INIT_MAX_MC = 1000000
+const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
+const state = reactive({
+  minMc: INIT_MIN_MC,
+  maxMc: INIT_MAX_MC,
+  screenerUrl: INIT_SCREENER_URL,
+})
+
+const STATE_STORAGE_KEY = 'state-sol-token-a'
+function storeForm() {
+  localStorageSetObject(STATE_STORAGE_KEY, state)
+}
+watch(state, () => storeForm(), { deep: true })
+
+function loadForm() {
+  const savedState = localStorageGetObject(STATE_STORAGE_KEY)
+  if (!savedState) return
+  state.minMc = savedState.minMc ?? INIT_MIN_MC
+  state.maxMc = savedState.maxMc ?? INIT_MAX_MC
+  state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
+}
 
 const failedConditionsToShow = computed(() => {
-  if (!lightMode.value) return evaluationResults.value
-  const entries = Array.from(evaluationResults.value.entries())
-  let previousKey: string | null = null
-  const filtered: [string, any][] = []
-  for (const [time, result] of entries) {
-    const key = JSON.stringify(result.failedConditions ?? [])
-    if (key !== previousKey) {
-      filtered.push([time, result])
-      previousKey = key
-    }
-  }
-  return new Map(filtered)
+  const minMc = Number(state.minMc) || 0
+  const maxMc = Number(state.maxMc) || 0
+
+  const mcFiltered = evaluationResults.value.filter(result => {
+    const mc = Number(result.mc)
+    if (Number.isNaN(mc)) return false
+    if (minMc > 0 && mc < minMc) return false
+    if (maxMc > 0 && mc > maxMc) return false
+    return true
+  })
+
+  return lightMode.value
+    ? mcFiltered.filter((result, index, arr) => {
+        const prev = arr[index - 1]
+        const prevKey = JSON.stringify(prev?.failedConditions ?? [])
+        const key = JSON.stringify(result.failedConditions ?? [])
+        return key !== prevKey
+      })
+    : mcFiltered
 })
 
 const minFailed = computed(() => {
-  if (!failedConditionsToShow.value.size) return 0
+  if (!failedConditionsToShow.value.length) return 0
   return Math.min(
     ...Array.from(failedConditionsToShow.value.values()).map(v => v.failedConditions.length),
   )
 })
 
 const worker = shallowRef<Worker | null>(null)
-const screenerUrl =
-  localStorageGetObject(SOL_STATE_STORAGE_KEY)?.screenerUrl ?? DEFAULT_SOL_SCREENER_URL
 
 const hoveredChunk = ref<{ time: string; chunk: string } | null>(null)
 const changeHoveredChunk = (value: { time: string; chunk: string }) => {
   hoveredChunk.value = value
 }
-const debouncedHoveredChunk = debounce(changeHoveredChunk)
+const debouncedHoveredChunk = debounce(changeHoveredChunk, 10)
 const onChunkEnter = (time: string, chunk: string) => {
   debouncedHoveredChunk({ time, chunk })
 }
@@ -297,6 +391,7 @@ const isValueHighlighted = (field: string, time: string): boolean => {
 }
 
 onMounted(async () => {
+  loadForm()
   await nextTick(initEditor)
   await createWorker()
   initialized.value = true
@@ -350,7 +445,6 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     snapshots.push(entry)
   }
 
-  snapshots.reverse()
   const newArchive: SolTokenHistory = { snapshots, fileName, name, mint }
   current.value = newArchive
   const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
@@ -539,6 +633,7 @@ function highlightSql(code: string): string {
   font-family: 'Courier New', Courier, monospace;
   display: inline-block;
   white-space: pre-wrap;
+  background-color: rgba(129, 140, 248, 0.1); /* var(--highlight-bg) */
 }
 
 .queryChunk :deep(.tok-keyword) {

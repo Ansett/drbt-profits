@@ -127,3 +127,7 @@ body {
 .p-accordion .p-accordion-header:not(.p-disabled):hover .p-accordion-header-link {
   background-color: var(--surface-100) !important;
 }
+
+.material-symbols-outlined {
+  font-size: 20px;
+}

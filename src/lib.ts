@@ -71,7 +71,7 @@ export function extractDate(rawDate: string) {
 }
 
 export function extractTime(rawDate: string) {
-  let [date, hour, tz] = rawDate.split(/[TZ]/)
+  let [date, hour] = rawDate.split(/[T.]/)
   return hour
 }
 

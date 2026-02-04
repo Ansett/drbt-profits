@@ -539,7 +539,6 @@
               <InputText
                 v-model.trim="state.screenerUrl"
                 id="screener-input"
-                :pt="getPtNumberInput()"
                 class="settingInput"
               />
             </InputGroup>

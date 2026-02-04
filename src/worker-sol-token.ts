@@ -24,23 +24,25 @@ self.onmessage = async ({ data }: MessageEvent) => {
 }
 
 function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults {
-  // Parse the WHERE clause as a complete SQL query
   const fullQuery = `SELECT * FROM tokens WHERE ${query}`
   let ast: Select
   try {
     ast = parser.astify(fullQuery, { database: 'PostgresQL', trimQuery: true, parseOptions: { includeLocations: true } }) as Select
   } catch (error) {
     self.postMessage({ type: 'ERROR', message: error.message })
-    return new Map()
+    return []
   }
 
-  if (!ast.where) return new Map()
+  if (!ast.where) return []
 
   const normalizedWhere = normalizeWhereAst(ast.where)
 
-  const results: MatchingResults = new Map()
+  const results: MatchingResults = []
+  if (!history.snapshots) return results
 
-  for (const snapshot of history.snapshots || []) {
+  let line = 0
+  for (const snapshot of history.snapshots) {
+    line += 1
     const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query)
 
     const currentValues: Map<string, string> = new Map()
@@ -48,8 +50,12 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
       if (failedConditions.some(cond => cond.match(new RegExp(`\\b${field}\\b`))) && !currentValues.has(field)) currentValues.set(field, String(snapshot[field]))
     }
 
-    results.set(extractTime(snapshot.snapshot_at as string), {
-      date: extractDate(snapshot.snapshot_at as string),
+    const timestamp = snapshot.snapshot_at as string
+    results.unshift({
+      line,
+      timestamp,
+      time: extractTime(timestamp),
+      date: extractDate(timestamp),
       mc: Number(snapshot.mc),
       failedConditions,
       currentValues

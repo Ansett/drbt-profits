@@ -370,7 +370,6 @@
               <InputText
                 v-model.trim="state.screenerUrl"
                 id="screener-input"
-                :pt="getPtNumberInput()"
                 class="settingInput"
               />
             </InputGroup>
@@ -429,7 +428,6 @@ import {
   getPtNumberInput,
   INITIAL_TP_SIZE_CODE,
   SOL_PRICE,
-  SOL_STATE_STORAGE_KEY,
 } from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
@@ -552,12 +550,13 @@ const state = reactive({
 })
 const isSticky = ref(false)
 
+const STATE_STORAGE_KEY = 'state-sol-a'
 function storeForm() {
-  localStorageSetObject(SOL_STATE_STORAGE_KEY, state)
+  localStorageSetObject(STATE_STORAGE_KEY, state)
 }
 watch(state, () => storeForm(), { deep: true })
 function loadForm() {
-  const savedState = localStorageGetObject(SOL_STATE_STORAGE_KEY)
+  const savedState = localStorageGetObject(STATE_STORAGE_KEY)
   if (!savedState) return
 
   state.position = savedState.position ?? INIT_POSITION
