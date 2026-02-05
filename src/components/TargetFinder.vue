@@ -71,7 +71,8 @@
           showButtons
           buttonLayout="stacked"
           suffix="x"
-          :min="1"
+          mode="decimal"
+          :min="0.1"
           :step="5"
           :pt="getPtNumberInput()"
           class="settingInputSmall"
