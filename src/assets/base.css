@@ -124,9 +124,13 @@ body {
   z-index: 10;
 }
 
-/* overwrite the default hovering color which is transparent and cause issue with stick accordion */
-.p-accordion .p-accordion-header:not(.p-disabled):hover .p-accordion-header-link {
-  background-color: var(--surface-100) !important;
+/* Disable hover effect on whole accordion header but keep it on icon and title */
+.p-accordion .p-accordion-header,
+.p-accordion .p-accordion-header-link {
+  pointer-events: none;
+}
+.p-accordion .p-accordion-header-link > * {
+  pointer-events: auto;
 }
 
 .material-symbols-outlined {
