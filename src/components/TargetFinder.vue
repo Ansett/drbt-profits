@@ -30,6 +30,8 @@
           mode="decimal"
           :min="0.1"
           :step="5"
+          :minFractionDigits="0"
+          :maxFractionDigits="2"
           :pt="getPtNumberInput()"
           class="settingInputSmall"
         />
@@ -74,6 +76,8 @@
           mode="decimal"
           :min="0.1"
           :step="5"
+          :minFractionDigits="0"
+          :maxFractionDigits="2"
           :pt="getPtNumberInput()"
           class="settingInputSmall"
         />
