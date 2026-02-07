@@ -325,7 +325,7 @@ async function findTarget(
   let currentTP = { ...targetStart }
   const inc = (): boolean => {
     const prop = withMc ? 'mc' : withXs ? 'xs' : 'amount'
-    currentTP[prop] += increment
+    currentTP[prop] = round(currentTP[prop] + increment, 2)
     return currentTP[prop] > end
   }
 

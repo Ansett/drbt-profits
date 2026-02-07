@@ -187,7 +187,7 @@
                 calls: filteredCalls,
                 position: state.position,
               }"
-              :xsRange="[0.25, 1, 10]"
+              :xsRange="[1, 0.1, 10]"
               :mcRange="[100000, 100000, 5000000]"
               :amountRange="[10, 10, 200]"
               initialKind="Xs targets"
