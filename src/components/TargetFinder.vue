@@ -19,7 +19,7 @@
         }"
       />
       <InputGroup>
-        <InputGroupAddon>Increment by</InputGroupAddon>
+        <InputGroupAddon>Increment</InputGroupAddon>
         <InputNumber
           v-if="selectedtargetKind === 'Xs targets'"
           key="xInc"
@@ -301,6 +301,8 @@ watch(
 )
 
 function compute() {
+  if (!data.calls.length) return
+
   loading.value = true
   worker.value!.postMessage({
     type: 'TARGETING',
