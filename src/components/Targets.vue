@@ -52,7 +52,7 @@
               mode="decimal"
               :min="1"
               :minFractionDigits="0"
-              :maxFractionDigits="1"
+              :maxFractionDigits="2"
               :step="steps['All Xs']"
               :disabled="!takeProfit.withXs"
               class="settingInputSmall"

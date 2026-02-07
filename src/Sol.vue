@@ -187,8 +187,10 @@
                 calls: filteredCalls,
                 position: state.position,
               }"
+              :xsRange="[0.25, 1, 10]"
               :mcRange="[100000, 100000, 5000000]"
               :amountRange="[10, 10, 200]"
+              initialKind="Xs targets"
             />
           </AccordionTab>
 
@@ -251,9 +253,9 @@
           currency="◎"
           :whenError="errorMessage"
           :steps="{
-            'All Xs': 1,
-            'All amount': 10,
-            'All MC': 100000,
+            'All Xs': 0.5,
+            'All amount': 1,
+            'All MC': 1000,
           }"
         />
 
@@ -505,7 +507,8 @@ const counters = ref<ComputationResult['counters']>({
 const archives = ref<CallArchive<SolCall>[]>([])
 const current = ref<CallArchive<SolCall> | null>(null)
 const removeArchive = (index: number) => {
-  if (archives.value[index].fileName === current.value?.fileName) current.value = archives.value[0]
+  if (archives.value[index].fileName === current.value?.fileName)
+    current.value = archives.value[index - 1] || null
   archives.value.splice(index, 1)
 }
 

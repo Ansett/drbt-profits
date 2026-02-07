@@ -191,6 +191,7 @@
                 feeInXs: state.feeInXs,
                 chainApiKey: state.chainApiKey,
               }"
+              :xsRange="[50, 10, 250]"
               :mcRange="[1000000, 1000000, 20000000]"
               :amountRange="[1, 1, 20]"
             />

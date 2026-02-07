@@ -218,8 +218,10 @@ import type { TakeProfit } from '@/types/TakeProfit'
 const {
   chain = 'ETH',
   data,
+  xsRange,
   amountRange,
   mcRange,
+  initialKind = 'MC targets',
 } = defineProps<{
   chain?: 'ETH' | 'SOL'
   data: {
@@ -232,12 +234,14 @@ const {
     chainApiKey?: string
   }
   mcRange: [number, number, number]
+  xsRange: [number, number, number]
   amountRange: [number, number, number]
+  initialKind?: 'Xs targets' | 'Amount targets' | 'MC targets'
 }>()
 
-const xTargetStart = ref(50)
-const xIncrement = ref(10)
-const xTargetEnd = ref(250)
+const xTargetStart = ref(xsRange[0])
+const xIncrement = ref(xsRange[1])
+const xTargetEnd = ref(xsRange[2])
 const mcTargetStart = ref(mcRange[0])
 const mcIncrement = ref(mcRange[1])
 const mcTargetEnd = ref(mcRange[2])
@@ -246,7 +250,7 @@ const amountIncrement = ref(amountRange[1])
 const amountTargetEnd = ref(amountRange[2])
 
 const targetKinds = ['Xs targets', 'Amount targets', 'MC targets']
-const selectedtargetKind = ref<'Xs targets' | 'Amount targets' | 'MC targets'>('MC targets')
+const selectedtargetKind = ref<'Xs targets' | 'Amount targets' | 'MC targets'>(initialKind)
 
 const suffix = computed(() => ' ' + (chain === 'ETH' ? 'Ξ' : '◎'))
 const loading = ref(false)
