@@ -2,12 +2,12 @@
   <section>
     <Button
       v-if="withDisplaySwitch"
-      :icon="'pi ' + (textual ? 'pi-table' : 'pi-list')"
+      :icon="'pi ' + (textual ? 'pi-list' : 'pi-table')"
       size="small"
       text
       tabindex="-1"
+      severity="secondary"
       class="accordion-button"
-      aria-label="Logs view"
       v-tooltip.left="{
         value: textual ? 'Switch to table view' : 'Switch to text view',
         showDelay: 500,

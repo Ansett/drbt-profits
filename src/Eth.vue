@@ -114,10 +114,9 @@
             <Button
               size="small"
               text
-              severity="secondary"
               tabindex="-1"
               class="stickyButton"
-              aria-label="Pin"
+              :severity="isSticky ? 'help' : 'secondary'"
               v-tooltip.left="{
                 value: isSticky ? 'Unpin' : 'Pin',
                 showDelay: 500,
@@ -125,9 +124,7 @@
               @click.stop="isSticky = !isSticky"
             >
               <template #icon>
-                <span class="material-symbols-outlined cursor-pointer">{{
-                  isSticky ? 'keep_off' : 'keep'
-                }}</span>
+                <span class="material-symbols-outlined cursor-pointer">keep</span>
               </template>
             </Button>
 

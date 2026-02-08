@@ -116,10 +116,9 @@
             <Button
               size="small"
               text
-              severity="secondary"
               tabindex="-1"
               class="cardButton"
-              aria-label="Pin"
+              :severity="isSticky ? 'help' : 'secondary'"
               v-tooltip.left="{
                 value: isSticky ? 'Unpin' : 'Pin',
                 showDelay: 500,
@@ -127,11 +126,24 @@
               @click.stop="isSticky = !isSticky"
             >
               <template #icon>
-                <span class="material-symbols-outlined cursor-pointer">{{
-                  isSticky ? 'keep_off' : 'keep'
-                }}</span>
+                <span class="material-symbols-outlined cursor-pointer">keep</span>
               </template>
             </Button>
+
+            <!-- remember query button -->
+            <Button
+              size="small"
+              text
+              tabindex="-1"
+              icon="pi pi-bookmark"
+              class="cardButton cardButton--secondary"
+              :severity="state.rememberQuery ? 'help' : 'secondary'"
+              v-tooltip.left="{
+                value: state.rememberQuery ? 'Stop remembering query' : 'Remember query on browser',
+                showDelay: 500,
+              }"
+              @click.stop="state.rememberQuery = !state.rememberQuery"
+            />
 
             <!-- EDITOR and error message -->
             <div class="flex flex-column gap-2">
@@ -145,10 +157,9 @@
             <Button
               size="small"
               text
-              severity="secondary"
               tabindex="-1"
               class="cardButton"
-              aria-label="Filter"
+              :severity="lightMode ? 'help' : 'secondary'"
               v-tooltip.left="{
                 value: lightMode ? 'Show all' : 'Show only when conditions change',
                 showDelay: 500,
@@ -156,9 +167,7 @@
               @click.stop="lightMode = !lightMode"
             >
               <template #icon>
-                <span class="material-symbols-outlined cursor-pointer">{{
-                  lightMode ? 'filter_list_off' : 'filter_list'
-                }}</span>
+                <span class="material-symbols-outlined cursor-pointer">filter_list</span>
               </template></Button
             >
 
@@ -368,7 +377,7 @@ const uploading = ref(0)
 const uploader = ref<InstanceType<typeof FileUpload>>()
 const initialized = ref(false)
 const isSticky = ref(false)
-const query = ref(window.location.hostname === 'localhost' ? localStorage.getItem('query') : '')
+const query = ref('')
 const unsupportedFields = new Set<string>()
 const unsupportedFunctions = new Set<string>()
 const shownUnsupportedFields = ref<string[]>([])
@@ -379,10 +388,12 @@ const evaluationResults = ref<MatchingResults>([])
 const INIT_MIN_MC = 0
 const INIT_MAX_MC = 1000000
 const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
+const INIT_REMEMBER = false
 const state = reactive({
   minMc: INIT_MIN_MC,
   maxMc: INIT_MAX_MC,
   screenerUrl: INIT_SCREENER_URL,
+  rememberQuery: INIT_REMEMBER,
 })
 
 const STATE_STORAGE_KEY = 'state-sol-token-a'
@@ -397,6 +408,7 @@ function loadForm() {
   state.minMc = savedState.minMc ?? INIT_MIN_MC
   state.maxMc = savedState.maxMc ?? INIT_MAX_MC
   state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
+  state.rememberQuery = savedState.rememberQuery ?? INIT_REMEMBER
 }
 
 const failedConditionsToShow = computed(() => {
@@ -450,6 +462,9 @@ const isValueHighlighted = (field: string, time: string): boolean => {
 
 onMounted(async () => {
   loadForm()
+  if (state.rememberQuery) {
+    query.value = localStorage.getItem('query') || ''
+  }
   await nextTick(initEditor)
   await createWorker()
   initialized.value = true
@@ -570,9 +585,9 @@ watch(current, () => {
   runCompute()
 })
 watch(query, val => {
-  if (!initialized.value || !current.value?.snapshots.length) return
+  if (state.rememberQuery) localStorage.setItem('query', val || '')
 
-  if (val && window.location.hostname === 'localhost') localStorage.setItem('query', val)
+  if (!initialized.value || !current.value?.snapshots.length) return
 
   if (editorView) {
     const current = editorView.state.doc.toString()
@@ -585,6 +600,16 @@ watch(query, val => {
 
   debouncedCompute()
 })
+
+watch(
+  () => state.rememberQuery,
+  remember => {
+    if (!remember) return
+
+    const stored = localStorage.getItem('query') || ''
+    if (stored && stored !== query.value) query.value = stored
+  },
+)
 
 const editorEl = ref<HTMLDivElement | null>(null)
 let editorView: EditorView | null = null
@@ -704,6 +729,9 @@ function highlightSql(code: string): string {
   right: 0.5rem;
   top: 0.5rem;
   z-index: 2;
+}
+.cardButton--secondary {
+  right: 3.5rem;
 }
 .cardButton:focus,
 .cardButton:active {
