@@ -516,7 +516,7 @@
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum calls count to show hashes/sigs</label>
+            <label for="mincalls-input">Minimum for hashes/sigs</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-megaphone"></i>

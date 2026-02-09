@@ -71,10 +71,12 @@ async function compute(
     calls,
     position,
     takeProfits,
+    averageSlippage
   }: {
     calls: SolCall[]
     position: number
     takeProfits: TakeProfit[]
+    averageSlippage: number
   },
   abortSignal: AbortSignal,
 ) {
@@ -118,12 +120,13 @@ async function compute(
       addGain(call.date, gain)
     }
 
-    const tokens = invested / call.price
-    const slippage = getPriceImpact(call.lp * call.solPrice, call.price, tokens)
-    // const newPrice = call.price * (1 + priceImpact / 100)
-    // const totalImpact = (newPrice / call.price - 1) * 100
+    const buyPrice = (call.callMc + averageSlippage) / call.supply
+    const tokens = invested / buyPrice
+    const impact = getPriceImpact(call.lp * call.solPrice, buyPrice, tokens)
+    const newPrice = buyPrice * (1 + impact / 100)
+    const totalImpact = Math.max(0, (newPrice / call.price - 1) * 100)
 
-    let bestXs = call.xs / (1 + slippage / 100)
+    let bestXs = call.xs / (1 + totalImpact / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
 
     const hitTp: string[] = []
@@ -244,7 +247,7 @@ async function compute(
       invested: round(invested, 3),
       gain: round(gain, gain < 1 ? 2 : 1),
       hitTp,
-      slippage: round(slippage, 3),
+      slippage: round(totalImpact, 3),
       ignored: call.ignored,
       flag: call.ignored ? 'ignored' : '',
       supply: call.supply,
@@ -310,6 +313,7 @@ async function findTarget(
     targetStart,
     end,
     increment,
+    averageSlippage,
   }: {
     calls: SolCall[]
     position: number
@@ -317,6 +321,7 @@ async function findTarget(
     end: number
     increment: number
     withPriceImpact: boolean
+    averageSlippage: number
   },
   abortSignal: AbortSignal,
 ): Promise<ComputationForTarget[] | null> {
@@ -339,6 +344,7 @@ async function findTarget(
         calls,
         position,
         takeProfits: [currentTP],
+        averageSlippage,
       },
       abortSignal,
     )

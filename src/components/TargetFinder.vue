@@ -232,6 +232,7 @@ const {
     buyTaxInXs?: boolean
     feeInXs?: boolean
     chainApiKey?: string
+    averageSlippage?: number
   }
   mcRange: [number, number, number]
   xsRange: [number, number, number]
@@ -284,6 +285,7 @@ watch(
     () => data.buyTaxInXs,
     () => data.feeInXs,
     () => data.chainApiKey,
+    () => data.averageSlippage,
     selectedtargetKind,
     xTargetStart,
     mcTargetStart,
@@ -309,6 +311,7 @@ function compute() {
     calls: JSON.parse(JSON.stringify(data.calls)),
     position: data.position,
     gweiDelta: data.gweiDelta,
+    averageSlippage: data.averageSlippage,
     prioBySnipes: data.prioBySnipes,
     buyTaxInXs: data.buyTaxInXs,
     feeInXs: data.feeInXs,

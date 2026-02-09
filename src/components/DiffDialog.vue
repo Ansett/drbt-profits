@@ -86,7 +86,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
-              :timezone="timezone"
+            :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -127,7 +127,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
-              :timezone="timezone"
+            :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -167,7 +167,7 @@
             :screener-url="screenerUrl"
             :chain="chain"
             with-actions
-              :timezone="timezone"
+            :timezone="timezone"
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
@@ -217,7 +217,7 @@ const {
   screenerUrl,
   computingParams,
   chain = 'ETH',
-  timezone = 'UTC'
+  timezone = 'UTC',
 } = defineProps<{
   archives: CallArchive[] | CallArchive<SolCall>[]
   current: CallArchive | CallArchive<SolCall>
@@ -234,6 +234,7 @@ const {
     chainApiKey?: string
     takeProfits: string
     withPriceImpact?: boolean
+    averageSlippage?: number
   }
 }>()
 

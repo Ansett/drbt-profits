@@ -245,15 +245,8 @@
       >
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2 align-items-center">
+            <span>{{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}</span>
             <span
-              ><span
-                v-if="!noSlippage && data.xs <= XS_WORTH_OF_ONCHAIN_DATA"
-                class="text-color-secondary"
-                >~</span
-              >{{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}</span
-            >
-            <span
-              v-if="!noSlippage && data.xs > XS_WORTH_OF_ONCHAIN_DATA"
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
                 value: 'Entry without slippage',
@@ -424,13 +417,12 @@ const filteredLogs = computed(() => (profitableFilter.value ? logs.filter(l => l
 const noBlock = computed(() => chain === 'SOL')
 const noGas = computed(() => chain === 'SOL')
 const noTaxes = computed(() => chain === 'SOL')
-const noSlippage = computed(() => chain === 'SOL')
 const canRug = computed(() => chain === 'ETH')
 
 const { formatDate } = useTimezone()
 
 // prettier-ignore
-const optionalColumns = [!noBlock.value && "Block", "Invested", !noGas.value && "Gas price", !noTaxes.value && "Buy tax", "Entry MC", "ATH MC", !noSlippage.value && "Perf diff"].filter(Boolean);
+const optionalColumns = [!noBlock.value && "Block", "Invested", !noGas.value && "Gas price", !noTaxes.value && "Buy tax", "Entry MC", "ATH MC", "Perf diff"].filter(Boolean);
 const selectedColumns = defineModel<string[]>('selectedColumns', {
   required: true,
 })

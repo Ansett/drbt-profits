@@ -183,6 +183,7 @@
               :data="{
                 calls: filteredCalls,
                 position: state.position,
+                averageSlippage: state.slippage,
               }"
               :xsRange="[1, 0.1, 10]"
               :mcRange="[100000, 100000, 5000000]"
@@ -346,20 +347,20 @@
         </div>
 
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
-          <!-- MIN CALLS -->
+          <!-- SLIPPAGE -->
           <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum calls count to show program IDS</label>
+            <label for="slippage">Average slippage ($)</label>
             <InputGroup>
               <InputGroupAddon>
-                <i class="pi pi-megaphone"></i>
+                <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
               </InputGroupAddon>
               <InputNumber
-                v-model="state.minCallsForHash"
-                v-bind="{ id: 'mincalls-input' }"
+                v-model="state.slippage"
+                v-bind="{ id: 'slippage' }"
                 showButtons
                 buttonLayout="stacked"
                 :min="0"
-                :step="1"
+                :step="100"
                 :pt="getPtNumberInput()"
                 class="settingInput"
               />
@@ -400,6 +401,25 @@
               />
             </InputGroup>
           </div>
+          <!-- MIN CALLS -->
+          <div class="flex flex-column gap-2">
+            <label for="mincalls-input">Minimum for program IDs</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <i class="pi pi-megaphone"></i>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.minCallsForHash"
+                v-bind="{ id: 'mincalls-input' }"
+                showButtons
+                buttonLayout="stacked"
+                :min="0"
+                :step="1"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+              />
+            </InputGroup>
+          </div>
         </div>
       </div>
     </div>
@@ -416,6 +436,7 @@
       :computingParams="{
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
+        averageSlippage: state.slippage,
       }"
       @closed="showDiff = false"
       @ignore="ignoreCa"
@@ -537,6 +558,7 @@ const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
+const INIT_SLIPPAGE = 1000
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -553,6 +575,7 @@ const state = reactive({
   withHours: INIT_WITH_HOURS,
   week: INIT_WEEK,
   hours: INIT_HOURS,
+  slippage: INIT_SLIPPAGE,
 })
 const isSticky = ref(false)
 
@@ -580,6 +603,7 @@ function loadForm() {
   state.withHours = savedState.withHours ?? INIT_WITH_HOURS
   state.week = savedState.week ?? INIT_WEEK
   state.hours = savedState.hours ?? INIT_HOURS
+  state.slippage = savedState.slippage ?? INIT_SLIPPAGE
 }
 
 const allDays = [
@@ -727,6 +751,7 @@ const runCompute = async () => {
     calls: JSON.parse(JSON.stringify(filteredCalls.value)),
     position: state.position,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
+    averageSlippage: state.slippage,
   })
 }
 const debouncedCompute = debounce(runCompute, 1000)
@@ -737,7 +762,7 @@ watch(filteredCalls, () => {
 })
 // reload when an input related to profit changes
 watch(
-  [() => state.position, () => state.takeProfits],
+  [() => state.position, () => state.takeProfits, () => state.slippage],
   () => {
     debouncedCompute()
   },
