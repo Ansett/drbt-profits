@@ -367,22 +367,8 @@ function normalizeWhereAst(node: Binary | ExpressionValue | ExprList): Binary | 
 
   const left = normalizeWhereAst((node as Binary).left) as any
   const right = normalizeWhereAst((node as Binary).right) as any
-  const opUpper = String((node as Binary).operator).toUpperCase()
 
-  const current = { ...(node as any), left, right }
-
-  if (opUpper === 'AND') {
-    const leftOpUpper = left?.type === 'binary_expr' ? String(left.operator).toUpperCase() : ''
-    if (leftOpUpper === 'OR') {
-      const a = left.left
-      const b = left.right
-      const c = right
-      const rotatedRight = normalizeWhereAst({ ...current, operator: 'AND', left: b, right: c } as any)
-      return { ...left, operator: 'OR', left: a, right: rotatedRight } as any
-    }
-  }
-
-  return current as any
+  return { ...(node as any), left, right } as any
 }
 
 function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any>): any {
