@@ -194,7 +194,11 @@
 
           <!-- TIMING -->
           <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
-            <TimingFinder :logs="logs" />
+            <TimingFinder
+              :logs="logs"
+              :limited="state.withHours"
+              v-model:timeOnSnapshot="state.timeOnSnapshot"
+            />
           </AccordionTab>
 
           <!-- PROGRAMS -->
@@ -259,12 +263,20 @@
 
         <!-- DAYS & HOURS -->
         <div class="flex flex-column gap-4">
-          <div class="flex gap-2 pt-1">
-            <InputSwitch v-model="state.withHours" inputId="hours-global" />
-            <label for="hours-global"
-              >Custom trading periods<span class="text-xs"> (UTC)</span></label
-            >
+          <div class="flex gap-6">
+            <div class="flex gap-2 pt-1">
+              <InputSwitch v-model="state.withHours" inputId="hours-global" />
+              <label for="hours-global"
+                >Custom trading periods<span class="text-xs"> (UTC)</span></label
+              >
+            </div>
+            <div v-if="state.withHours" class="flex gap-2 pt-1">
+              <InputSwitch v-model="state.timeOnSnapshot" inputId="snapshot-time" />
+              <label for="snapshot-time">Use snapshot_at</label>
+              <InfoButton :text="`Use snapshot_at instead of created_at`" direction="bottom" />
+            </div>
           </div>
+
           <div v-if="state.withHours" class="card flex flex-wrap justify-content-start gap-3">
             <div
               v-for="day in allDays"
@@ -495,6 +507,7 @@ import { useTimezone } from './compose/useTimezone'
 import TriStateCheckbox from 'primevue/tristatecheckbox'
 import Checkbox from 'primevue/checkbox'
 import InputSwitch from 'primevue/inputswitch'
+import InfoButton from './components/InfoButton.vue'
 
 const router = useRouter()
 
@@ -559,6 +572,7 @@ const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
 const INIT_SLIPPAGE = 1000
+const INIT_TIME_ON_SNAPSHOT = false
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -576,6 +590,7 @@ const state = reactive({
   week: INIT_WEEK,
   hours: INIT_HOURS,
   slippage: INIT_SLIPPAGE,
+  timeOnSnapshot: INIT_TIME_ON_SNAPSHOT,
 })
 const isSticky = ref(false)
 
@@ -604,6 +619,7 @@ function loadForm() {
   state.week = savedState.week ?? INIT_WEEK
   state.hours = savedState.hours ?? INIT_HOURS
   state.slippage = savedState.slippage ?? INIT_SLIPPAGE
+  state.timeOnSnapshot = savedState.timeOnSnapshot ?? INIT_TIME_ON_SNAPSHOT
 }
 
 const allDays = [
@@ -647,7 +663,7 @@ const filteredCalls = computed<SolCall[]>(() => {
   return calls.value.filter(call => {
     // filtering trading hours and days
     if (state.withHours && state.week.some(active => !active)) {
-      const date = new Date(call.date)
+      const date = new Date(state.timeOnSnapshot ? call.date : call.creation)
       const callDay = date.getUTCDay()
       if (state.week[callDay]) return true
       else if (state.week[callDay] === false) return false
@@ -668,6 +684,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     [
       'mint',
       'snapshot_at',
+      'created_at',
       'name',
       'post_ath',
       'xs',
@@ -717,6 +734,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       ca,
       nameAndCa: (((row[indexes.name] as string) || '') + row[indexes.mint]) as string,
       date: parsedDate.toISOString(),
+      creation: (row[indexes.created_at] as Date).toISOString(),
       postAth: (row[indexes.post_ath] as string) === 'TRUE',
       xs: Number(row[indexes.xs] as string),
       callMc,
@@ -729,7 +747,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : SOL_PRICE,
       programIds,
       lpRatio: row[indexes.lp_ratio] as number,
-    })
+    } satisfies SolCall)
   }
 
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))

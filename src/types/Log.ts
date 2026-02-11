@@ -1,5 +1,6 @@
 export type Log = {
   date: string
+  creation: string // date
   ca: string
   name: string
   invested: number

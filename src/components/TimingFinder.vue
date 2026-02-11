@@ -11,9 +11,20 @@
       hours of the week
     </div>
 
-    <div class="flex gap-2 pt-1 pl-2 pt-4">
-      <InputSwitch v-model="onlyWinners" inputId="only-winners" />
-      <label for="only-winners">Only winners</label>
+    <div class="flex gap-6">
+      <div class="flex gap-2 pt-1 pl-2 pt-4">
+        <InputSwitch v-model="onlyWinners" inputId="only-winners" />
+        <label for="only-winners">Only winners</label>
+      </div>
+      <div class="flex gap-2 pt-1 pl-2 pt-4">
+        <InputSwitch
+          :modelValue="timeOnSnapshot"
+          inputId="snapshot-time"
+          @update:modelValue="$emit('update:timeOnSnapshot', $event)"
+        />
+        <label for="snapshot-time">Use snapshot_at</label>
+        <InfoButton :text="`Use snapshot_at instead of created_at`" direction="bottom" />
+      </div>
     </div>
 
     <DataTable :value="daysData" dataKey="id" size="small" class="pt-3">
@@ -60,9 +71,11 @@ import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputSwitch from 'primevue/inputswitch'
+import vTooltip from 'primevue/tooltip'
 import type { Log } from '@/types/Log'
 import { round } from '@/lib'
 import { DAY_DELIMITATION } from '@/constants'
+import InfoButton from './InfoButton.vue'
 
 const createWeekSlices = () => {
   return Array.from({ length: 24 }, (_, index) => ({
@@ -114,8 +127,9 @@ const INIT_WEEK = [
 ]
 
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
-const { logs, limited } = defineProps<{
+const props = defineProps<{
   logs: Log[]
+  timeOnSnapshot: boolean
   limited?: boolean
 }>()
 
@@ -162,10 +176,10 @@ const compute = () => {
   loading.value = true
   week.value = structuredClone(INIT_WEEK)
 
-  for (const log of logs) {
+  for (const log of props.logs) {
     if (onlyWinners.value && log.gain <= 0) continue
 
-    let dateStr = log.date.replace(' ', 'T')
+    let dateStr = (props.timeOnSnapshot ? log.date : log.creation).replace(' ', 'T')
     if (!dateStr.endsWith('Z')) dateStr += '.000Z'
     const date = new Date(dateStr)
     let day = date.getUTCDay() - 1
@@ -182,5 +196,5 @@ const compute = () => {
   loading.value = false
 }
 onMounted(() => compute())
-watch([() => logs, onlyWinners], () => compute())
+watch([() => props.logs, () => props.timeOnSnapshot, onlyWinners], () => compute())
 </script>

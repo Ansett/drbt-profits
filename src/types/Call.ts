@@ -33,6 +33,7 @@ export type SolCall = {
   ca: string
   nameAndCa: string // for filtering
   date: string
+  creation: string // date
   postAth: boolean
   athDelayHours: number
   xs: number
