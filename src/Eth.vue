@@ -930,6 +930,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       xs,
       callTimeAth: row[indexes.ATH_MC] as number,
       date: parsedDate.toISOString(),
+      creation: parsedLaunch.toISOString(),
       delay: row[indexes.LaunchedDelay] as number,
       fList: row[indexes.FList] as string,
       maxBuy: ((row[indexes.MaxBuyPRCT] as number) || 100) / 100,

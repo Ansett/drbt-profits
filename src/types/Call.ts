@@ -3,6 +3,7 @@ export type Call = {
   ca: string
   nameAndCa: string // for filtering
   date: string
+  creation: string // launch date
   price: number
   callMc: number
   xs: number

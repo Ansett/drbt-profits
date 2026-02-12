@@ -169,7 +169,16 @@
 
       <Column field="date" header="Date" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
-          <span class="flex flex-wrap column-gap-2">
+          <span
+            class="flex flex-wrap column-gap-2"
+            v-tooltip.right="{
+              value: `${chain === 'ETH' ? 'Launched' : 'Created'} at ${formatDate(
+                data.creation,
+                timezone,
+              ).join(' ')}`,
+              showDelay: 500,
+            }"
+          >
             <span class="nowrap">{{ formatDate(data.date, timezone)[0] }}</span>
             <span class="nowrap text-color-secondary">{{
               formatDate(data.date, timezone)[1]
@@ -280,7 +289,6 @@
       <Column header="Perf" field="xs" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #header>
           <InfoButton
-            v-if="!noSlippage"
             text="Accounting for slippage"
             direction="top"
             hover

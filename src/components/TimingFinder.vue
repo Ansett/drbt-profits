@@ -129,7 +129,7 @@ const INIT_WEEK = [
 // eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
   logs: Log[]
-  timeOnSnapshot: boolean
+  timeOnSnapshot?: boolean
   limited?: boolean
 }>()
 
