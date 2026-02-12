@@ -428,7 +428,7 @@
         <div class="flex flex-column gap-4">
           <div class="flex gap-2 pt-1">
             <InputSwitch v-model="state.withHours" inputId="hours-global" />
-            <label for="hours-global"
+            <label for="hours-global" class="white-space-nowrap"
               >Custom trading periods<span class="text-xs"> (UTC)</span></label
             >
           </div>

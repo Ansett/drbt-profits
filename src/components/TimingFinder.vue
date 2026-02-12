@@ -11,10 +11,10 @@
       hours of the week
     </div>
 
-    <div class="flex gap-6">
+    <div class="flex gap-4">
       <div class="flex gap-2 pt-1 pl-2 pt-4">
         <InputSwitch v-model="onlyWinners" inputId="only-winners" />
-        <label for="only-winners">Only winners</label>
+        <label for="only-winners" class="white-space-nowrap">Only winners</label>
       </div>
       <div class="flex gap-2 pt-1 pl-2 pt-4">
         <InputSwitch
@@ -22,7 +22,7 @@
           inputId="snapshot-time"
           @update:modelValue="$emit('update:timeOnSnapshot', $event)"
         />
-        <label for="snapshot-time">Use snapshot_at</label>
+        <label for="snapshot-time" class="white-space-nowrap">Use snapshot_at</label>
         <InfoButton :text="`Use snapshot_at instead of created_at`" direction="bottom" />
       </div>
     </div>
