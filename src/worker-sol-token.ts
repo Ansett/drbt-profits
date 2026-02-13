@@ -50,7 +50,7 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   if (!ast.where) return []
 
   const allowedFields = new Set(history.allFields)
-  const normalizedWhere = normalizeWhereAst(ast.where)
+  const normalizedWhere = normalizeWhereAst(ast.where, fullQuery)
   const results: MatchingResults = []
 
   let line = 1 // first line on XLSX is header
@@ -112,8 +112,8 @@ function evaluateWhereClause(
       const rightRes = evaluateWhereClause(right, record, originalQuery, allowedFields)
       if (rightRes.passed) return { passed: true, failed: [] }
 
-      const orCondition = extractConditionText(node as Binary, originalQuery)
-      return { passed: false, failed: [orCondition] }
+      // instead of returning the whole blob, return the specific failures from both sides
+      return { passed: false, failed: [...leftRes.failed, ...rightRes.failed] }
     }
 
     const passed = evaluateBinaryCondition(node as Binary, record, allowedFields)
@@ -362,13 +362,59 @@ function getFunctionArgs(node: any): any[] {
 }
 
 // Make sure AND and OR are ordered properly
-function normalizeWhereAst(node: Binary | ExpressionValue | ExprList): Binary | ExpressionValue | ExprList {
+function normalizeWhereAst(node: Binary | ExpressionValue | ExprList, query?: string): Binary | ExpressionValue | ExprList {
   if (!node || node.type !== 'binary_expr') return node
 
-  const left = normalizeWhereAst((node as Binary).left) as any
-  const right = normalizeWhereAst((node as Binary).right) as any
+  const left = normalizeWhereAst((node as Binary).left, query) as any
+  const right = normalizeWhereAst((node as Binary).right, query) as any
 
-  return { ...(node as any), left, right } as any
+  const currentNode = { ...(node as any), left, right } as Binary
+
+  // Fix: parser might produce left-associative tree for mixed AND/OR (treating them as equal precedence).
+  // Standard SQL requires AND to bind tighter than OR.
+  // Structure (A OR B) AND C should become A OR (B AND C) unless explicitly parenthesized.
+  if (
+    String(currentNode.operator).toUpperCase() === 'AND' &&
+    left?.type === 'binary_expr' &&
+    String(left.operator).toUpperCase() === 'OR'
+  ) {
+    // Check if the LEFT side was explicitly parenthesized in source: ((A OR B) AND C)
+    let isParenthesized = false
+    if (query && (left as any).loc) {
+      const { start, end } = (left as any).loc
+      if (typeof start?.offset === 'number' && typeof end?.offset === 'number') {
+        const text = query.substring(start.offset, end.offset).trim()
+        if (text.startsWith('(') && text.endsWith(')')) {
+          isParenthesized = true
+        }
+      }
+    }
+
+    if (!isParenthesized) {
+      // Rotate tree to fix precedence
+      const A = left.left
+      const B = left.right
+      const C = right
+
+      const newAnd: Binary = {
+        type: 'binary_expr',
+        operator: 'AND',
+        left: B,
+        right: C
+      } as any
+
+      const newOr: Binary = {
+        type: 'binary_expr',
+        operator: 'OR',
+        left: A,
+        right: normalizeWhereAst(newAnd, query) // Recurse on new structure
+      } as any
+
+      return newOr
+    }
+  }
+
+  return currentNode
 }
 
 function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any>): any {
