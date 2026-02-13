@@ -322,13 +322,16 @@ async function compute(
       }
     }
 
-    if (finalWorth < drawdown) {
-      drawdown = round(finalWorth)
+
+    if (!call.ignored) {
+      finalWorth += gain
+
+      if (finalWorth < drawdown) {
+        drawdown = round(finalWorth)
+      }
     }
 
     if (call.hashF && !call.ignored && !postAth) {
-      finalWorth += gain
-
       if (bestXs >= 100) {
         counters.x100++
         counters.x100Sum += bestXs

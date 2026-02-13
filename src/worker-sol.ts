@@ -199,12 +199,12 @@ async function compute(
       }
     }
 
-    if (finalWorth < drawdown) {
-      drawdown = round(finalWorth)
-    }
-
     if (!call.ignored) {
       finalWorth += gain
+
+      if (finalWorth < drawdown) {
+        drawdown = round(finalWorth)
+      }
     }
 
     if (!call.ignored && !postAth) {
