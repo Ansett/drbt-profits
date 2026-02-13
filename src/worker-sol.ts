@@ -203,9 +203,11 @@ async function compute(
       drawdown = round(finalWorth)
     }
 
-    if (!call.ignored && !postAth) {
+    if (!call.ignored) {
       finalWorth += gain
+    }
 
+    if (!call.ignored && !postAth) {
       if (bestXs >= 100) {
         counters.x100++
         counters.x100Sum += bestXs
