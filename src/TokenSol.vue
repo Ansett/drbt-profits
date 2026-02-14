@@ -367,6 +367,7 @@ import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput } from './constants'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import { useTimezone } from './compose/useTimezone'
+import { SPECIAL_FIELD_MAPPINGS } from './field-mappings'
 
 const { formatDate } = useTimezone()
 
@@ -457,7 +458,12 @@ const onChunkLeave = () => {
 }
 const isValueHighlighted = (field: string, time: string): boolean => {
   if (!hoveredChunk.value || hoveredChunk.value.time !== time) return false
-  return new RegExp(`\\b${escapeRegExp(field)}\\b`, 'i').test(hoveredChunk.value.chunk)
+  const chunk = hoveredChunk.value.chunk
+  if (new RegExp(`\\b${escapeRegExp(field)}\\b`, 'i').test(chunk)) return true
+
+  return Object.entries(SPECIAL_FIELD_MAPPINGS).some(
+    ([prefix, mappedField]) => field === mappedField && chunk.toLowerCase().includes(prefix),
+  )
 }
 
 onMounted(async () => {

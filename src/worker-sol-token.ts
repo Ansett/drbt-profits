@@ -2,11 +2,12 @@ import readXlsxFile from 'read-excel-file/web-worker'
 import { Binary, ColumnRef, ExpressionValue, ExprList, Parser, Select, Value } from 'node-sql-parser'
 import { MatchingResults, SolTokenHistory } from './types/History'
 import { extractDate, extractTime } from './lib'
+import { SPECIAL_FIELD_MAPPINGS } from './field-mappings'
 
 type WhereEvalResult = { passed: boolean; failed: string[] }
 
 export const SUPPORTED_FUNCTIONS = [
-  "LENGTH", "NULLIF", "KOL", "SUM", "MAX", "MIN", "UPPER", "LOWER"
+  "LENGTH", "NULLIF", "KOL", "SUM", "MAX", "MIN", "UPPER", "LOWER", "COALESCE", "CARDINALITY", "CA"
 ]
 
 const parser = new Parser()
@@ -61,7 +62,12 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
     const currentValues: Map<string, string> = new Map()
     const orderedFields = Array.from(new Set(
       failedConditions.flatMap(cond =>
-        Object.keys(snapshot).filter(field => new RegExp(`\\b${field}\\b`).test(cond) || cond.includes('kol(') && field === 'kol_wallets')
+        Object.keys(snapshot).filter(field => {
+          if (new RegExp(`\\b${field}\\b`).test(cond)) return true
+          return Object.entries(SPECIAL_FIELD_MAPPINGS).some(([prefix, mappedField]) =>
+            cond.toLowerCase().includes(prefix) && field === mappedField
+          )
+        })
       )
     ))
     for (const field of orderedFields) {
@@ -309,12 +315,7 @@ function extractCastText(node: any): string {
 
 function extractFunctionText(node: any): string {
   if (node.type === 'function' || node.type === 'aggr_func') {
-    const args = getFunctionArgs(node).map((arg: any) => {
-      if (arg.type === 'column_ref') return getNodeValue(arg)
-      if (arg.type === 'string') return `'${arg.value}'`
-      if (arg.type === 'number' || arg.type === 'bool') return String(arg.value)
-      return String(arg.value ?? arg)
-    }).join(', ') || ''
+    const args = getFunctionArgs(node).map((arg: any) => extractValueText(arg)).join(', ') || ''
     return `${getFunctionName(node)}(${args})`
   }
   return ''
@@ -424,6 +425,18 @@ function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any
   }
   // nullif(x, 0) returns null if x is equal to 0
   if (fn === 'NULLIF') return args[0] == args[1] ? null : args[0]
+  if (fn === 'COALESCE') return args.find((v: any) => v !== null && v !== undefined)
+  if (fn === 'CARDINALITY') {
+    const val = args[0]
+    if (Array.isArray(val)) return val.length
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed)) return parsed.length
+      } catch { }
+    }
+    return null
+  }
   if (fn === 'LENGTH') return String(args[0] ?? '').length
   if (fn === 'SUM') {
     const nums = args.map(Number).filter(n => !Number.isNaN(n))
@@ -464,35 +477,26 @@ function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any
     )
   }
 
+  // ca(10, 20) function
+  if (fn === 'CA') {
+    const ids = args.map((v: any) => Number(v)).filter((v: number) => !Number.isNaN(v))
+    if (ids.length === 0) return false
+
+    const raw = record.ca_caller_ids
+    let values: any = raw
+    if (typeof raw === 'string') {
+      try {
+        values = JSON.parse(raw)
+      } catch {
+        return false
+      }
+    }
+
+    if (!Array.isArray(values)) return false
+
+    return ids.some((id: number) => values.some((v: any) => Number(v) === id))
+  }
+
   return undefined
 }
 
-function collectWhereFields(node: any): string[] {
-  const fields = new Set<string>()
-  const visit = (n: any) => {
-    if (!n) return
-    if (n.type === 'column_ref') {
-      fields.add(String(getNodeValue(n)))
-      return
-    }
-    if (n.type === 'binary_expr') {
-      visit(n.left)
-      visit(n.right)
-      return
-    }
-    if (n.type === 'function' || n.type === 'aggr_func') {
-      for (const arg of getFunctionArgs(n)) visit(arg)
-      return
-    }
-    if (n.type === 'expr_list' && Array.isArray(n.value)) {
-      for (const v of n.value) visit(v)
-      return
-    }
-    if (n.type === 'cast') {
-      visit(n.expr)
-      return
-    }
-  }
-  visit(node)
-  return Array.from(fields)
-}
