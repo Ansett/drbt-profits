@@ -222,7 +222,8 @@
         :pt="{ headerTitle: { class: 'text-xs' } }"
       >
         <template #body="{ data }">
-          {{ data.invested }}
+          <Tag v-if="data.flag === 'off'" :value="data.flag" severity="secondary" />
+          <span v-else>{{ data.invested }}</span>
         </template>
       </Column>
       <Column
@@ -334,12 +335,14 @@
       <Column field="gain" header="Gain" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
           <span class="flex column-gap-2 align-items-center">
-            <span
-              v-if="data.gain > 0"
-              :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']"
-              >{{ '+' + data.gain }}</span
-            >
-            <span v-else>{{ data.gain }}</span>
+            <template v-if="data.flag !== 'off'">
+              <span
+                v-if="data.gain > 0"
+                :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']"
+                >{{ '+' + data.gain }}</span
+              >
+              <span v-else>{{ data.gain }}</span>
+            </template>
 
             <Tag v-if="data.flag" :value="data.flag" severity="secondary" />
             <span
@@ -386,7 +389,6 @@ import MenuButton from './MenuButton.vue'
 import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
 import { useTimezone } from '@/compose/useTimezone'
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const {
   logs,
   rows,

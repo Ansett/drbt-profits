@@ -214,7 +214,6 @@ import type { ComputationShortResult } from '@/types/ComputationResult'
 import { debounce } from '@/lib'
 import type { TakeProfit } from '@/types/TakeProfit'
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const {
   chain = 'ETH',
   data,

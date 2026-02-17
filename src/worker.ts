@@ -1,5 +1,5 @@
 import readXlsxFile from 'read-excel-file/web-worker'
-import type { Call, CallDiff, CallExportType } from './types/Call'
+import type { Call, CallDiff, CallExportType, SolCall } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
 import {
@@ -187,7 +187,7 @@ async function compute(
     const { blockStart, blockEnd } = getBlockStartAndEnd(call)
     firstBlockOfPeriod =
       !firstBlockOfPeriod || blockStart < firstBlockOfPeriod ? blockStart : firstBlockOfPeriod
-    const blockNeeded = chainApiKey && callWorthOnChainData(call)
+    const blockNeeded = !postAth && chainApiKey && callWorthOnChainData(call)
     let blockTransactions: BlockTx[] | undefined | null = null
 
     if (blockNeeded) {
@@ -358,7 +358,7 @@ async function compute(
     }
 
     // Regrouping function 4bytes signatures
-    if (call.fList && !call.ignored && !postAth) {
+    if (call.fList && !call.ignored) {
       for (const id of call.fList.split(',')) {
         if (!signatures[id]) signatures[id] = initHash(id)
         signatures[id].allCalls.push(call)
@@ -375,7 +375,7 @@ async function compute(
 
     // Regrouping gases
     const buyGas = call.buyGas || DEFAULT_GAS_USED
-    if (buyGas && !call.ignored && !postAth) {
+    if (buyGas && !call.ignored) {
       if (!gases[call.buyGas]) gases[call.buyGas] = initHash(call.buyGas + '')
       gases[call.buyGas].allCalls.push(call)
       if (call.rug) gases[call.buyGas].rugs++

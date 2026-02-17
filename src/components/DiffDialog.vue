@@ -235,6 +235,9 @@ const {
     takeProfits: string
     withPriceImpact?: boolean
     averageSlippage?: number
+    timeOnSnapshot?: boolean
+    week?: Array<boolean | null>
+    hours?: boolean[][]
   }
 }>()
 

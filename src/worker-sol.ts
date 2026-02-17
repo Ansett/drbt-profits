@@ -71,12 +71,18 @@ async function compute(
     calls,
     position,
     takeProfits,
-    averageSlippage
+    averageSlippage,
+    week,
+    hours,
+    timeOnSnapshot = false
   }: {
     calls: SolCall[]
     position: number
     takeProfits: TakeProfit[]
     averageSlippage: number
+    timeOnSnapshot?: boolean
+    week?: Array<boolean | null>
+    hours?: boolean[][]
   },
   abortSignal: AbortSignal,
 ) {
@@ -86,6 +92,7 @@ async function compute(
     rug: 0,
     unrealistic: 0,
     postAth: 0,
+    offPeriods: 0,
     x100Sum: 0,
     x100: 0,
     x50: 0,
@@ -107,6 +114,11 @@ async function compute(
   for (const call of calls) {
     if (abortSignal.aborted) return {}
 
+    const offPeriods = !isCallInActiveHour(timeOnSnapshot ? call.date : call.creation, week, hours)
+    if (offPeriods) {
+      counters.offPeriods = (counters.offPeriods || 0) + 1
+    }
+
     let invested = position
     volume += invested
 
@@ -116,7 +128,7 @@ async function compute(
     if (postAth) counters.postAth++
 
     let gain = -invested
-    if (!call.ignored) {
+    if (!call.ignored && !offPeriods) {
       addGain(call.date, gain)
     }
 
@@ -185,7 +197,8 @@ async function compute(
             (1 - priceImpact / 100)
 
           gain += profit
-          if (!call.ignored) {
+          if (!call.ignored && !offPeriods) {
+            // for drawdown
             addGain(getSaleDate(call, saleMc), profit)
           }
           if (tp.size === INITIAL_TP_SIZE_CODE) sizeSoldForInitial = sizeSold
@@ -199,7 +212,7 @@ async function compute(
       }
     }
 
-    if (!call.ignored) {
+    if (!call.ignored && !offPeriods) {
       finalWorth += gain
 
       if (finalWorth < drawdown) {
@@ -207,7 +220,7 @@ async function compute(
       }
     }
 
-    if (!call.ignored && !postAth) {
+    if (!call.ignored && !postAth && !offPeriods) {
       if (bestXs >= 100) {
         counters.x100++
         counters.x100Sum += bestXs
@@ -252,7 +265,7 @@ async function compute(
       hitTp,
       slippage: round(totalImpact, 3),
       ignored: call.ignored,
-      flag: call.ignored ? 'ignored' : '',
+      flag: offPeriods ? 'off' : call.ignored ? 'ignored' : '',
       supply: call.supply,
       basePrice: call.solPrice,
     })
@@ -368,4 +381,21 @@ async function findTarget(
   } while (!ended)
 
   return results
+}
+
+
+function isCallInActiveHour(startDate: string, week?: Array<boolean | null>, hours?: boolean[][]): boolean {
+  if (!week || !hours) return true
+
+  if (week.some(active => !active)) {
+    const date = new Date(startDate)
+    const callDay = date.getUTCDay()
+    if (week[callDay]) return true
+    else if (week[callDay] === false) return false
+    // when null: custom hours
+    const callHour = date.getUTCHours()
+    return hours[callDay][callHour]
+  }
+
+  return true
 }

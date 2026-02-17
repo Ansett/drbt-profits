@@ -14,7 +14,6 @@
 import { computed } from 'vue'
 import vTooltip from 'primevue/tooltip'
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const { text, accent, direction, hover } = defineProps<{
   text: string
   accent?: boolean

@@ -16,7 +16,6 @@
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const { actions } = defineProps<{
   actions: { label: string; icon: string; command: () => void }[]
 }>()

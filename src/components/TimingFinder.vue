@@ -6,11 +6,6 @@
       style="width: 99px; height: 99px; transform: translate(-50%, 50px); z-index: 2"
     />
 
-    <div v-if="limited" class="text-red-400 p-3">
-      It's better to deactivate "Custom trading periods" switch so this simulation evaluates all
-      hours of the week
-    </div>
-
     <div class="flex gap-4">
       <div class="flex gap-2 pt-1 pl-2 pt-4">
         <InputSwitch v-model="onlyWinners" inputId="only-winners" />
@@ -39,6 +34,23 @@
           >
         </template>
       </Column>
+      <Column v-if="withTimeRange" field="allPeriods" header="All Periods">
+        <template #body="{ data }">
+          <span
+            :class="
+              data.allPeriods < data.count
+                ? 'text-green-400'
+                : data.allPeriods > data.count
+                ? 'text-orange-300'
+                : 'text-color-secondary'
+            "
+            >{{
+              data.allPeriods < data.count ? '>' : data.allPeriods > data.count ? '<' : '='
+            }}</span
+          >
+          <span class="text-color-secondary">&nbsp;{{ round(data.allPeriods) }}</span>
+        </template>
+      </Column>
     </DataTable>
 
     <DataTable
@@ -50,7 +62,7 @@
       class="mt-6"
     >
       <Column field="dayName" header="Day" />
-      <Column field="sliceName" header="Hour slice (UTC)" />
+      <Column field="sliceName" header="Hour (UTC)" />
       <Column field="count" header="Gain">
         <template #body="{ data }">
           <span
@@ -61,12 +73,29 @@
           >
         </template>
       </Column>
+      <Column v-if="withTimeRange" field="allPeriods" header="All Periods">
+        <template #body="{ data }">
+          <span
+            :class="
+              data.allPeriods < data.count
+                ? 'text-green-400'
+                : data.allPeriods > data.count
+                ? 'text-orange-300'
+                : 'text-color-secondary'
+            "
+            >{{
+              data.allPeriods < data.count ? '>' : data.allPeriods > data.count ? '<' : '='
+            }}</span
+          >
+          <span class="text-color-secondary">&nbsp;{{ data.allPeriods }}</span>
+        </template>
+      </Column>
     </DataTable>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, shallowRef } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -81,6 +110,7 @@ const createWeekSlices = () => {
   return Array.from({ length: 24 }, (_, index) => ({
     name: index + '',
     count: 0,
+    allPeriods: 0,
   }))
 }
 const INIT_WEEK = [
@@ -126,15 +156,14 @@ const INIT_WEEK = [
   },
 ]
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const props = defineProps<{
   logs: Log[]
   timeOnSnapshot?: boolean
-  limited?: boolean
+  withTimeRange?: boolean
 }>()
 
 const loading = ref(false)
-const week = ref(structuredClone(INIT_WEEK))
+const week = shallowRef(structuredClone(INIT_WEEK))
 const onlyWinners = ref(false)
 
 // table with 1 hour each row
@@ -146,10 +175,11 @@ const hoursData = computed(() =>
         dayName: day.name,
         sliceName: slice.name,
         count: round(slice.count),
+        allPeriods: round(slice.allPeriods),
       })
     }
     return arr
-  }, [] as { id: string; dayName: string; sliceName: string; count: number }[]),
+  }, [] as { id: string; dayName: string; sliceName: string; count: number; allPeriods: number }[]),
 )
 
 // table with day each row
@@ -164,12 +194,14 @@ const daysData = computed(() =>
           id: week.value[adjustedDayIndex].name,
           dayName: week.value[adjustedDayIndex].name,
           count: 0,
+          allPeriods: 0,
         }
 
       arr[adjustedDayIndex].count += slice.count
+      arr[adjustedDayIndex].allPeriods += slice.allPeriods
     }
     return arr
-  }, [] as { id: string; dayName: string; count: number }[]),
+  }, [] as { id: string; dayName: string; count: number; allPeriods: number }[]),
 )
 
 const compute = () => {
@@ -184,13 +216,19 @@ const compute = () => {
     const date = new Date(dateStr)
     let day = date.getUTCDay() - 1
     if (day === -1) day = 6
-    // const sliceIndex = Math.ceil((date.getUTCHours() + 0.1) / 3) - 1;
     const sliceIndex = date.getUTCHours()
-    week.value[day].slices[sliceIndex].count += log.gain
+    const isInPeriods = !props.withTimeRange || log.flag !== 'off'
+
+    week.value[day].slices[sliceIndex].allPeriods += log.gain
+    if (isInPeriods) week.value[day].slices[sliceIndex].count += log.gain
+
     // overall
-    week.value[7].slices[sliceIndex].count += log.gain
+    week.value[7].slices[sliceIndex].allPeriods += log.gain
+    if (isInPeriods) week.value[7].slices[sliceIndex].count += log.gain
+
     // weekdays or weekend
-    week.value[day >= 5 ? 9 : 8].slices[sliceIndex].count += log.gain
+    week.value[day >= 5 ? 9 : 8].slices[sliceIndex].allPeriods += log.gain
+    if (isInPeriods) week.value[day >= 5 ? 9 : 8].slices[sliceIndex].count += log.gain
   }
 
   loading.value = false

@@ -147,7 +147,7 @@
               :volume="volume"
               :worstDrawdown="worstDrawdown"
               :counters="counters"
-              :nbCalls="filteredCalls.length"
+              :nbCalls="calls.length"
               :full-stats="state.showFullStats"
               :buyInfo="buyInfo"
               @fullStats="state.showFullStats = $event"
@@ -181,7 +181,7 @@
             <TargetFinder
               chain="SOL"
               :data="{
-                calls: filteredCalls,
+                calls,
                 position: state.position,
                 averageSlippage: state.slippage,
               }"
@@ -196,8 +196,8 @@
           <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
             <TimingFinder
               :logs="logs"
-              :limited="state.withHours"
               v-model:timeOnSnapshot="state.timeOnSnapshot"
+              :withTimeRange="state.withHours"
             />
           </AccordionTab>
 
@@ -449,6 +449,9 @@
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
         averageSlippage: state.slippage,
+        timeOnSnapshot: state.timeOnSnapshot,
+        week: state.withHours ? state.week : undefined,
+        hours: state.withHours ? state.hours : undefined,
       }"
       @closed="showDiff = false"
       @ignore="ignoreCa"
@@ -526,6 +529,7 @@ const counters = ref<ComputationResult['counters']>({
   rug: 0,
   unrealistic: 0,
   postAth: 0,
+  offPeriods: 0,
   x100Sum: 0,
   x100: 0,
   x50: 0,
@@ -659,22 +663,6 @@ const exportXlsx = async (logs: Log[]) => {
 
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
-const filteredCalls = computed<SolCall[]>(() => {
-  return calls.value.filter(call => {
-    // filtering trading hours and days
-    if (state.withHours && state.week.some(active => !active)) {
-      const date = new Date(state.timeOnSnapshot ? call.date : call.creation)
-      const callDay = date.getUTCDay()
-      if (state.week[callDay]) return true
-      else if (state.week[callDay] === false) return false
-      // when null: custom hours
-      const callHour = date.getUTCHours()
-      return state.hours[callDay][callHour]
-    }
-
-    return true
-  })
-})
 
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (rows.length <= 1) return
@@ -759,28 +747,39 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 }
 
 const runCompute = async () => {
-  if (!filteredCalls.value.length) return
+  if (!calls.value.length) return
 
   loading.value = true
   await sleep(0.2) // waiting for color transition on inputs
 
   return worker.value?.postMessage({
     type: 'COMPUTE',
-    calls: JSON.parse(JSON.stringify(filteredCalls.value)),
+    calls: JSON.parse(JSON.stringify(calls.value)),
     position: state.position,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
     averageSlippage: state.slippage,
+    timeOnSnapshot: state.timeOnSnapshot,
+    week: state.withHours ? JSON.parse(JSON.stringify(state.week)) : undefined,
+    hours: state.withHours ? JSON.parse(JSON.stringify(state.hours)) : undefined,
   })
 }
 const debouncedCompute = debounce(runCompute, 1000)
-watch(filteredCalls, () => {
+watch(calls, () => {
   if (!initialized.value) return
   loading.value = true
   debouncedCompute()
 })
 // reload when an input related to profit changes
 watch(
-  [() => state.position, () => state.takeProfits, () => state.slippage],
+  [
+    () => state.position,
+    () => state.takeProfits,
+    () => state.slippage,
+    () => state.timeOnSnapshot,
+    () => state.withHours,
+    () => state.week,
+    () => state.hours,
+  ],
   () => {
     debouncedCompute()
   },

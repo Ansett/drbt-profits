@@ -108,6 +108,9 @@
             <div class="text-sm white-space-nowrap">
               PostATH: {{counters.postAth}} ({{ statPercentages(counters.postAth,nbCalls) }})
             </div>
+             <div v-if="counters.offPeriods" class="text-sm white-space-nowrap">
+              During excluded hours or days: <span class="text-orange-300">{{counters.offPeriods}} ({{ statPercentages(counters.offPeriods,nbCalls) }})</span>
+            </div>
             <div v-if="counters.unrealistic" class="text-sm white-space-nowrap">
               Unrealistic trades where we had to cap Xs: {{counters.unrealistic}} ({{ statPercentages(counters.unrealistic,nbCalls) }})
             </div>
@@ -132,9 +135,9 @@ import { round } from '@/lib'
 import InfoButton from './InfoButton.vue'
 import { computed } from 'vue'
 
-// eslint-disable-next-line unused-imports/no-unused-vars-ts
 const {
   nbCalls,
+  nbCallsOnHours,
   loading,
   final,
   currency = 'ETH',
@@ -148,6 +151,7 @@ const {
   buyInfo,
 } = defineProps<{
   nbCalls: number
+  nbCallsOnHours?: number
   loading: boolean | string
   final: number
   currency?: 'ETH' | 'SOL'
