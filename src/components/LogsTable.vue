@@ -335,14 +335,16 @@
       <Column field="gain" header="Gain" sortable :pt="{ headerTitle: { class: 'text-xs' } }">
         <template #body="{ data }">
           <span class="flex column-gap-2 align-items-center">
-            <template v-if="data.flag !== 'off'">
-              <span
-                v-if="data.gain > 0"
-                :class="['text-cyan-300', data.ignored ? 'font-italic' : 'font-bold']"
-                >{{ '+' + data.gain }}</span
-              >
-              <span v-else>{{ data.gain }}</span>
-            </template>
+            <span
+              v-if="data.gain > 0"
+              :class="[
+                'text-cyan-300',
+                data.ignored ? 'font-italic' : 'font-bold',
+                { 'line-through': data.flag === 'off' },
+              ]"
+              >{{ '+' + data.gain }}</span
+            >
+            <span :class="{ 'line-through': data.flag === 'off' }" v-else>{{ data.gain }}</span>
 
             <Tag v-if="data.flag" :value="data.flag" severity="secondary" />
             <span
