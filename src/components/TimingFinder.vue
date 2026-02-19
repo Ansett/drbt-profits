@@ -13,12 +13,12 @@
       </div>
       <div class="flex gap-2 pt-1 pl-2 pt-4">
         <InputSwitch
-          :modelValue="timeOnSnapshot"
+          :modelValue="timeOnCreation"
           inputId="snapshot-time"
-          @update:modelValue="$emit('update:timeOnSnapshot', $event)"
+          @update:modelValue="$emit('update:timeOnCreation', $event)"
         />
-        <label for="snapshot-time" class="white-space-nowrap">Use snapshot_at</label>
-        <InfoButton :text="`Use snapshot_at instead of created_at`" direction="bottom" />
+        <label for="snapshot-time" class="white-space-nowrap">Use created_at</label>
+        <InfoButton :text="`Use created_at instead of snapshot_at`" direction="bottom" />
       </div>
     </div>
 
@@ -158,7 +158,7 @@ const INIT_WEEK = [
 
 const props = defineProps<{
   logs: Log[]
-  timeOnSnapshot?: boolean
+  timeOnCreation?: boolean
   withTimeRange?: boolean
 }>()
 
@@ -211,7 +211,7 @@ const compute = () => {
   for (const log of props.logs) {
     if (onlyWinners.value && log.gain <= 0) continue
 
-    let dateStr = (props.timeOnSnapshot ? log.date : log.creation).replace(' ', 'T')
+    let dateStr = (props.timeOnCreation ? log.date : log.creation).replace(' ', 'T')
     if (!dateStr.endsWith('Z')) dateStr += '.000Z'
     const date = new Date(dateStr)
     let day = date.getUTCDay() - 1
@@ -234,5 +234,5 @@ const compute = () => {
   loading.value = false
 }
 onMounted(() => compute())
-watch([() => props.logs, () => props.timeOnSnapshot, onlyWinners], () => compute())
+watch([() => props.logs, () => props.timeOnCreation, onlyWinners], () => compute())
 </script>

@@ -196,7 +196,7 @@
           <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
             <TimingFinder
               :logs="logs"
-              v-model:timeOnSnapshot="state.timeOnSnapshot"
+              v-model:timeOnCreation="state.timeOnCreation"
               :withTimeRange="state.withHours"
             />
           </AccordionTab>
@@ -285,9 +285,9 @@
               >
             </div>
             <div v-if="state.withHours" class="flex gap-2 pt-1">
-              <InputSwitch v-model="state.timeOnSnapshot" inputId="snapshot-time" />
-              <label for="snapshot-time" class="white-space-nowrap">Use snapshot_at</label>
-              <InfoButton :text="`Use snapshot_at instead of created_at`" direction="bottom" />
+              <InputSwitch v-model="state.timeOnCreation" inputId="snapshot-time" />
+              <label for="snapshot-time" class="white-space-nowrap">Use created_at</label>
+              <InfoButton :text="`Use created_at instead of snapshot_at`" direction="bottom" />
             </div>
           </div>
 
@@ -429,7 +429,7 @@
           </div>
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum for IDs/images</label>
+            <label for="mincalls-input">Minimum for IDs/URIs</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-megaphone"></i>
@@ -463,7 +463,7 @@
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
         averageSlippage: state.slippage,
-        timeOnSnapshot: state.timeOnSnapshot,
+        timeOnCreation: state.timeOnCreation,
         week: state.withHours ? state.week : undefined,
         hours: state.withHours ? state.hours : undefined,
       }"
@@ -590,7 +590,7 @@ const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
 const INIT_SLIPPAGE = 1000
-const INIT_TIME_ON_SNAPSHOT = false
+const INIT_TIME_ON_CREATION = false
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -608,7 +608,7 @@ const state = reactive({
   week: INIT_WEEK,
   hours: INIT_HOURS,
   slippage: INIT_SLIPPAGE,
-  timeOnSnapshot: INIT_TIME_ON_SNAPSHOT,
+  timeOnCreation: INIT_TIME_ON_CREATION,
 })
 const isSticky = ref(false)
 
@@ -637,7 +637,7 @@ function loadForm() {
   state.week = savedState.week ?? INIT_WEEK
   state.hours = savedState.hours ?? INIT_HOURS
   state.slippage = savedState.slippage ?? INIT_SLIPPAGE
-  state.timeOnSnapshot = savedState.timeOnSnapshot ?? INIT_TIME_ON_SNAPSHOT
+  state.timeOnCreation = savedState.timeOnCreation ?? INIT_TIME_ON_CREATION
 }
 
 const allDays = [
@@ -799,7 +799,7 @@ const runCompute = async () => {
     position: state.position,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
     averageSlippage: state.slippage,
-    timeOnSnapshot: state.timeOnSnapshot,
+    timeOnCreation: state.timeOnCreation,
     week: state.withHours ? JSON.parse(JSON.stringify(state.week)) : undefined,
     hours: state.withHours ? JSON.parse(JSON.stringify(state.hours)) : undefined,
   })
@@ -816,7 +816,7 @@ watch(
     () => state.position,
     () => state.takeProfits,
     () => state.slippage,
-    () => state.timeOnSnapshot,
+    () => state.timeOnCreation,
     () => state.withHours,
     () => state.week,
     () => state.hours,

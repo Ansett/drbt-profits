@@ -74,13 +74,13 @@ async function compute(
     averageSlippage,
     week,
     hours,
-    timeOnSnapshot = false
+    timeOnCreation = false
   }: {
     calls: SolCall[]
     position: number
     takeProfits: TakeProfit[]
     averageSlippage: number
-    timeOnSnapshot?: boolean
+    timeOnCreation?: boolean
     week?: Array<boolean | null>
     hours?: boolean[][]
   },
@@ -115,7 +115,7 @@ async function compute(
   for (const call of calls) {
     if (abortSignal.aborted) return {}
 
-    const offPeriods = !isCallInActiveHour(timeOnSnapshot ? call.date : call.creation, week, hours)
+    const offPeriods = !isCallInActiveHour(timeOnCreation ? call.date : call.creation, week, hours)
     if (offPeriods) {
       counters.offPeriods = (counters.offPeriods || 0) + 1
     }
