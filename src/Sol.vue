@@ -708,6 +708,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
   if (!indexes) return
 
+  let hourShift = 0
   let newCalls: SolCall[] = []
   for (const rowIndex in rows) {
     if (!rowIndex || rowIndex === '0') continue // ignore headers
@@ -715,6 +716,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const row = rows[rowIndex]
     const ca = row[indexes.mint] as string
     const parsedDate = row[indexes.snapshot_at] as Date
+    const creationDate = row[indexes.created_at] as Date
     if (!parsedDate || !ca) continue
 
     const name = (row[indexes.name] as string) || ca
@@ -725,6 +727,12 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
     const launchSlot = row[indexes.launched_slot] as number
     const athDelaySec = athSlot && launchSlot ? (athSlot - launchSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
     const athDelayHours = athDelaySec / 60 / 60
+
+    // there is a bug where creation date is utc+1, so we detect that and adjust all dates
+    if (creationDate > parsedDate) {
+      const diff = creationDate.getHours() - parsedDate.getHours()
+      if (diff > hourShift) hourShift = diff
+    }
 
     let programIds = [] as string[]
     try {
@@ -744,7 +752,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       ca,
       nameAndCa: (((row[indexes.name] as string) || '') + row[indexes.mint]) as string,
       date: parsedDate.toISOString(),
-      creation: (row[indexes.created_at] as Date).toISOString(),
+      creation: creationDate.toISOString(),
       postAth: (row[indexes.post_ath] as string) === 'TRUE',
       xs: Number(row[indexes.xs] as string),
       callMc,
@@ -759,6 +767,16 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       lpRatio: row[indexes.lp_ratio] as number,
       uriImage,
     } satisfies SolCall)
+  }
+
+  if (hourShift) {
+    for (const call of newCalls) {
+      const date = new Date(call.creation)
+      console.log(call.creation)
+      date.setHours(date.getHours() - hourShift)
+      call.creation = date.toISOString()
+      console.warn(call.creation)
+    }
   }
 
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
