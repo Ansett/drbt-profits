@@ -772,10 +772,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (hourShift) {
     for (const call of newCalls) {
       const date = new Date(call.creation)
-      console.log(call.creation)
       date.setHours(date.getHours() - hourShift)
       call.creation = date.toISOString()
-      console.warn(call.creation)
     }
   }
 

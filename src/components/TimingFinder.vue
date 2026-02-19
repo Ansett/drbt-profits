@@ -113,48 +113,59 @@ const createWeekSlices = () => {
     allPeriods: 0,
   }))
 }
-const INIT_WEEK = [
-  {
+
+const INIT_WEEK = {
+  '1': {
     name: 'monday',
     slices: createWeekSlices(),
+    order: 1,
   },
-  {
+  '2': {
     name: 'tuesday',
     slices: createWeekSlices(),
+    order: 2,
   },
-  {
+  '3': {
     name: 'wednesday',
     slices: createWeekSlices(),
+    order: 3,
   },
-  {
+  '4': {
     name: 'thursday',
     slices: createWeekSlices(),
+    order: 4,
   },
-  {
+  '5': {
     name: 'friday',
     slices: createWeekSlices(),
+    order: 5,
   },
-  {
-    name: 'saturday',
-    slices: createWeekSlices(),
-  },
-  {
-    name: 'sunday',
-    slices: createWeekSlices(),
-  },
-  {
-    name: 'overall',
-    slices: createWeekSlices(),
-  },
-  {
+  workdays: {
     name: 'workdays',
     slices: createWeekSlices(),
+    order: 6,
   },
-  {
+  '6': {
+    name: 'saturday',
+    slices: createWeekSlices(),
+    order: 7,
+  },
+  '0': {
+    name: 'sunday',
+    slices: createWeekSlices(),
+    order: 8,
+  },
+  weekend: {
     name: 'weekend',
     slices: createWeekSlices(),
+    order: 9,
   },
-]
+  overall: {
+    name: 'overall',
+    slices: createWeekSlices(),
+    order: 10,
+  },
+}
 
 const props = defineProps<{
   logs: Log[]
@@ -168,40 +179,48 @@ const onlyWinners = ref(false)
 
 // table with 1 hour each row
 const hoursData = computed(() =>
-  week.value.reduce((arr, day) => {
-    for (const slice of day.slices) {
-      arr.push({
-        id: `${day.name}-${slice.name}`,
-        dayName: day.name,
-        sliceName: slice.name,
-        count: round(slice.count),
-        allPeriods: round(slice.allPeriods),
-      })
-    }
-    return arr
-  }, [] as { id: string; dayName: string; sliceName: string; count: number; allPeriods: number }[]),
+  Object.values(week.value)
+    .toSorted((d1, d2) => (d1.order > d2.order ? 1 : -1))
+    .reduce((arr, day) => {
+      for (const slice of day.slices) {
+        arr.push({
+          id: `${day.name}-${slice.name}`,
+          dayName: day.name,
+          sliceName: slice.name,
+          count: round(slice.count),
+          allPeriods: round(slice.allPeriods),
+        })
+      }
+      return arr
+    }, [] as { id: string; dayName: string; sliceName: string; count: number; allPeriods: number }[]),
 )
 
 // table with day each row
 const daysData = computed(() =>
-  week.value.slice(0, 7).reduce((arr, day, dayIndex) => {
-    for (const slice of day.slices) {
-      const adjustedDayIndex =
-        Number(slice.name) >= DAY_DELIMITATION ? dayIndex : dayIndex === 0 ? 6 : dayIndex - 1
+  ([1, 2, 3, 4, 5, 6, 0] as const)
+    .reduce((arr, dayIndex, orderIndex) => {
+      const day = week.value[dayIndex]
+      for (const slice of day.slices) {
+        // if before DAY_DELIMITATION hour, consider it's yesterday
+        const adjustedDayIndex = (
+          Number(slice.name) >= DAY_DELIMITATION ? dayIndex : dayIndex === 0 ? 6 : dayIndex - 1
+        ) as 0 | 1 | 2 | 3 | 4 | 5 | 6
 
-      if (!arr[adjustedDayIndex])
-        arr[adjustedDayIndex] = {
-          id: week.value[adjustedDayIndex].name,
-          dayName: week.value[adjustedDayIndex].name,
-          count: 0,
-          allPeriods: 0,
-        }
+        if (!arr[adjustedDayIndex])
+          arr[adjustedDayIndex] = {
+            id: week.value[adjustedDayIndex].name,
+            dayName: week.value[adjustedDayIndex].name,
+            count: 0,
+            allPeriods: 0,
+            order: adjustedDayIndex || 7, // sunday 0 at the end
+          }
 
-      arr[adjustedDayIndex].count += slice.count
-      arr[adjustedDayIndex].allPeriods += slice.allPeriods
-    }
-    return arr
-  }, [] as { id: string; dayName: string; count: number; allPeriods: number }[]),
+        arr[adjustedDayIndex].count += slice.count
+        arr[adjustedDayIndex].allPeriods += slice.allPeriods
+      }
+      return arr
+    }, [] as { id: string; dayName: string; order: number; count: number; allPeriods: number }[])
+    .toSorted((d1, d2) => (d1.order > d2.order ? 1 : -1)),
 )
 
 const compute = () => {
@@ -214,8 +233,7 @@ const compute = () => {
     let dateStr = (props.timeOnCreation ? log.date : log.creation).replace(' ', 'T')
     if (!dateStr.endsWith('Z')) dateStr += '.000Z'
     const date = new Date(dateStr)
-    let day = date.getUTCDay() - 1
-    if (day === -1) day = 6
+    let day = date.getUTCDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
     const sliceIndex = date.getUTCHours()
     const isInPeriods = !props.withTimeRange || log.flag !== 'off'
 
@@ -223,12 +241,13 @@ const compute = () => {
     if (isInPeriods) week.value[day].slices[sliceIndex].count += log.gain
 
     // overall
-    week.value[7].slices[sliceIndex].allPeriods += log.gain
-    if (isInPeriods) week.value[7].slices[sliceIndex].count += log.gain
+    week.value.overall.slices[sliceIndex].allPeriods += log.gain
+    if (isInPeriods) week.value.overall.slices[sliceIndex].count += log.gain
 
     // weekdays or weekend
-    week.value[day >= 5 ? 9 : 8].slices[sliceIndex].allPeriods += log.gain
-    if (isInPeriods) week.value[day >= 5 ? 9 : 8].slices[sliceIndex].count += log.gain
+    const category = day === 0 || day === 6 ? 'weekend' : 'workdays'
+    week.value[category].slices[sliceIndex].allPeriods += log.gain
+    if (isInPeriods) week.value[category].slices[sliceIndex].count += log.gain
   }
 
   loading.value = false
