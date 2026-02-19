@@ -103,6 +103,7 @@ async function compute(
   }
   const logs: Log[] = []
   const programs: Record<string, HashInfo<SolCall>> = {}
+  const uriImages: Record<string, HashInfo<SolCall>> = {}
   let volume = 0
 
   const gainByDate: Record<string, number> = {}
@@ -244,6 +245,18 @@ async function compute(
         if (call.ath >= 2000000) programs[programId].mooners2++
         programs[programId].xSum += call.xs
       }
+
+      if (call.uriImage) {
+        if (!uriImages[call.uriImage]) uriImages[call.uriImage] = initHash(call.uriImage)
+        uriImages[call.uriImage].allCalls.push(call)
+        if (call.xs >= 5) uriImages[call.uriImage].perf.x5++
+        if (call.xs >= 10) uriImages[call.uriImage].perf.x10++
+        if (call.xs >= 50) uriImages[call.uriImage].perf.x50++
+        if (call.xs >= 100) uriImages[call.uriImage].perf.x100++
+        if (call.ath >= 1000000) uriImages[call.uriImage].mooners++
+        if (call.ath >= 2000000) uriImages[call.uriImage].mooners2++
+        uriImages[call.uriImage].xSum += call.xs
+      }
     }
 
     logs.unshift({
@@ -295,7 +308,8 @@ async function compute(
     volume: round(volume, 1),
     counters,
     logs,
-    programs
+    programs,
+    uriImages
   }
 }
 

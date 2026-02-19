@@ -213,6 +213,20 @@
               @addTag="addTag"
             />
           </AccordionTab>
+
+          <!-- URI IMAGES -->
+          <AccordionTab header="URI IMAGES" :pt="{ content: { class: 'p-0' } }">
+            <HashTable
+              :lines="uriImagesWithTags"
+              filter-template="(uri_content::text IS NULL OR uri_content::text !~ '({})')"
+              v-model:selectedColumns="state.hashColumns"
+              :screener-url="state.screenerUrl"
+              :timezone="state.timezone"
+              showName
+              @removeTag="removeTag"
+              @addTag="addTag"
+            />
+          </AccordionTab>
         </Accordion>
       </div>
 
@@ -415,7 +429,7 @@
           </div>
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum for program IDs</label>
+            <label for="mincalls-input">Minimum for IDs/images</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-megaphone"></i>
@@ -561,7 +575,7 @@ const INIT_TEXT_LOGS = false
 const INIT_LOGS_COLUMNS = ['Entry MC', 'ATH MC']
 const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x100', 'ATH', 'Tags']
-const INIT_MIN_CALLS = 100
+const INIT_MIN_CALLS = 10
 const INIT_TIMEZONE = 'UTC'
 const INIT_WITH_HOURS = false
 const INIT_WEEK = [true, true, true, true, true, true, true] as (boolean | null)[]
@@ -685,6 +699,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'current_ath_slot',
       'program_ids',
       'lp_ratio',
+      'uri_content',
     ],
     message => {
       error.value = message
@@ -717,6 +732,13 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       programIds = JSON.parse(stringPrograms) as string[]
     } catch (e) {}
 
+    let uriImage = ''
+    try {
+      const uriString = (row[indexes.uri_content] as string).replaceAll("'", '"')
+      const uriContent = JSON.parse(uriString) as { image?: string }
+      uriImage = uriContent?.image || ''
+    } catch (e) {}
+
     newCalls.push({
       name,
       ca,
@@ -735,6 +757,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : SOL_PRICE,
       programIds,
       lpRatio: row[indexes.lp_ratio] as number,
+      uriImage,
     } satisfies SolCall)
   }
 
@@ -821,6 +844,7 @@ async function handleWorkerMessage({ data }: any) {
     counters.value = data.counters
     logs.value = data.logs
     programs.value = data.programs
+    uriImages.value = data.uriImages
     loading.value = false
   }
 }
@@ -840,6 +864,10 @@ const { localTags, removeTag, addTag } = useTags()
 const programs = ref<Record<string, HashInfo<SolCall>>>({})
 const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
   addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
+)
+const uriImages = ref<Record<string, HashInfo<SolCall>>>({})
+const uriImagesWithTags = computed<HashInfo<SolCall>[]>(() =>
+  addTagsToHashes(uriImages.value, localTags.value, state.minCallsForHash),
 )
 
 const { timezoneOptions } = useTimezone()

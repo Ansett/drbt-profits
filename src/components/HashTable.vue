@@ -67,7 +67,8 @@
       <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
       <Column field="id" header="ID" :pt="{ headerTitle: { class: 'text-sm' } }">
         <template #body="{ data }">
-          <CaLink :ca="data.id" type="hash" />
+          <span v-if="showName" class="text-sm">{{ data.id }}</span>
+          <CaLink v-else :ca="data.id" type="hash" />
         </template>
       </Column>
       <!-- Calls count -->
@@ -87,13 +88,13 @@
       <!-- Average -->
       <Column
         v-if="selectedColumns.includes('Average')"
-        :field="d => '' + Math.round(d.xSum / d.allCalls.length)"
+        :field="d => '' + d.xSum / d.allCalls.length"
         header="Xs average"
         sortable
         :pt="{ headerTitle: { class: 'text-sm' } }"
       >
         <template #body="{ data }">
-          {{ Math.round(data.xSum / data.allCalls.length) }}
+          {{ round(data.xSum / data.allCalls.length, 1) }}
         </template>
       </Column>
       <!-- Xs -->
@@ -208,7 +209,9 @@
           <template #body="{ data }">
             <span class="flex flex-wrap column-gap-2">
               <span class="nowrap">{{ formatDate(data.date, timezone)[0] }}</span>
-              <span class="nowrap text-color-secondary">{{ formatDate(data.date, timezone)[1] }}</span>
+              <span class="nowrap text-color-secondary">{{
+                formatDate(data.date, timezone)[1]
+              }}</span>
             </span>
           </template>
         </Column>
@@ -274,12 +277,18 @@ import { useTimezone } from '@/compose/useTimezone'
 
 const TAG_SEPARATOR = ', '
 
-const { lines, filterTemplate, screenerUrl, timezone = 'UTC' } = defineProps<{
+const {
+  lines,
+  filterTemplate,
+  screenerUrl,
+  timezone = 'UTC',
+  showName = false,
+} = defineProps<{
   lines: HashInfo<Call | SolCall>[]
   filterTemplate: string
   screenerUrl: string
   timezone?: string
-  
+  showName?: boolean
 }>()
 const emit = defineEmits<{
   (e: 'removeTag', hash: string, index: number): void

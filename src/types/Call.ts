@@ -47,6 +47,7 @@ export type SolCall = {
   solPrice: number
   programIds: string[]
   lpRatio: number
+  uriImage: string
 }
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'
