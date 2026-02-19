@@ -135,6 +135,10 @@ const INIT_WEEK = [
     slices: createWeekSlices(),
   },
   {
+    name: 'workdays',
+    slices: createWeekSlices(),
+  },
+  {
     name: 'saturday',
     slices: createWeekSlices(),
   },
@@ -143,15 +147,11 @@ const INIT_WEEK = [
     slices: createWeekSlices(),
   },
   {
-    name: 'overall',
-    slices: createWeekSlices(),
-  },
-  {
-    name: 'workdays',
-    slices: createWeekSlices(),
-  },
-  {
     name: 'weekend',
+    slices: createWeekSlices(),
+  },
+  {
+    name: 'overall',
     slices: createWeekSlices(),
   },
 ]
