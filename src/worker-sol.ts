@@ -115,7 +115,7 @@ async function compute(
   for (const call of calls) {
     if (abortSignal.aborted) return {}
 
-    const offPeriods = !isCallInActiveHour(timeOnCreation ? call.date : call.creation, week, hours)
+    const offPeriods = !isCallInActiveHour(timeOnCreation ? call.creation : call.date, week, hours)
     if (offPeriods) {
       counters.offPeriods = (counters.offPeriods || 0) + 1
     }

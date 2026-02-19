@@ -230,7 +230,7 @@ const compute = () => {
   for (const log of props.logs) {
     if (onlyWinners.value && log.gain <= 0) continue
 
-    let dateStr = (props.timeOnCreation ? log.date : log.creation).replace(' ', 'T')
+    let dateStr = (props.timeOnCreation ? log.creation : log.date).replace(' ', 'T')
     if (!dateStr.endsWith('Z')) dateStr += '.000Z'
     const date = new Date(dateStr)
     let day = date.getUTCDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6
