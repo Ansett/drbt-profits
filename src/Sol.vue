@@ -540,6 +540,27 @@
     </OverlayPanel>
 
     <Toast />
+    <Toast group="undo">
+      <template #message="slotProps">
+        <div class="flex flex-row align-items-center w-full gap-3">
+          <div class="flex flex-column flex-1">
+            <span class="font-bold">{{ slotProps.message.summary }}</span>
+          </div>
+          <Button
+            icon="pi pi-undo"
+            label="Undo"
+            size="small"
+            severity="secondary"
+            @click="
+              () => {
+                slotProps.message.data?.undo()
+                toast.remove(slotProps.message)
+              }
+            "
+          />
+        </div>
+      </template>
+    </Toast>
 
     <DiffDialog
       v-if="current && showDiff"
@@ -982,6 +1003,8 @@ const onDeleteSettings = (name: string) => {
     nextName = savedSetNames.value[1]
   }
 
+  const deletedState = loadSettingsSet(name)
+
   deleteSettingsSet(name)
   savedSetNames.value = listSettingsSets()
 
@@ -996,7 +1019,27 @@ const onDeleteSettings = (name: string) => {
       savedSetNames.value = listSettingsSets()
     }
   }
-  toast.add({ severity: 'info', summary: `Preset "${name}" deleted`, life: 3000 })
+
+  toast.removeGroup('undo')
+
+  toast.add({
+    severity: 'warn',
+    summary: `Preset "${name}" deleted`,
+    life: 15000,
+    group: 'undo',
+    data: {
+      undo: () => {
+        if (deletedState) {
+          saveSettingsSet(name, deletedState)
+          savedSetNames.value = listSettingsSets()
+          loadedSetName.value = name
+          setLastSettingsName(name)
+          applyState(deletedState)
+          toast.add({ severity: 'success', summary: `Preset "${name}" restored`, life: 3000 })
+        }
+      },
+    },
+  })
 }
 
 const stateUploader = ref<InstanceType<typeof FileUpload>>()
