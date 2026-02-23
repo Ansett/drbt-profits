@@ -280,7 +280,7 @@
                 },
               }"
               v-tooltip.bottom="{
-                value: 'Import settings',
+                value: 'Import settings and overwrite current preset',
                 showDelay: 500,
               }"
               @select="importState($event)"
@@ -290,7 +290,7 @@
               </template>
             </FileUpload>
             <Button
-              aria-label="Export settings"
+              aria-label="Export current settings preset"
               icon="pi pi-file-import"
               outlined
               severity="secondary"
@@ -1006,8 +1006,18 @@ const importState = async (event: FileUploadSelectEvent) => {
 
   try {
     const importedState = JSON.parse(text)
-    applyState(importedState)
-    toast.add({ severity: 'success', summary: 'Settings imported', life: 3000 })
+
+    if (Array.isArray(importedState) && importedState.length > 0 && 'size' in importedState[0]) {
+      // Legacy Take Profits export
+      applyState({ takeProfits: importedState })
+      toast.add({ severity: 'success', summary: 'Legacy targets imported', life: 3000 })
+    } else if ('position' in importedState) {
+      // Full state import
+      applyState(importedState)
+      toast.add({ severity: 'success', summary: 'Settings imported', life: 3000 })
+    } else {
+      throw new Error()
+    }
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Invalid settings file', life: 3000 })
   }
