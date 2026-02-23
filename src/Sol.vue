@@ -1034,6 +1034,10 @@ onMounted(async () => {
   if (stored) {
     applyState(stored)
   } else {
+    const legacyState = localStorageGetObject('state-sol-a')
+    if (legacyState) {
+      applyState(legacyState)
+    }
     saveSettingsSet(lastName, JSON.parse(JSON.stringify(state)))
     savedSetNames.value = listSettingsSets()
   }
