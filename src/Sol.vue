@@ -185,9 +185,9 @@
                 position: state.position,
                 averageSlippage: state.slippage,
               }"
-              :xsRange="[1, 1, 10]"
-              :mcRange="[100000, 100000, 5000000]"
-              :amountRange="[10, 10, 200]"
+              v-model:xsRange="state.xsRange"
+              v-model:mcRange="state.mcRange"
+              v-model:amountRange="state.amountRange"
               initialKind="Xs targets"
             />
           </AccordionTab>
@@ -705,6 +705,10 @@ const INIT_HOURS = [
 ];
 const INIT_SLIPPAGE = 1000
 const INIT_TIME_ON_CREATION = false
+const INIT_XS_RANGE = [1, 1, 10]
+const INIT_MC_RANGE = [100000, 100000, 5000000]
+const INIT_AMOUNT_RANGE = [10, 10, 200]
+
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -723,6 +727,9 @@ const state = reactive({
   hours: INIT_HOURS,
   slippage: INIT_SLIPPAGE,
   timeOnCreation: INIT_TIME_ON_CREATION,
+  xsRange: INIT_XS_RANGE,
+  mcRange: INIT_MC_RANGE,
+  amountRange: INIT_AMOUNT_RANGE,
 })
 const isSticky = ref(false)
 
