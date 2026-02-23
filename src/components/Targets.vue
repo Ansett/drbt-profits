@@ -220,42 +220,6 @@
               />
             </div>
           </template>
-
-          <!-- Targets import/export -->
-          <div class="flex flex-row gap-2 align-items-center">
-            <FileUpload
-              ref="targetUploader"
-              mode="basic"
-              accept="application/json"
-              chooseLabel="&nbsp;Import"
-              :pt="{
-                chooseButton: {
-                  class: 'p-button-icon-only p-button-secondary p-button-outlined small-button',
-                },
-              }"
-              v-tooltip.top="{
-                value: 'Import targets',
-                showDelay: 500,
-              }"
-              @select="importTargets($event)"
-            >
-              <template #uploadicon>
-                <i class="pi pi-file-import"></i>
-              </template>
-            </FileUpload>
-            <Button
-              aria-label="Export targets"
-              icon="pi pi-file-export"
-              outlined
-              severity="secondary"
-              v-tooltip.top="{
-                value: 'Export targets',
-                showDelay: 500,
-              }"
-              class="small-button"
-              @click="exportTargets()"
-            />
-          </div>
         </div>
 </template>
 
@@ -263,15 +227,7 @@
 import { TakeProfit } from '@/types/TakeProfit'
 import { ref, computed } from 'vue'
 import { INITIAL_TP_SIZE_CODE, getPtNumberInput } from '../constants'
-import {
-  downloadDataUrl,
-  fixTakeProfits,
-  getTextFileContent,
-  prettifyMc,
-  round,
-  sumObjectProperty,
-} from '@/lib'
-import FileUpload, { FileUploadSelectEvent } from 'primevue/fileupload'
+import { prettifyMc, round, sumObjectProperty } from '@/lib'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import InputText from 'primevue/inputtext'
@@ -307,8 +263,6 @@ const emit = defineEmits<{
   (e: 'update:takeProfits', _: TakeProfit[]): void
   (e: 'update:autoRedistributeTargets', _: boolean): void
 }>()
-
-const targetUploader = ref<InstanceType<typeof FileUpload>>()
 
 const activeTakeProfitCount = computed(
   () => takeProfits.value.filter(tp => tp.withMc || tp.withXs).length,
@@ -382,27 +336,5 @@ const updateAllTarget = (inc: boolean) => {
   takeProfits.value.forEach((tp, i) => {
     tp[property] = Math.max(0, tp[property] + change)
   })
-}
-
-const exportTargets = () => {
-  const data = JSON.stringify(takeProfits.value, null, 2)
-  const dataUrl = window.URL.createObjectURL(new Blob([data], { type: 'application/json' }))
-  downloadDataUrl(dataUrl, 'targets.json')
-}
-const importTargets = async (event: FileUploadSelectEvent) => {
-  const { files } = event
-  if (!files?.length) return
-  const text = await getTextFileContent(files[0])
-  ;(targetUploader.value as any)?.clear()
-
-  try {
-    let targets = JSON.parse(text) as TakeProfit[]
-    targets = targets.map(target => ({ ...initialTp[0], ...target }))
-    fixTakeProfits(targets, initialTp[0])
-    emit('update:takeProfits', targets)
-    if (targets.reduce((sum, tp) => sum + tp.size, 0) > 100) redistributeTargets()
-  } catch (e) {
-    whenError('Wrong format for targets collection')
-  }
 }
 </script>

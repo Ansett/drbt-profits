@@ -3,8 +3,6 @@ import type { Call, CallArchive, CallExportType, RowsForExport, SolCall } from '
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog, Log } from './types/Log'
 import type { ToastServiceMethods } from 'primevue/toastservice'
-import { INITIAL_TP_SIZE_CODE } from './constants'
-import { TakeProfit } from './types/TakeProfit'
 
 type ExportedRows = {
   value: string | number
@@ -383,17 +381,6 @@ export const getHeaderIndexes = <T extends string>(
   }
 
   return indexes
-}
-
-export function fixTakeProfits(tps: TakeProfit[], initTp: TakeProfit) {
-  // add taking-initial TP
-  if (tps[0].size !== INITIAL_TP_SIZE_CODE) tps.unshift(initTp)
-  for (const tp of tps) {
-    if (tp.amount === undefined) {
-      tp.amount = (tp as any).eth ?? initTp.amount
-      tp.withAmount = (tp as any).withAmount ?? false
-    }
-  }
 }
 
 export const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: number): number => {

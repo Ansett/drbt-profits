@@ -234,10 +234,79 @@
         class="flex flex-column mx-1 xl:mx-4 my-2 gap-3 lg:gap-4"
         style="max-width: min(95vw, 60rem)"
       >
+        <!-- SETTINGS SETS -->
+        <div class="flex flex-column gap-2 xl:w-6">
+          <label>Settings preset</label>
+          <div class="flex gap-2">
+            <InputGroup class="flex-1">
+              <Button
+                icon="pi pi-save"
+                outlined
+                v-tooltip.bottom="{ value: 'Duplicate current settings preset', showDelay: 500 }"
+                @click="openSaveSettings"
+              />
+              <Dropdown
+                v-model="loadedSetName"
+                :options="savedSetNames"
+                placeholder="Load preset…"
+                class="settingInput"
+                scrollHeight="312px"
+                @change="onLoadSettings"
+              >
+                <template #option="{ option }">
+                  <div class="flex align-items-center w-full gap-3">
+                    <span class="flex-auto">{{ option }}</span>
+                    <Button
+                      icon="pi pi-trash"
+                      text
+                      rounded
+                      size="small"
+                      aria-label="Delete"
+                      @click.stop="onDeleteSettings(option)"
+                    />
+                  </div>
+                </template>
+              </Dropdown>
+            </InputGroup>
+
+            <FileUpload
+              ref="stateUploader"
+              mode="basic"
+              accept="application/json"
+              chooseLabel="&nbsp;"
+              :pt="{
+                chooseButton: {
+                  class: 'p-button-icon-only p-button-secondary p-button-outlined h-full ml-3',
+                },
+              }"
+              v-tooltip.bottom="{
+                value: 'Import settings',
+                showDelay: 500,
+              }"
+              @select="importState($event)"
+            >
+              <template #uploadicon>
+                <i class="pi pi-file-export"></i>
+              </template>
+            </FileUpload>
+            <Button
+              aria-label="Export settings"
+              icon="pi pi-file-import"
+              outlined
+              severity="secondary"
+              v-tooltip.bottom="{
+                value: 'Export settings',
+                showDelay: 500,
+              }"
+              @click="exportState()"
+            />
+          </div>
+        </div>
+
         <div class="flex flex-row flex-wrap gap-3 lg:gap-4 mb-3">
           <!-- POSITION -->
           <div class="flex flex-column gap-2 flex-1">
-            <label for="position-input">Max bag</label>
+            <label for="position-input">Buy amount</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-wallet"></i>
@@ -253,6 +322,27 @@
                 :step="0.1"
                 :minFractionDigits="0"
                 :maxFractionDigits="1"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+                style="height: 4rem"
+              />
+            </InputGroup>
+          </div>
+          <!-- SLIPPAGE -->
+          <div class="flex flex-column gap-2 flex-1">
+            <label for="slippage">Average slippage</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.slippage"
+                v-bind="{ id: 'slippage' }"
+                showButtons
+                buttonLayout="stacked"
+                prefix="$"
+                :min="0"
+                :step="100"
                 :pt="getPtNumberInput()"
                 class="settingInput"
                 style="height: 4rem"
@@ -373,25 +463,6 @@
         </div>
 
         <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
-          <!-- SLIPPAGE -->
-          <div class="flex flex-column gap-2">
-            <label for="slippage">Average slippage ($)</label>
-            <InputGroup>
-              <InputGroupAddon>
-                <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
-              </InputGroupAddon>
-              <InputNumber
-                v-model="state.slippage"
-                v-bind="{ id: 'slippage' }"
-                showButtons
-                buttonLayout="stacked"
-                :min="0"
-                :step="100"
-                :pt="getPtNumberInput()"
-                class="settingInput"
-              />
-            </InputGroup>
-          </div>
           <!-- DEX URL -->
           <div class="flex flex-column gap-2">
             <label for="screener-input">Screener URL</label>
@@ -450,6 +521,24 @@
       </div>
     </div>
 
+    <!-- Settings presets -->
+    <OverlayPanel ref="saveSettingsPanel">
+      <InputGroup>
+        <InputGroupAddon>
+          <i class="pi pi-bookmark"></i>
+        </InputGroupAddon>
+        <InputText
+          ref="settingsNameInput"
+          type="text"
+          v-model="newSettingsName"
+          placeholder="Preset name"
+          maxlength="30"
+          @keyup.enter="saveSettings"
+        />
+        <Button icon="pi pi-check" @click="saveSettings" />
+      </InputGroup>
+    </OverlayPanel>
+
     <Toast />
 
     <DiffDialog
@@ -474,7 +563,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import { CallArchive, SolCall } from './types/Call'
@@ -505,6 +594,8 @@ import {
   localStorageGetObject,
   localStorageSetObject,
   sleep,
+  downloadDataUrl,
+  getTextFileContent,
 } from './lib'
 import { TakeProfit } from './types/TakeProfit'
 import Statistics from './components/Statistics.vue'
@@ -525,6 +616,8 @@ import TriStateCheckbox from 'primevue/tristatecheckbox'
 import Checkbox from 'primevue/checkbox'
 import InputSwitch from 'primevue/inputswitch'
 import InfoButton from './components/InfoButton.vue'
+import OverlayPanel from 'primevue/overlaypanel'
+import { useSettings } from './compose/useSettings'
 
 const router = useRouter()
 
@@ -612,33 +705,20 @@ const state = reactive({
 })
 const isSticky = ref(false)
 
-const STATE_STORAGE_KEY = 'state-sol-a'
-function storeForm() {
-  localStorageSetObject(STATE_STORAGE_KEY, state)
-}
-watch(state, () => storeForm(), { deep: true })
-function loadForm() {
-  const savedState = localStorageGetObject(STATE_STORAGE_KEY)
-  if (!savedState) return
+watch(
+  state,
+  () => {
+    const name = loadedSetName.value || 'default'
+    if (!loadedSetName.value) loadedSetName.value = name
 
-  state.position = savedState.position ?? INIT_POSITION
-  state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : INIT_TP
-  state.showFullStats = savedState.showFullStats ?? INIT_FULL_STATS
-  state.autoRedistributeTargets = savedState.autoRedistributeTargets ?? INIT_AUTO_REDISTRIBUTE
-  state.blackList = savedState.blackList || []
-  state.rugs = savedState.rugs || []
-  state.textLogs = savedState.textLogs ?? INIT_TEXT_LOGS
-  state.logsColumns = savedState.logsColumns ?? INIT_LOGS_COLUMNS
-  state.hashColumns = savedState.hashColumns ?? INIT_HASH_COLUMNS
-  state.minCallsForHash = savedState.minCallsForHash ?? INIT_MIN_CALLS
-  state.screenerUrl = savedState.screenerUrl ?? INIT_SCREENER_URL
-  state.timezone = savedState.timezone ?? INIT_TIMEZONE
-  state.withHours = savedState.withHours ?? INIT_WITH_HOURS
-  state.week = savedState.week ?? INIT_WEEK
-  state.hours = savedState.hours ?? INIT_HOURS
-  state.slippage = savedState.slippage ?? INIT_SLIPPAGE
-  state.timeOnCreation = savedState.timeOnCreation ?? INIT_TIME_ON_CREATION
-}
+    saveSettingsSet(name, JSON.parse(JSON.stringify(state)))
+
+    if (!savedSetNames.value.includes(name)) {
+      savedSetNames.value = listSettingsSets()
+    }
+  },
+  { deep: true },
+)
 
 const allDays = [
   { index: 1, name: 'Monday' },
@@ -833,11 +913,122 @@ const errorMessage = (message: string) =>
     life: 10000,
   })
 
+const {
+  listSettingsSets,
+  saveSettingsSet,
+  loadSettingsSet,
+  deleteSettingsSet,
+  getLastSettingsName,
+  setLastSettingsName,
+} = useSettings('sol-settings')
+
+const saveSettingsPanel = ref<InstanceType<typeof OverlayPanel>>()
+const settingsNameInput = ref()
+const newSettingsName = ref('')
+const savedSetNames = ref<string[]>(listSettingsSets())
+const loadedSetName = ref<string | null>('default')
+
+const applyState = (stored: Record<string, any>) => {
+  for (const key in stored) {
+    // Preserve array references to avoid breaking reactivity in child components
+    if (Array.isArray(stored[key]) && Array.isArray((state as any)[key])) {
+      ;(state as any)[key].splice(0, (state as any)[key].length, ...stored[key])
+    } else {
+      ;(state as any)[key] = stored[key]
+    }
+  }
+}
+
+const openSaveSettings = async (event: MouseEvent) => {
+  savedSetNames.value = listSettingsSets()
+  newSettingsName.value = loadedSetName.value ?? ''
+  saveSettingsPanel.value?.show(event)
+  await nextTick()
+  settingsNameInput.value?.$el.focus()
+  settingsNameInput.value?.$el.select()
+}
+
+const saveSettings = () => {
+  // Keep only alphanumeric, spaces, dashes, and underscores
+  const name = newSettingsName.value.replace(/[^a-zA-Z0-9 _-]/g, '').trim()
+  if (!name) return
+
+  saveSettingsSet(name, JSON.parse(JSON.stringify(state)))
+  savedSetNames.value = listSettingsSets()
+  loadedSetName.value = name
+  setLastSettingsName(name)
+  saveSettingsPanel.value?.hide()
+  toast.add({ severity: 'success', summary: `Preset "${name}" saved`, life: 3000 })
+}
+
+const onLoadSettings = () => {
+  if (!loadedSetName.value) {
+    loadedSetName.value = 'default'
+  }
+
+  const stored = loadSettingsSet(loadedSetName.value)
+  if (stored) applyState(stored)
+
+  setLastSettingsName(loadedSetName.value)
+  toast.add({ severity: 'info', summary: `Preset "${loadedSetName.value}" loaded`, life: 3000 })
+}
+
+const onDeleteSettings = (name: string) => {
+  deleteSettingsSet(name)
+  savedSetNames.value = listSettingsSets()
+  if (loadedSetName.value === name) {
+    loadedSetName.value = 'default'
+    setLastSettingsName('default')
+    const stored = loadSettingsSet('default')
+    if (stored) {
+      applyState(stored)
+    } else {
+      saveSettingsSet('default', JSON.parse(JSON.stringify(state)))
+      savedSetNames.value = listSettingsSets()
+    }
+  }
+  toast.add({ severity: 'info', summary: `Preset "${name}" deleted`, life: 3000 })
+}
+
+const stateUploader = ref<InstanceType<typeof FileUpload>>()
+
+const exportState = () => {
+  const data = JSON.stringify(state, null, 2)
+  const dataUrl = window.URL.createObjectURL(new Blob([data], { type: 'application/json' }))
+  downloadDataUrl(dataUrl, `${loadedSetName.value || 'default'}.json`)
+}
+
+const importState = async (event: FileUploadSelectEvent) => {
+  const { files } = event
+  if (!files?.length) return
+  const text = await getTextFileContent(files[0])
+  ;(stateUploader.value as any)?.clear()
+
+  try {
+    const importedState = JSON.parse(text)
+    applyState(importedState)
+    toast.add({ severity: 'success', summary: 'Settings imported', life: 3000 })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Invalid settings file', life: 3000 })
+  }
+}
+
 const buyInfo = `Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag with some slippage.</li><li>Sell calculations: price impact is removed from each sale.</li><li>Investment is counted as a loss if not reaching targets.</li><li>Each sale's date is guessed from sale MC vs. ATH MC ratio: on a 1 month 4m MC token, selling at 1m means selling after 1 week.</li></ul>`
 
 const worker = shallowRef<Worker | null>(null)
 onMounted(async () => {
-  loadForm()
+  const lastName = getLastSettingsName() || 'default'
+  loadedSetName.value = lastName
+  const stored = loadSettingsSet(lastName)
+
+  if (stored) {
+    applyState(stored)
+  } else {
+    saveSettingsSet(lastName, JSON.parse(JSON.stringify(state)))
+    savedSetNames.value = listSettingsSets()
+  }
+  setLastSettingsName(lastName)
+
   initialized.value = true
 
   const WorkerConstructor = (await import('@/worker-sol?worker')).default

@@ -756,7 +756,6 @@ import {
   getRowsCorrespondingToLogs,
   drbtSetRug,
   getHeaderIndexes,
-  fixTakeProfits,
 } from './lib'
 import { type CallArchive, type Call, type DiffType } from './types/Call'
 import type { AccuracyLog, Log } from './types/Log'
@@ -1079,7 +1078,6 @@ function loadForm() {
 
   state.position = savedState.position ?? INIT_POSITION
   state.takeProfits = savedState.takeProfits ? [...savedState.takeProfits] : INIT_TP
-  fixTakeProfits(state.takeProfits, INIT_TP[0])
   state.gweiDelta = savedState.gweiDelta ?? INIT_GWEI
   state.prioBySnipes = mergeOrderedTuples(INIT_PRIO_BY_SNIPES, savedState.prioBySnipes || [])
   state.conditionalPrio = INIT_CONDITIONAL_PRIO // savedState.conditionalPrio ?? INIT_CONDITIONAL_PRIO
