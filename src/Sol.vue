@@ -521,7 +521,7 @@
       </div>
     </div>
 
-    <!-- Settings presets -->
+    <!-- Settings preset new name dropdown -->
     <OverlayPanel ref="saveSettingsPanel">
       <InputGroup>
         <InputGroupAddon>
@@ -974,16 +974,25 @@ const onLoadSettings = () => {
 }
 
 const onDeleteSettings = (name: string) => {
+  const currentIndex = savedSetNames.value.indexOf(name)
+  let nextName = 'default'
+  if (currentIndex > 0) {
+    nextName = savedSetNames.value[currentIndex - 1]
+  } else if (savedSetNames.value.length > 1) {
+    nextName = savedSetNames.value[1]
+  }
+
   deleteSettingsSet(name)
   savedSetNames.value = listSettingsSets()
+
   if (loadedSetName.value === name) {
-    loadedSetName.value = 'default'
-    setLastSettingsName('default')
-    const stored = loadSettingsSet('default')
+    loadedSetName.value = nextName
+    setLastSettingsName(nextName)
+    const stored = loadSettingsSet(nextName)
     if (stored) {
       applyState(stored)
     } else {
-      saveSettingsSet('default', JSON.parse(JSON.stringify(state)))
+      saveSettingsSet(nextName, JSON.parse(JSON.stringify(state)))
       savedSetNames.value = listSettingsSets()
     }
   }
