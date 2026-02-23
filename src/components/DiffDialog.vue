@@ -363,7 +363,7 @@ function runCompute(part: DiffPart, variant: ComputeVariant) {
   worker.value!.postMessage({
     type: 'COMPUTE',
     calls: JSON.parse(JSON.stringify(part.diff)),
-    ...computingParams,
+    ...JSON.parse(JSON.stringify(computingParams)),
     variant,
   })
 }
