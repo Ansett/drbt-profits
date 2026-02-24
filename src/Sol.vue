@@ -254,7 +254,7 @@
                 @change="onLoadSettings"
               >
                 <template #option="{ option }">
-                  <div class="flex align-items-center w-full gap-3">
+                  <div class="flex align-items-center w-full gap-1">
                     <span class="flex-auto">{{ option }}</span>
                     <Button
                       icon="pi pi-pencil"
