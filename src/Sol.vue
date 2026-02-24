@@ -714,7 +714,7 @@ const INIT_HOURS = [
 const INIT_SLIPPAGE = 1000
 const INIT_TIME_ON_CREATION = false
 const INIT_XS_RANGE = [1, 1, 10]
-const INIT_MC_RANGE = [100000, 100000, 5000000]
+const INIT_MC_RANGE = [10000, 10000, 2000000]
 const INIT_AMOUNT_RANGE = [10, 10, 200]
 
 const state = reactive({
