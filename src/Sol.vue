@@ -257,6 +257,14 @@
                   <div class="flex align-items-center w-full gap-3">
                     <span class="flex-auto">{{ option }}</span>
                     <Button
+                      icon="pi pi-pencil"
+                      text
+                      rounded
+                      size="small"
+                      aria-label="Rename"
+                      @click.stop="openRenameSettings(option, $event)"
+                    />
+                    <Button
                       icon="pi pi-trash"
                       text
                       rounded
@@ -280,7 +288,7 @@
                 },
               }"
               v-tooltip.bottom="{
-                value: 'Import settings and overwrite current preset',
+                value: 'Import settings into a new preset',
                 showDelay: 500,
               }"
               @select="importState($event)"
@@ -955,6 +963,7 @@ const settingsNameInput = ref()
 const newSettingsName = ref('')
 const savedSetNames = ref<string[]>(listSettingsSets())
 const loadedSetName = ref<string | null>('default')
+const renamingPreset = ref<string | null>(null)
 
 const applyState = (stored: Record<string, any>) => {
   for (const key in stored) {
@@ -968,6 +977,7 @@ const applyState = (stored: Record<string, any>) => {
 }
 
 const openSaveSettings = async (event: MouseEvent) => {
+  renamingPreset.value = null
   savedSetNames.value = listSettingsSets()
   newSettingsName.value = loadedSetName.value ?? ''
   saveSettingsPanel.value?.show(event)
@@ -976,17 +986,57 @@ const openSaveSettings = async (event: MouseEvent) => {
   settingsNameInput.value?.$el.select()
 }
 
+const openRenameSettings = async (name: string, event: MouseEvent) => {
+  renamingPreset.value = name
+  newSettingsName.value = name
+  saveSettingsPanel.value?.show(event)
+  await nextTick()
+  settingsNameInput.value?.$el.focus()
+  settingsNameInput.value?.$el.select()
+}
+
 const saveSettings = () => {
   // Keep only alphanumeric, spaces, dashes, and underscores
-  const name = newSettingsName.value.replace(/[^a-zA-Z0-9 _-]/g, '').trim()
-  if (!name) return
+  const baseName = newSettingsName.value.replace(/[^a-zA-Z0-9 _-]/g, '').trim()
+  if (!baseName) return
 
-  saveSettingsSet(name, JSON.parse(JSON.stringify(state)))
-  savedSetNames.value = listSettingsSets()
-  loadedSetName.value = name
-  setLastSettingsName(name)
-  saveSettingsPanel.value?.hide()
-  toast.add({ severity: 'success', summary: `Preset "${name}" saved`, life: 3000 })
+  if (renamingPreset.value) {
+    if (baseName === renamingPreset.value) {
+      saveSettingsPanel.value?.hide()
+      renamingPreset.value = null
+      return
+    }
+
+    let newName = baseName
+    let counter = 1
+    while (savedSetNames.value.includes(newName)) {
+      newName = `${baseName} (${counter})`
+      counter++
+    }
+
+    const data = loadSettingsSet(renamingPreset.value)
+    if (data) {
+      saveSettingsSet(newName, data)
+      deleteSettingsSet(renamingPreset.value)
+      savedSetNames.value = listSettingsSets()
+
+      if (loadedSetName.value === renamingPreset.value) {
+        loadedSetName.value = newName
+        setLastSettingsName(newName)
+      }
+
+      toast.add({ severity: 'success', summary: `Preset renamed to "${newName}"`, life: 3000 })
+    }
+    saveSettingsPanel.value?.hide()
+    renamingPreset.value = null
+  } else {
+    saveSettingsSet(baseName, JSON.parse(JSON.stringify(state)))
+    savedSetNames.value = listSettingsSets()
+    loadedSetName.value = baseName
+    setLastSettingsName(baseName)
+    saveSettingsPanel.value?.hide()
+    toast.add({ severity: 'success', summary: `Preset "${baseName}" saved`, life: 3000 })
+  }
 }
 
 const onLoadSettings = () => {
@@ -1060,7 +1110,8 @@ const exportState = () => {
 const importState = async (event: FileUploadSelectEvent) => {
   const { files } = event
   if (!files?.length) return
-  const text = await getTextFileContent(files[0])
+  const file = files[0]
+  const text = await getTextFileContent(file)
   ;(stateUploader.value as any)?.clear()
 
   try {
@@ -1072,8 +1123,21 @@ const importState = async (event: FileUploadSelectEvent) => {
       toast.add({ severity: 'success', summary: 'Legacy targets imported', life: 3000 })
     } else if ('position' in importedState) {
       // Full state import
+      let baseName = file.name.replace(/\.[^/.]+$/, '')
+      let newName = baseName
+      let counter = 1
+      while (savedSetNames.value.includes(newName)) {
+        newName = `${baseName} (${counter})`
+        counter++
+      }
+
       applyState(importedState)
-      toast.add({ severity: 'success', summary: 'Settings imported', life: 3000 })
+      saveSettingsSet(newName, JSON.parse(JSON.stringify(state)))
+      savedSetNames.value = listSettingsSets()
+      loadedSetName.value = newName
+      setLastSettingsName(newName)
+
+      toast.add({ severity: 'success', summary: `Settings imported as "${newName}"`, life: 3000 })
     } else {
       throw new Error()
     }
