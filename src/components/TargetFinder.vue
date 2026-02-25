@@ -239,18 +239,57 @@ const {
   initialKind?: 'Xs targets' | 'Amount targets' | 'MC targets'
 }>()
 
-const xTargetStart = ref(xsRange[0])
-const xIncrement = ref(xsRange[1])
-const xTargetEnd = ref(xsRange[2])
-const mcTargetStart = ref(mcRange[0])
-const mcIncrement = ref(mcRange[1])
-const mcTargetEnd = ref(mcRange[2])
-const amountTargetStart = ref(amountRange[0])
-const amountIncrement = ref(amountRange[1])
-const amountTargetEnd = ref(amountRange[2])
+const emit = defineEmits<{
+  (e: 'update:initialKind', value: 'Xs targets' | 'Amount targets' | 'MC targets'): void
+  (e: 'update:xsRange', value: [number, number, number]): void
+  (e: 'update:mcRange', value: [number, number, number]): void
+  (e: 'update:amountRange', value: [number, number, number]): void
+}>()
+
+const xTargetStart = computed({
+  get: () => xsRange[0],
+  set: val => emit('update:xsRange', [val, xsRange[1], xsRange[2]]),
+})
+const xIncrement = computed({
+  get: () => xsRange[1],
+  set: val => emit('update:xsRange', [xsRange[0], val, xsRange[2]]),
+})
+const xTargetEnd = computed({
+  get: () => xsRange[2],
+  set: val => emit('update:xsRange', [xsRange[0], xsRange[1], val]),
+})
+
+const mcTargetStart = computed({
+  get: () => mcRange[0],
+  set: val => emit('update:mcRange', [val, mcRange[1], mcRange[2]]),
+})
+const mcIncrement = computed({
+  get: () => mcRange[1],
+  set: val => emit('update:mcRange', [mcRange[0], val, mcRange[2]]),
+})
+const mcTargetEnd = computed({
+  get: () => mcRange[2],
+  set: val => emit('update:mcRange', [mcRange[0], mcRange[1], val]),
+})
+
+const amountTargetStart = computed({
+  get: () => amountRange[0],
+  set: val => emit('update:amountRange', [val, amountRange[1], amountRange[2]]),
+})
+const amountIncrement = computed({
+  get: () => amountRange[1],
+  set: val => emit('update:amountRange', [amountRange[0], val, amountRange[2]]),
+})
+const amountTargetEnd = computed({
+  get: () => amountRange[2],
+  set: val => emit('update:amountRange', [amountRange[0], amountRange[1], val]),
+})
 
 const targetKinds = ['Xs targets', 'Amount targets', 'MC targets']
-const selectedtargetKind = ref<'Xs targets' | 'Amount targets' | 'MC targets'>(initialKind)
+const selectedtargetKind = computed({
+  get: () => initialKind,
+  set: val => emit('update:initialKind', val),
+})
 
 const suffix = computed(() => ' ' + (chain === 'ETH' ? 'Ξ' : '◎'))
 const loading = ref(false)
@@ -285,16 +324,16 @@ watch(
     () => data.feeInXs,
     () => data.chainApiKey,
     () => data.averageSlippage,
-    selectedtargetKind,
-    xTargetStart,
-    mcTargetStart,
-    amountTargetStart,
-    xTargetEnd,
-    mcTargetEnd,
-    amountTargetEnd,
-    xIncrement,
-    mcIncrement,
-    amountIncrement,
+    () => selectedtargetKind.value,
+    () => xTargetStart.value,
+    () => mcTargetStart.value,
+    () => amountTargetStart.value,
+    () => xTargetEnd.value,
+    () => mcTargetEnd.value,
+    () => amountTargetEnd.value,
+    () => xIncrement.value,
+    () => mcIncrement.value,
+    () => amountIncrement.value,
   ],
   () => {
     debouncedCompute()

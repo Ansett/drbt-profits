@@ -188,9 +188,10 @@
                 feeInXs: state.feeInXs,
                 chainApiKey: state.chainApiKey,
               }"
-              :xsRange="[10, 50, 250]"
-              :mcRange="[1000000, 1000000, 20000000]"
-              :amountRange="[1, 1, 20]"
+              v-model:xsRange="state.xsRange"
+              v-model:mcRange="state.mcRange"
+              v-model:amountRange="state.amountRange"
+              v-model:initialKind="state.initialKind"
             />
           </AccordionTab>
 
@@ -1000,6 +1001,11 @@ const INIT_PRICE_IMPACT = true
 const INIT_FULL_STATS = false
 const INIT_SCREENER_URL = DEFAULT_SCREENER_URL
 const INIT_TIMEZONE = 'UTC'
+const INIT_XS_RANGE = [10, 50, 250] as [number, number, number]
+const INIT_MC_RANGE = [100000, 100000, 5000000] as [number, number, number]
+const INIT_AMOUNT_RANGE = [1, 1, 20] as [number, number, number]
+const INIT_INITIAL_KIND = 'Xs targets' as 'Xs targets' | 'Amount targets' | 'MC targets'
+
 const state = reactive({
   position: INIT_POSITION,
   takeProfits: INIT_TP,
@@ -1024,6 +1030,10 @@ const state = reactive({
   showFullStats: INIT_FULL_STATS,
   screenerUrl: INIT_SCREENER_URL,
   timezone: INIT_TIMEZONE,
+  xsRange: INIT_XS_RANGE,
+  mcRange: INIT_MC_RANGE,
+  amountRange: INIT_AMOUNT_RANGE,
+  initialKind: INIT_INITIAL_KIND,
 })
 
 const updatedSomeRug = ref(false)

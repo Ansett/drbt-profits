@@ -188,7 +188,7 @@
               v-model:xsRange="state.xsRange"
               v-model:mcRange="state.mcRange"
               v-model:amountRange="state.amountRange"
-              initialKind="Xs targets"
+              v-model:initialKind="state.initialKind"
             />
           </AccordionTab>
 
@@ -713,9 +713,10 @@ const INIT_HOURS = [
 ];
 const INIT_SLIPPAGE = 1000
 const INIT_TIME_ON_CREATION = false
-const INIT_XS_RANGE = [1, 1, 10]
-const INIT_MC_RANGE = [10000, 10000, 2000000]
-const INIT_AMOUNT_RANGE = [10, 10, 200]
+const INIT_XS_RANGE = [1, 1, 10] as [number, number, number]
+const INIT_MC_RANGE = [10000, 10000, 2000000] as [number, number, number]
+const INIT_AMOUNT_RANGE = [10, 10, 200] as [number, number, number]
+const INIT_INITIAL_KIND = 'Xs targets' as 'Xs targets' | 'Amount targets' | 'MC targets'
 
 const state = reactive({
   position: INIT_POSITION,
@@ -738,6 +739,7 @@ const state = reactive({
   xsRange: INIT_XS_RANGE,
   mcRange: INIT_MC_RANGE,
   amountRange: INIT_AMOUNT_RANGE,
+  initialKind: INIT_INITIAL_KIND,
 })
 const isSticky = ref(false)
 
@@ -1096,7 +1098,7 @@ const onDeleteSettings = (name: string) => {
         }
       },
     },
-  })
+  } as any)
 }
 
 const stateUploader = ref<InstanceType<typeof FileUpload>>()
