@@ -72,6 +72,7 @@ async function compute(
     position,
     takeProfits,
     averageSlippage,
+    realisticEntry,
     week,
     hours,
     timeOnCreation = false
@@ -80,6 +81,7 @@ async function compute(
     position: number
     takeProfits: TakeProfit[]
     averageSlippage: number
+    realisticEntry: boolean
     timeOnCreation?: boolean
     week?: Array<boolean | null>
     hours?: boolean[][]
@@ -133,11 +135,12 @@ async function compute(
       addGain(call.date, gain)
     }
 
+    const entryPrice = (realisticEntry ? call.entryMc : call.callMc) / call.supply
     const buyPrice = (call.callMc + averageSlippage) / call.supply
     const tokens = invested / buyPrice
     const impact = getPriceImpact(call.lp * call.solPrice, buyPrice, tokens)
     const newPrice = buyPrice * (1 + impact / 100)
-    const totalImpact = Math.max(0, (newPrice / call.price - 1) * 100)
+    const totalImpact = Math.max(0, (newPrice / entryPrice - 1) * 100)
 
     let bestXs = call.xs / (1 + totalImpact / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
@@ -146,7 +149,7 @@ async function compute(
     if (!postAth) {
       let remainingPosition = 100
       let tpIndex = 0
-      const totalTokens = (invested * call.solPrice) / call.price
+      const totalTokens = (invested * call.solPrice) / entryPrice
       let sizeSoldForInitial = 0
 
       for (const tp of takeProfits) {
@@ -186,7 +189,7 @@ async function compute(
             continue
           }
 
-          const salePrice = call.price * reachedTarget
+          const salePrice = entryPrice * reachedTarget
           const saleMc = salePrice * call.supply
           const dollarLp = saleMc * (call.lpRatio || AVERAGE_LP_TO_MC_RATIO)
           const tokensSold = (totalTokens * sizeSold) / 100
@@ -344,6 +347,7 @@ async function findTarget(
     end,
     increment,
     averageSlippage,
+    realisticEntry,
   }: {
     calls: SolCall[]
     position: number
@@ -352,6 +356,7 @@ async function findTarget(
     increment: number
     withPriceImpact: boolean
     averageSlippage: number
+    realisticEntry: boolean
   },
   abortSignal: AbortSignal,
 ): Promise<ComputationForTarget[] | null> {
@@ -375,6 +380,7 @@ async function findTarget(
         position,
         takeProfits: [currentTP],
         averageSlippage,
+        realisticEntry,
       },
       abortSignal,
     )

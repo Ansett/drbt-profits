@@ -184,6 +184,7 @@
                 calls,
                 position: state.position,
                 averageSlippage: state.slippage,
+                realisticEntry: state.realisticEntry,
               }"
               v-model:xsRange="state.xsRange"
               v-model:mcRange="state.mcRange"
@@ -336,27 +337,6 @@
               />
             </InputGroup>
           </div>
-          <!-- SLIPPAGE -->
-          <div class="flex flex-column gap-2 flex-1">
-            <label for="slippage">Average slippage</label>
-            <InputGroup>
-              <InputGroupAddon>
-                <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
-              </InputGroupAddon>
-              <InputNumber
-                v-model="state.slippage"
-                v-bind="{ id: 'slippage' }"
-                showButtons
-                buttonLayout="stacked"
-                prefix="$"
-                :min="0"
-                :step="100"
-                :pt="getPtNumberInput()"
-                class="settingInput"
-                style="height: 4rem"
-              />
-            </InputGroup>
-          </div>
         </div>
 
         <!-- TP -->
@@ -470,7 +450,7 @@
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-3 flex-column md:flex-row md:align-items-end mt-3">
+        <div class="flex flex-wrap gap-4 flex-column md:flex-row md:align-items-center mt-3">
           <!-- DEX URL -->
           <div class="flex flex-column gap-2">
             <label for="screener-input">Screener URL</label>
@@ -524,6 +504,36 @@
                 class="settingInput"
               />
             </InputGroup>
+          </div>
+          <!-- SLIPPAGE -->
+          <div class="flex flex-column gap-2">
+            <label for="slippage">Extra slippage</label>
+            <InputGroup>
+              <InputGroupAddon>
+                <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
+              </InputGroupAddon>
+              <InputNumber
+                v-model="state.slippage"
+                v-bind="{ id: 'slippage' }"
+                showButtons
+                buttonLayout="stacked"
+                prefix="$"
+                :min="0"
+                :step="100"
+                :pt="getPtNumberInput()"
+                class="settingInput"
+                style="height: 4rem"
+              />
+            </InputGroup>
+          </div>
+          <!-- REALISTIC ENTRY -->
+          <div class="flex gap-2 pt-5">
+            <InputSwitch v-model="state.realisticEntry" inputId="realistic" />
+            <label for="realistic" class="white-space-nowrap">Realistic entry</label>
+            <InfoButton
+              text="If activated, considered entry is around call slot+2 price, rather than call price"
+              class="align-self-start"
+            />
           </div>
         </div>
       </div>
@@ -581,6 +591,7 @@
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
         averageSlippage: state.slippage,
+        realisticEntry: state.realisticEntry,
         timeOnCreation: state.timeOnCreation,
         week: state.withHours ? state.week : undefined,
         hours: state.withHours ? state.hours : undefined,
@@ -711,12 +722,13 @@ const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
-const INIT_SLIPPAGE = 1000
+const INIT_SLIPPAGE = 0
 const INIT_TIME_ON_CREATION = false
 const INIT_XS_RANGE = [1, 1, 10] as [number, number, number]
 const INIT_MC_RANGE = [10000, 10000, 2000000] as [number, number, number]
 const INIT_AMOUNT_RANGE = [10, 10, 200] as [number, number, number]
 const INIT_INITIAL_KIND = 'Xs targets' as 'Xs targets' | 'Amount targets' | 'MC targets'
+const INIT_REALISTIC_ENTRY = true
 
 const state = reactive({
   position: INIT_POSITION,
@@ -740,6 +752,7 @@ const state = reactive({
   mcRange: INIT_MC_RANGE,
   amountRange: INIT_AMOUNT_RANGE,
   initialKind: INIT_INITIAL_KIND,
+  realisticEntry: INIT_REALISTIC_ENTRY,
 })
 const isSticky = ref(false)
 
@@ -810,6 +823,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       'xs',
       'total_supply',
       'mc',
+      'entry_mc',
       'current_ath_mc',
       'lp_sol_launch',
       'sol_price',
@@ -839,8 +853,6 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
     const name = (row[indexes.name] as string) || ca
     const callMc = row[indexes.mc] as number
-    const supply = (row[indexes.total_supply] as number) || 1000000000
-    const price = callMc / supply
     const athSlot = row[indexes.current_ath_slot] as number
     const launchSlot = row[indexes.launched_slot] as number
     const athDelaySec = athSlot && launchSlot ? (athSlot - launchSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
@@ -860,7 +872,7 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 
     let uriImage = ''
     try {
-      const uriString = (row[indexes.uri_content] as string).replaceAll("'", '"')
+      const uriString = ((row[indexes.uri_content] as string) || '').replaceAll("'", '"')
       const uriContent = JSON.parse(uriString) as { image?: string }
       uriImage = uriContent?.image || ''
     } catch (e) {}
@@ -874,10 +886,10 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       postAth: (row[indexes.post_ath] as string) === 'TRUE',
       xs: Number(row[indexes.xs] as string),
       callMc,
-      price,
+      entryMc: (row[indexes.entry_mc] as number) || callMc,
       athDelayHours,
       ath: row[indexes.current_ath_mc] as number,
-      supply,
+      supply: (row[indexes.total_supply] as number) || 1000000000,
       lp: (row[indexes.lp_sol_launch] as number) || 0,
       ignored: state.blackList.includes(ca),
       solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : SOL_PRICE,
@@ -915,6 +927,7 @@ const runCompute = async () => {
     position: state.position,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
     averageSlippage: state.slippage,
+    realisticEntry: state.realisticEntry,
     timeOnCreation: state.timeOnCreation,
     week: state.withHours ? JSON.parse(JSON.stringify(state.week)) : undefined,
     hours: state.withHours ? JSON.parse(JSON.stringify(state.hours)) : undefined,
@@ -932,6 +945,7 @@ watch(
     () => state.position,
     () => state.takeProfits,
     () => state.slippage,
+    () => state.realisticEntry,
     () => state.timeOnCreation,
     () => state.withHours,
     () => state.week,

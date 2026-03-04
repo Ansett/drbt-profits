@@ -40,8 +40,8 @@ export type SolCall = {
   xs: number
   ignored: boolean
   supply: number
-  price: number
   callMc: number
+  entryMc: number
   ath: number
   lp: number // can be 0
   solPrice: number

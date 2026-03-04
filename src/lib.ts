@@ -368,7 +368,7 @@ export const getHeaderIndexes = <T extends string>(
     const allIndexes = header.flatMap((h, i) => (h === name ? i : []))
     if (!allIndexes.length) {
       // we'll use a default value if ETHPrice is not found
-      if (name !== 'ETHPrice' && name !== 'sol_price') {
+      if (name !== 'ETHPrice' && name !== 'sol_price' && name !== 'uri_content') {
         onFail(`${name} header not found`)
         return null
       }

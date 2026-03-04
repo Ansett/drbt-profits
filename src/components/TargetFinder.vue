@@ -232,6 +232,7 @@ const {
     feeInXs?: boolean
     chainApiKey?: string
     averageSlippage?: number
+    realisticEntry?: boolean
   }
   mcRange: [number, number, number]
   xsRange: [number, number, number]
