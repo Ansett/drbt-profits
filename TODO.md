@@ -1,8 +1,7 @@
 SOL
 ---
+Remove name !== 'uri_content' && name !== 'entry_mc'
 
-HELVETI : 
-  - SOL price in XLS
 
 ETH
 ---
