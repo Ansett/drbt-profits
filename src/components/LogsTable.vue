@@ -259,7 +259,7 @@
             <span
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
-                value: 'Entry without delay/slippage',
+                value: 'Call MC (no delay/slippage)',
                 showDelay: 500,
               }"
             >
