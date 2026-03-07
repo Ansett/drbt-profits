@@ -255,11 +255,11 @@
       >
         <template #body="{ data }">
           <span class="flex flex-wrap column-gap-2 align-items-center">
-            <span>{{ prettifyMc(data.callMc * (1 + data.slippage / 100)) }}</span>
+            <span>{{ prettifyMc(data.entryMc * (1 + data.slippage / 100)) }}</span>
             <span
               class="text-sm text-color-secondary nowrap help"
               v-tooltip.top="{
-                value: 'Entry without slippage',
+                value: 'Entry without delay/slippage',
                 showDelay: 500,
               }"
             >

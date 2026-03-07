@@ -135,12 +135,12 @@ async function compute(
       addGain(call.date, gain)
     }
 
-    const entryPrice = (realisticEntry ? call.entryMc : call.callMc) / call.supply
-    const buyPrice = (call.callMc + averageSlippage) / call.supply
+    const realisticEntryMc = realisticEntry ? call.entryMc : call.callMc
+    const buyPrice = (realisticEntryMc + averageSlippage) / call.supply
     const tokens = invested / buyPrice
     const impact = getPriceImpact(call.lp * call.solPrice, buyPrice, tokens)
     const newPrice = buyPrice * (1 + impact / 100)
-    const totalImpact = Math.max(0, (newPrice / entryPrice - 1) * 100)
+    const totalImpact = Math.max(0, (newPrice / buyPrice - 1) * 100)
 
     let bestXs = call.xs / (1 + totalImpact / 100)
     bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
@@ -149,7 +149,7 @@ async function compute(
     if (!postAth) {
       let remainingPosition = 100
       let tpIndex = 0
-      const totalTokens = (invested * call.solPrice) / entryPrice
+      const totalTokens = (invested * call.solPrice) / buyPrice
       let sizeSoldForInitial = 0
 
       for (const tp of takeProfits) {
@@ -189,7 +189,7 @@ async function compute(
             continue
           }
 
-          const salePrice = entryPrice * reachedTarget
+          const salePrice = buyPrice * reachedTarget
           const saleMc = salePrice * call.supply
           const dollarLp = saleMc * (call.lpRatio || AVERAGE_LP_TO_MC_RATIO)
           const tokensSold = (totalTokens * sizeSold) / 100
@@ -271,6 +271,7 @@ async function compute(
       xsDiff: round(bestXs - call.xs, 0),
       ath: call.ath,
       callMc: call.callMc,
+      entryMc: realisticEntryMc,
       info: unrealistic
         ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
         : postAth

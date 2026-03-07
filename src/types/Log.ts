@@ -8,6 +8,7 @@ export type Log = {
   xs: number // -99 is rug
   xsDiff: number | null
   callMc: number
+  entryMc: number
   ath: number
   gain: number
   info: string
