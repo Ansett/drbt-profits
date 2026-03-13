@@ -332,7 +332,7 @@ onMounted(async () => {
 })
 
 async function handleWorkerMessage({ data }: any) {
-  if (data.type === 'DIFF') {
+  if (data.type === 'DIFFED') {
     left.diff = (data.diff as CallDiff[])
       .filter(data => data.status === 'REMOVED')
       .map(data => data.call)
@@ -344,7 +344,7 @@ async function handleWorkerMessage({ data }: any) {
       .map(data => data.call)
 
     loadingDiffs.value = false
-  } else if (data.type === 'COMPUTE') {
+  } else if (data.type === 'COMPUTED') {
     if (data.variant === ComputeVariant.LEFT) {
       left.stats = data
       left.loading = false

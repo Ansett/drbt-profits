@@ -18,10 +18,10 @@ const isUnsupportedValue = (v: any) => v === UNSUPPORTED_ELEMENT
 self.onmessage = async ({ data }: MessageEvent) => {
   if (!data?.type) return
 
-  if (data.type === 'XLSX') {
+  if (data.type === 'PARSE_XLSX') {
     for (const xlsx of data.allXlsx) {
       const rows = await readXlsxFile(xlsx)
-      postMessage({ type: 'XLSX', rows, fileName: xlsx.name })
+      postMessage({ type: 'PARSED_XLSX', rows, fileName: xlsx.name })
     }
     return
   }

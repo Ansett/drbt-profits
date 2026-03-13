@@ -42,10 +42,10 @@ let targetingController: AbortController | null = null
 onmessage = async function ({ data }) {
   if (!data?.type) return
 
-  if (data.type === 'XLSX') {
+  if (data.type === 'PARSE_XLSX') {
     for (const xlsx of data.allXlsx) {
       const rows = await readXlsxFile(xlsx)
-      postMessage({ type: 'XLSX', rows, fileName: xlsx.name })
+      postMessage({ type: 'PARSED_XLSX', rows, fileName: xlsx.name })
     }
     return
   }
@@ -57,7 +57,7 @@ onmessage = async function ({ data }) {
     if (computation.finalWorth === undefined) return
 
     return postMessage({
-      type: 'COMPUTE',
+      type: 'COMPUTED',
       ...computation,
       variant,
     })
@@ -72,7 +72,7 @@ onmessage = async function ({ data }) {
   }
   if (data.type === 'DIFF')
     return postMessage({
-      type: 'DIFF',
+      type: 'DIFFED',
       diff: getCallsDiff(data.previousCalls, data.newCalls),
     })
 }

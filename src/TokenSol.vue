@@ -489,7 +489,7 @@ onUnmounted(() => {
 })
 
 async function handleWorkerMessage({ data }: any) {
-  if (data.type === 'XLSX') {
+  if (data.type === 'PARSED_XLSX') {
     uploading.value = Math.max(0, uploading.value - 1)
     return storeData(data.rows, data.fileName)
   } else if (data.type === 'QUERY_EVALUATION') {
@@ -565,7 +565,7 @@ const onUpload = async (event: FileUploadSelectEvent) => {
   ;(uploader.value as any)?.clear()
 
   uploading.value = allXlsx.length
-  worker.value?.postMessage({ type: 'XLSX', allXlsx })
+  worker.value?.postMessage({ type: 'PARSE_XLSX', allXlsx })
 }
 
 const runCompute = async () => {
