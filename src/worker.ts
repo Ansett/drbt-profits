@@ -397,6 +397,7 @@ async function compute(
       xsDiff: call.rug ? null : round(reducedBestXs - call.xs, 0),
       ath: call.ath,
       callMc: call.callMc,
+      entryMc: call.callMc,
       info: unrealistic
         ? `Unrealistic perf: Entry might be anormally low or ATH anormally high. Perf capped to ${REALISTIC_MAX_XS}x`
         : postAth

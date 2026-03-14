@@ -183,7 +183,7 @@
               :data="{
                 calls,
                 position: state.position,
-                averageSlippage: state.slippage,
+                averageSlippage: state.extraSlippage,
                 realisticEntry: state.realisticEntry,
               }"
               v-model:xsRange="state.xsRange"
@@ -513,7 +513,7 @@
                 <span class="material-symbols-outlined cursor-pointer">downhill_skiing</span>
               </InputGroupAddon>
               <InputNumber
-                v-model="state.slippage"
+                v-model="state.extraSlippage"
                 v-bind="{ id: 'slippage' }"
                 showButtons
                 buttonLayout="stacked"
@@ -590,7 +590,7 @@
       :computingParams="{
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
-        averageSlippage: state.slippage,
+        averageSlippage: state.extraSlippage,
         realisticEntry: state.realisticEntry,
         timeOnCreation: state.timeOnCreation,
         week: state.withHours ? state.week : undefined,
@@ -722,7 +722,7 @@ const INIT_HOURS = [
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
   [ true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true ],
 ];
-const INIT_SLIPPAGE = 0
+const INIT_EXTRA_SLIPPAGE = 0
 const INIT_TIME_ON_CREATION = false
 const INIT_XS_RANGE = [1, 1, 10] as [number, number, number]
 const INIT_MC_RANGE = [10000, 10000, 2000000] as [number, number, number]
@@ -746,7 +746,7 @@ const state = reactive({
   withHours: INIT_WITH_HOURS,
   week: INIT_WEEK,
   hours: INIT_HOURS,
-  slippage: INIT_SLIPPAGE,
+  extraSlippage: INIT_EXTRA_SLIPPAGE,
   timeOnCreation: INIT_TIME_ON_CREATION,
   xsRange: INIT_XS_RANGE,
   mcRange: INIT_MC_RANGE,
@@ -926,7 +926,7 @@ const runCompute = async () => {
     calls: JSON.parse(JSON.stringify(calls.value)),
     position: state.position,
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
-    averageSlippage: state.slippage,
+    averageSlippage: state.extraSlippage,
     realisticEntry: state.realisticEntry,
     timeOnCreation: state.timeOnCreation,
     week: state.withHours ? JSON.parse(JSON.stringify(state.week)) : undefined,
@@ -944,7 +944,7 @@ watch(
   [
     () => state.position,
     () => state.takeProfits,
-    () => state.slippage,
+    () => state.extraSlippage,
     () => state.realisticEntry,
     () => state.timeOnCreation,
     () => state.withHours,
