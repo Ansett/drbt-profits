@@ -28,7 +28,7 @@
     >
       <a href="https://t.me/DeFi_Robot_Portal" style="color: inherit" target="_blank">DRBT</a>
       tools
-      <a v-if="oldHost" class="text-xs font-normal block" href="https://drbt-tools.ansett.xyz"
+      <a v-if="oldHost" class="text-xs font-normal block" href="https://drbt-profits.ansett.xyz"
         >(&hairsp;new address
         <i class="pi pi-external-link inline" style="font-size: 9px"></i>&hairsp;)</a
       >
@@ -45,7 +45,7 @@
   </header>
 
   <div v-if="redirect" class="text-center xl:text-left ml-0 xl:ml-6 mr-7 xl:mr-0 pl-0 xl:pl-1">
-    The application moved to <a href="https://drbt-tools.ansett.xyz">drbt-tools.ansett.xyz</a>
+    The application moved back to <a href="https://drbt-profits.ansett.xyz">drbt-profits.ansett.xyz</a>
   </div>
 
   <RouterView v-else />
@@ -90,7 +90,7 @@ import Menubar from 'primevue/menubar'
 import CaLink from './components/CaLink.vue'
 
 const redirect = computed<boolean>(() => window.location.hostname === 'drbt-profits.onrender.com')
-const oldHost = computed<boolean>(() => !!window.location.hostname.match(/drbt-?profits/))
+const oldHost = computed<boolean>(() => !!window.location.hostname.match(/drbt-?tools/))
 const showDonation = ref(false)
 
 const route = useRoute()

@@ -35,7 +35,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import type { Call } from '@/types/Call'
-import { round } from '@/lib'
+import { round } from '../../shared/utils'
 
 type HourCategory = { id: number; title: string; count: number; pct: number }
 

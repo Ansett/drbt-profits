@@ -102,9 +102,9 @@ import Column from 'primevue/column'
 import InputSwitch from 'primevue/inputswitch'
 import vTooltip from 'primevue/tooltip'
 import type { Log } from '@/types/Log'
-import { round } from '@/lib'
 import { DAY_DELIMITATION } from '@/constants'
 import InfoButton from './InfoButton.vue'
+import { round } from '../../shared/utils'
 
 const createWeekSlices = () => {
   return Array.from({ length: 24 }, (_, index) => ({

@@ -1,0 +1,34 @@
+services:
+  web:
+    image: ghcr.io/${GITHUB_REPO}:web-latest
+    restart: unless-stopped
+    depends_on:
+      - mcp
+    volumes:
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN}
+
+  mcp:
+    image: ghcr.io/${GITHUB_REPO}:mcp-latest
+    restart: unless-stopped
+    environment:
+      - PORT=3100
+      - MCP_API_KEY=${MCP_API_KEY}
+    expose:
+      - "3100"
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+volumes:
+  certbot-webroot:
+  certbot-certs:

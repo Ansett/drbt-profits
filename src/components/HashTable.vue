@@ -269,11 +269,12 @@ import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { FilterMatchMode } from 'primevue/api'
-import { prettifyMc, round } from '../lib'
+import { prettifyMc } from '../lib'
 import CaLink from './CaLink.vue'
 import InfoButton from './InfoButton.vue'
 import { Call, SolCall } from '@/types/Call'
 import { useTimezone } from '@/compose/useTimezone'
+import { round } from '../../shared/utils'
 
 const TAG_SEPARATOR = ', '
 

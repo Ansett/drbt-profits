@@ -63,11 +63,6 @@ export function sleep(ms = 0, callback: Function = () => true) {
   return new Promise(resolve => setTimeout(() => resolve(callback()), ms))
 }
 
-export function extractDate(rawDate: string) {
-  let [date, hour] = rawDate.split(/[T ]/)
-  return date
-}
-
 export function extractTime(rawDate: string) {
   let [date, hour] = rawDate.split(/[T.]/)
   return hour
@@ -78,11 +73,6 @@ export function decimalHourToString(num: number) {
   const hours = num - (num % 1)
 
   return hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0')
-}
-
-export function round(num: number, decimals = 2) {
-  const multiplicator = 10 ** decimals
-  return Math.round(num * multiplicator) / multiplicator
 }
 
 const formatter = Intl.NumberFormat('en', { notation: 'compact' })
@@ -145,22 +135,6 @@ export function addTagsToHashes<C extends Call | SolCall = Call>(
   }
 
   return bigHashes
-}
-
-export function sumObjectProperty<T extends Record<string, any>>(
-  arr: T[],
-  numGetter: (t: T) => number,
-) {
-  return arr.reduce((sum, obj) => sum + numGetter(obj), 0)
-}
-
-// Sale date is prorated from sale MC / ATH ratio
-export function getSaleDate(call: Call | SolCall, saleMc: number) {
-  const saleDelayHours = (call.athDelayHours / call.ath) * saleMc
-  const saleDate = new Date(call.date)
-  saleDate.setTime(saleDate.getTime() + saleDelayHours * 60 * 60 * 1000)
-
-  return saleDate.toISOString().split('T')[0]
 }
 
 const REGEX_XY_CHAR = /[xy]/g
@@ -367,8 +341,7 @@ export const getHeaderIndexes = <T extends string>(
   for (const name of names) {
     const allIndexes = header.flatMap((h, i) => (h === name ? i : []))
     if (!allIndexes.length) {
-      // we'll use a default value if ETHPrice is not found
-      if (name !== 'ETHPrice' && name !== 'sol_price' && name !== 'uri_content' && name !== 'entry_mc') {
+      if (name !== 'entry_mc') {
         onFail(`${name} header not found`)
         return null
       }
@@ -381,18 +354,6 @@ export const getHeaderIndexes = <T extends string>(
   }
 
   return indexes
-}
-
-export const getPriceImpact = (lpAmount: number, previousPrice: number, nbTokens: number): number => {
-  if (!lpAmount) return 5 / 100
-
-  const lpOtherAmount = lpAmount / previousPrice
-  const newPrice =
-    (lpAmount - 1 * ((lpOtherAmount * lpAmount) / (lpOtherAmount + nbTokens) - lpAmount)) /
-    (lpOtherAmount - nbTokens)
-  const slippage = (newPrice / previousPrice - 1) * 100
-
-  return slippage
 }
 
 export function initHash(id: string) {

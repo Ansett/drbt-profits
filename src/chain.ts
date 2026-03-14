@@ -7,10 +7,11 @@ import {
   type AssetTransfersResult,
   type AssetTransfersResponse,
 } from 'alchemy-sdk'
-import { round, sleep, uuid } from './lib'
+import { sleep, uuid } from './lib'
 import type { BlockTx, TokenTransfer } from './types/Transaction'
 import { BUILDER_ADDYS, CURRENT_CACHED_BLOCK_VERSION, WRAPPED_ETH_ADDY } from './constants'
 import { storeBlockDataInStore } from './db'
+import { round } from '../shared/utils'
 
 const BANANA = '0x3328F7f4A1D1C57c35df56bBf0c9dCAFCA309C49'
 

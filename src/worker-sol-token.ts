@@ -1,8 +1,9 @@
 import readXlsxFile from 'read-excel-file/web-worker'
 import { Binary, ColumnRef, ExpressionValue, ExprList, Parser, Select, Value } from 'node-sql-parser'
 import { MatchingResults, SolTokenHistory } from './types/History'
-import { extractDate, extractTime } from './lib'
+import { extractTime } from './lib'
 import { SPECIAL_FIELD_MAPPINGS } from './field-mappings'
+import { extractDate } from '../shared/utils'
 
 type WhereEvalResult = { passed: boolean; failed: string[] }
 

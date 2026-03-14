@@ -220,7 +220,7 @@ import Toast from 'primevue/toast'
 import CaLink from './components/CaLink.vue'
 import { STORAGE_KEY } from './storage'
 import { DEFAULT_SOL_SCREENER_URL } from './constants'
-import { round } from './lib'
+import { round } from '../shared/utils'
 
 type Mooner = { ca: string; name: string; xs: number }
 type Wallet = {

@@ -1,0 +1,16 @@
+FROM node:20-alpine
+WORKDIR /app
+
+# Install mcp-server dependencies
+COPY mcp-server/package.json mcp-server/yarn.lock* ./mcp-server/
+RUN cd mcp-server && yarn install --frozen-lockfile
+
+# Copy source files needed at runtime (tsx runs TS directly)
+COPY mcp-server/src/ mcp-server/src/
+COPY mcp-server/tsconfig.json mcp-server/tsconfig.json
+COPY shared/ shared/
+COPY src/constants.ts src/constants.ts
+
+WORKDIR /app/mcp-server
+EXPOSE 3100
+CMD ["yarn", "start"]

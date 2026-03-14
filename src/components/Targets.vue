@@ -227,7 +227,7 @@
 import { TakeProfit } from '@/types/TakeProfit'
 import { ref, computed } from 'vue'
 import { INITIAL_TP_SIZE_CODE, getPtNumberInput } from '../constants'
-import { prettifyMc, round, sumObjectProperty } from '@/lib'
+import { prettifyMc } from '@/lib'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import InputText from 'primevue/inputtext'
@@ -238,6 +238,7 @@ import Button from 'primevue/button'
 import Dropdown from 'primevue/dropdown'
 import vTooltip from 'primevue/tooltip'
 import InfoButton from './InfoButton.vue'
+import { round, sumObjectProperty } from '../../shared/utils'
 
 const {
   initialTp,

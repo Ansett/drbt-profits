@@ -611,7 +611,6 @@ import {
   DEFAULT_SOL_SCREENER_URL,
   getPtNumberInput,
   INITIAL_TP_SIZE_CODE,
-  SOL_PRICE,
 } from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
@@ -637,6 +636,7 @@ import {
   downloadDataUrl,
   getTextFileContent,
 } from './lib'
+import { rawRowsToSolCalls } from '../shared/sol-compute'
 import { TakeProfit } from './types/TakeProfit'
 import Statistics from './components/Statistics.vue'
 import Accordion from 'primevue/accordion'
@@ -658,6 +658,7 @@ import InputSwitch from 'primevue/inputswitch'
 import InfoButton from './components/InfoButton.vue'
 import OverlayPanel from 'primevue/overlaypanel'
 import { useSettings } from './compose/useSettings'
+import { RawSolRow, SOL_HEADERS } from '../shared/types'
 
 const router = useRouter()
 
@@ -809,106 +810,59 @@ const exportXlsx = async (logs: Log[]) => {
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
 
-async function storeData(rows: (string | number | Date)[][], fileName: string) {
-  if (rows.length <= 1) return
+function parseRows(rows: (string | number | Date)[][]): { rawRows: RawSolRow[]; caColumn: number } | null {
+  if (rows.length <= 1) return null
 
   const indexes = getHeaderIndexes(
     rows[0],
-    [
-      'mint',
-      'snapshot_at',
-      'created_at',
-      'name',
-      'post_ath',
-      'xs',
-      'total_supply',
-      'mc',
-      'entry_mc',
-      'current_ath_mc',
-      'lp_sol_launch',
-      'sol_price',
-      'launched_slot',
-      'current_ath_slot',
-      'program_ids',
-      'lp_ratio',
-      'uri_content',
-    ],
+    SOL_HEADERS,
     message => {
       error.value = message
     },
   )
 
-  if (!indexes) return
+  if (!indexes) return null
 
-  let hourShift = 0
-  let newCalls: SolCall[] = []
+  const rawRows: RawSolRow[] = []
   for (const rowIndex in rows) {
-    if (!rowIndex || rowIndex === '0') continue // ignore headers
+    if (!rowIndex || rowIndex === '0') continue
 
     const row = rows[rowIndex]
-    const ca = row[indexes.mint] as string
-    const parsedDate = row[indexes.snapshot_at] as Date
-    const creationDate = row[indexes.created_at] as Date
-    if (!parsedDate || !ca) continue
+    const mint = row[indexes.mint] as string
+    const snapshot_at = row[indexes.snapshot_at] as Date
+    if (!snapshot_at || !mint) continue
 
-    const name = (row[indexes.name] as string) || ca
-    const callMc = row[indexes.mc] as number
-    const athSlot = row[indexes.current_ath_slot] as number
-    const launchSlot = row[indexes.launched_slot] as number
-    const athDelaySec = athSlot && launchSlot ? (athSlot - launchSlot) * 0.4 : 2 * 60 * 60 // 0.4s per slot
-    const athDelayHours = athDelaySec / 60 / 60
-
-    // there is a bug where creation date is utc+1, so we detect that and adjust all dates
-    if (creationDate > parsedDate) {
-      const diff = creationDate.getHours() - parsedDate.getHours()
-      if (diff > hourShift) hourShift = diff
-    }
-
-    let programIds = [] as string[]
-    try {
-      const stringPrograms = (row[indexes.program_ids] as string).replaceAll("'", '"')
-      programIds = JSON.parse(stringPrograms) as string[]
-    } catch (e) {}
-
-    let uriImage = ''
-    try {
-      const uriString = ((row[indexes.uri_content] as string) || '').replaceAll("'", '"')
-      const uriContent = JSON.parse(uriString) as { image?: string }
-      uriImage = uriContent?.image || ''
-    } catch (e) {}
-
-    newCalls.push({
-      name,
-      ca,
-      nameAndCa: (((row[indexes.name] as string) || '') + row[indexes.mint]) as string,
-      date: parsedDate.toISOString(),
-      creation: creationDate.toISOString(),
-      postAth: (row[indexes.post_ath] as string) === 'TRUE',
-      xs: Number(row[indexes.xs] as string),
-      callMc,
-      entryMc: (row[indexes.entry_mc] as number) || callMc,
-      athDelayHours,
-      ath: row[indexes.current_ath_mc] as number,
-      supply: (row[indexes.total_supply] as number) || 1000000000,
-      lp: (row[indexes.lp_sol_launch] as number) || 0,
-      ignored: state.blackList.includes(ca),
-      solPrice: indexes.sol_price > -1 ? (row[indexes.sol_price] as number) : SOL_PRICE,
-      programIds,
-      lpRatio: row[indexes.lp_ratio] as number,
-      uriImage,
-    } satisfies SolCall)
+    rawRows.push({
+      mint,
+      snapshot_at,
+      created_at: row[indexes.created_at] as Date,
+      name: row[indexes.name] as string,
+      post_ath: row[indexes.post_ath] as string,
+      xs: row[indexes.xs] as string,
+      total_supply: row[indexes.total_supply] as number,
+      mc: row[indexes.mc] as number,
+      entry_mc: row[indexes.entry_mc] as number,
+      current_ath_mc: row[indexes.current_ath_mc] as number,
+      lp_sol_launch: row[indexes.lp_sol_launch] as number,
+      sol_price: row[indexes.sol_price] as number,
+      launched_slot: row[indexes.launched_slot] as number,
+      current_ath_slot: row[indexes.current_ath_slot] as number,
+      program_ids: row[indexes.program_ids] as string,
+      lp_ratio: row[indexes.lp_ratio] as number,
+      uri_content: row[indexes.uri_content] as string,
+    })
   }
 
-  if (hourShift) {
-    for (const call of newCalls) {
-      const date = new Date(call.creation)
-      date.setHours(date.getHours() - hourShift)
-      call.creation = date.toISOString()
-    }
-  }
+  return { rawRows, caColumn: indexes.mint }
+}
 
+async function storeData(rows: (string | number | Date)[][], fileName: string) {
+  const parsed = parseRows(rows)
+  if (!parsed) return
+
+  const newCalls = rawRowsToSolCalls(parsed.rawRows, state.blackList)
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-  const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.mint }
+  const newArchive = { calls: newCalls, fileName, rows, caColumn: parsed.caColumn }
   current.value = newArchive
   const existIndex = archives.value.findIndex(a => a.fileName === newArchive.fileName)
   if (existIndex > -1) archives.value.splice(existIndex, 1, newArchive)

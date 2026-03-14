@@ -3,20 +3,16 @@ import type { SolCall, CallDiff } from './types/Call'
 import type { Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
 import {
-  getSaleDate,
-  extractDate,
-  round,
-  getPriceImpact,
   initHash
 } from './lib'
 import {
-  AVERAGE_LP_TO_MC_RATIO,
-  INITIAL_TP_SIZE_CODE,
   REALISTIC_MAX_XS,
 } from './constants'
+import { computeCallGain, computeDrawdowns } from '../shared/sol-compute'
 import { ComputeVariant } from './types/ComputeVariant'
 import { ComputationForTarget, ComputationResult } from './types/ComputationResult'
 import { HashInfo } from './types/HashInfo'
+import { extractDate, round } from '../shared/utils'
 
 
 const computeControllers: Record<ComputeVariant, AbortController | null> = {
@@ -89,7 +85,6 @@ async function compute(
   abortSignal: AbortSignal,
 ) {
   let finalWorth = 0
-  let drawdown = 0
   const counters: ComputationResult['counters'] = {
     rug: 0,
     unrealistic: 0,
@@ -130,98 +125,16 @@ async function compute(
     const postAth = call.postAth
     if (postAth) counters.postAth++
 
-    let gain = -invested
+    const { gain, bestXs, totalImpact, realisticEntryMc, hitTp, saleGains } =
+      computeCallGain(call, invested, takeProfits, averageSlippage, realisticEntry)
+
     if (!call.ignored && !offPeriods) {
-      addGain(call.date, gain)
-    }
-
-    const realisticEntryMc = realisticEntry ? call.entryMc : call.callMc
-    const buyPrice = (realisticEntryMc + averageSlippage) / call.supply
-    const tokens = invested / buyPrice
-    const impact = getPriceImpact(call.lp * call.solPrice, buyPrice, tokens)
-    const newPrice = buyPrice * (1 + impact / 100)
-    const totalImpact = Math.max(0, (newPrice / buyPrice - 1) * 100)
-
-    let bestXs = call.xs / (1 + totalImpact / 100)
-    bestXs = unrealistic ? REALISTIC_MAX_XS : bestXs
-
-    const hitTp: string[] = []
-    if (!postAth) {
-      let remainingPosition = 100
-      let tpIndex = 0
-      const totalTokens = (invested * call.solPrice) / buyPrice
-      let sizeSoldForInitial = 0
-
-      for (const tp of takeProfits) {
-        const targetXsDirect = tp.withXs ? tp.xs : 0
-        const targetXsFromEth = tp.withAmount ? tp.amount / invested : 0
-        const targetXsFromMc = tp.withMc ? (bestXs / call.ath) * tp.mc : 0
-        const allTargets = [targetXsDirect, targetXsFromEth, targetXsFromMc].filter(v => v > 0)
-
-        const reachedXsTarget = bestXs >= targetXsDirect ? targetXsDirect : 0
-        const reachedEthTarget = bestXs >= targetXsFromEth ? targetXsFromEth : 0
-        const reachedMcTarget =
-          bestXs >= targetXsFromMc ? targetXsFromMc : 0
-        const allReachedTargets = [reachedXsTarget, reachedEthTarget, reachedMcTarget].filter(
-          v => v > 0,
-        )
-        const reachedTarget = allReachedTargets.length
-          ? tp.andLogic
-            ? allReachedTargets.length === allTargets.length
-              ? Math.max(...allReachedTargets)
-              : 0
-            : Math.min(...allReachedTargets)
-          : 0
-
-        const xsMultiplicator = reachedTarget
-
-        if (tp.size && reachedTarget) {
-          const sizeSold =
-            // size to get back initial
-            tp.size === INITIAL_TP_SIZE_CODE
-              ? ((invested / xsMultiplicator) * 100) /
-              invested
-              : // remove from other targets a portion of the size sold for initial
-              tp.size * (100 - sizeSoldForInitial) / 100
-
-          if (sizeSold <= 0) {
-            tpIndex++
-            continue
-          }
-
-          const salePrice = buyPrice * reachedTarget
-          const saleMc = salePrice * call.supply
-          const dollarLp = saleMc * (call.lpRatio || AVERAGE_LP_TO_MC_RATIO)
-          const tokensSold = (totalTokens * sizeSold) / 100
-          const priceImpact = Math.min(100, Math.abs(getPriceImpact(dollarLp, salePrice, tokensSold)))
-
-          const profit =
-            ((invested * sizeSold) / 100) *
-            xsMultiplicator *
-            (1 - priceImpact / 100)
-
-          gain += profit
-          if (!call.ignored && !offPeriods) {
-            // for drawdown
-            addGain(getSaleDate(call, saleMc), profit)
-          }
-          if (tp.size === INITIAL_TP_SIZE_CODE) sizeSoldForInitial = sizeSold
-          else remainingPosition -= sizeSold
-
-          hitTp.push('TP' + (tpIndex + 1))
-        }
-
-        if (remainingPosition <= 0) break
-        tpIndex++
-      }
+      addGain(call.date, -invested)
+      for (const sg of saleGains) addGain(sg.date, sg.amount)
     }
 
     if (!call.ignored && !offPeriods) {
       finalWorth += gain
-
-      if (finalWorth < drawdown) {
-        drawdown = round(finalWorth)
-      }
     }
 
     if (!call.ignored && !postAth && !offPeriods) {
@@ -288,27 +201,12 @@ async function compute(
     })
   }
 
-  /* Compute drawdowns: */
-  const dates = Object.keys(gainByDate).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-  let cumulatedProfitByDate: [string, number][] = []
-  let drawdownByDate: [string, number][] = []
-  for (const date of dates) {
-    cumulatedProfitByDate = [...cumulatedProfitByDate, [date, 0]]
-    for (const p of cumulatedProfitByDate) {
-      p[1] += gainByDate[date]
-    }
-    drawdownByDate = [...drawdownByDate, [date, 0]]
-    for (const index in drawdownByDate) {
-      if (cumulatedProfitByDate[index][1] < drawdownByDate[index][1])
-        drawdownByDate[index][1] = round(cumulatedProfitByDate[index][1])
-    }
-  }
+  const { drawdown, worstDrawdown} = computeDrawdowns(gainByDate)
 
   return {
     finalWorth: finalWorth ? round(finalWorth) : finalWorth, // keep undefined value for abort controller
     drawdown: round(drawdown),
-    // find the minimum value in all drawdowns
-    worstDrawdown: drawdownByDate.reduce((prev, cur) => (cur[1] < prev[1] ? cur : prev), ['', 0]),
+    worstDrawdown,
     volume: round(volume, 1),
     counters,
     logs,

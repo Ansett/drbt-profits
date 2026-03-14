@@ -5,11 +5,7 @@ import type { TakeProfit } from './types/TakeProfit'
 import {
   mean_absolute_percentage_error,
   mean_percentage_error,
-  getSaleDate,
-  extractDate,
-  round,
   sleep,
-  getPriceImpact,
   initHash,
   callIsPostAth
 } from './lib'
@@ -30,6 +26,7 @@ import type { BlockTx } from './types/Transaction'
 import { createBlockStore, getBlockDataFromStore } from './db'
 import { fetchAllBuysFrom, fetchTxsFromBlock } from './chain'
 import { ComputeVariant } from './types/ComputeVariant'
+import { extractDate, getPriceImpact, getSaleDate, round } from '../shared/utils'
 
 const computeControllers: Record<ComputeVariant, AbortController | null> = {
   [ComputeVariant.LEFT]: null,
