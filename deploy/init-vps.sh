@@ -11,14 +11,14 @@
 #   sudo cp init-vps.sh /root
 #   cd root
 #   sudo usermod -aG docker tiky
-#   sudo DOMAIN=drbt-profits.ansett.xyz GITHUB_REPO=<lowercase user>/<repo> GITHUB_TOKEN=<ghcr_pat> MCP_API_KEY=<key> EMAIL=<email>  bash init-vps.sh
+#   sudo DOMAIN=drbt-profits.ansett.xyz GITHUB_REPO=<lowercase user>/<repo> GITHUB_TOKEN=<ghcr_pat> MCP_ADMIN_KEY=<key> EMAIL=<email>  bash init-vps.sh
 
 set -euo pipefail
 
 DOMAIN="${DOMAIN:?Set DOMAIN}"
 GITHUB_REPO="${GITHUB_REPO:?Set GITHUB_REPO (owner/repo)}"
 GITHUB_TOKEN="${GITHUB_TOKEN:?Set GITHUB_TOKEN (PAT with read:packages scope)}"
-MCP_API_KEY="${MCP_API_KEY:?Set MCP_API_KEY}"
+MCP_ADMIN_KEY="${MCP_ADMIN_KEY:?Set MCP_ADMIN_KEY}"
 EMAIL="${EMAIL:?Set EMAIL (for Lets Encrypt)}"
 APP_DIR="/opt/drbt-profits"
 
@@ -41,7 +41,7 @@ mkdir -p "$APP_DIR"
 cat > "$APP_DIR/.env" <<EOF
 DOMAIN=$DOMAIN
 GITHUB_REPO=$GITHUB_REPO
-MCP_API_KEY=$MCP_API_KEY
+MCP_ADMIN_KEY=$MCP_ADMIN_KEY
 EOF
 
 cat > "$APP_DIR/docker-compose.yml" <<'COMPOSE'
@@ -65,7 +65,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=3100
-      - MCP_API_KEY=${MCP_API_KEY}
+      - MCP_ADMIN_KEY=${MCP_ADMIN_KEY}
     expose:
       - "3100"
 

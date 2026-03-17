@@ -26,3 +26,7 @@ dist-ssr/
 *.sw?
 
 *.tsbuildinfo
+
+# MCP server runtime data
+mcp-server/data/
+data/api-keys.json

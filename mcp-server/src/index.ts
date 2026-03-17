@@ -5,9 +5,9 @@ import cors from 'cors'
 import { z } from 'zod'
 import computeTool from './computeTool.js'
 import targetTool, { STEPS } from './targetTool.js'
+import { validateBearer, recordUsage, getKeys, createKey, deleteKey } from './apiKeys.js'
 
-// "Authorization": "Bearer <key>" }
-const API_KEY = process.env.MCP_API_KEY
+const ADMIN_KEY = process.env.MCP_ADMIN_KEY
 
 function buildServer(): McpServer {
   const server = new McpServer({
@@ -87,12 +87,40 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-// Simple bearer-token auth guard for public hosting
-app.use((req: Request, res: Response, next) => {
-  if (!API_KEY) return next() // no key configured → open (dev mode)
+// Admin endpoints for API key management (protected by MCP_ADMIN_KEY)
+function adminAuth(req: Request, res: Response, next: () => void) {
+  if (!ADMIN_KEY) { res.status(503).json({ error: 'Admin not configured' }); return }
   const auth = req.headers['authorization'] ?? ''
-  if (auth === `Bearer ${API_KEY}`) return next()
-  res.status(401).json({ error: 'Unauthorized' })
+  if (auth !== `Bearer ${ADMIN_KEY}`) { res.status(401).json({ error: 'Unauthorized' }); return }
+  next()
+}
+
+app.get('/api/keys', adminAuth, (_req: Request, res: Response) => {
+  res.json(getKeys())
+})
+
+app.post('/api/keys', adminAuth, (req: Request, res: Response) => {
+  const { name } = req.body ?? {}
+  if (!name || typeof name !== 'string') { res.status(400).json({ error: 'name is required' }); return }
+  const key = createKey(name.trim())
+  res.status(201).json(key)
+})
+
+app.delete('/api/keys/:id', adminAuth, (req: Request, res: Response) => {
+  const deleted = deleteKey(req.params.id)
+  if (!deleted) { res.status(404).json({ error: 'Key not found' }); return }
+  res.json({ ok: true })
+})
+
+// Bearer-token auth guard for MCP endpoints
+app.use('/mcp', (req: Request, res: Response, next) => {
+  const auth = req.headers['authorization'] ?? ''
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+  if (!bearer) { res.status(401).json({ error: 'Unauthorized' }); return }
+  const apiKey = validateBearer(bearer)
+  if (!apiKey) { res.status(401).json({ error: 'Invalid API key' }); return }
+  recordUsage(bearer)
+  next()
 })
 
 app.post('/mcp', async (req: Request, res: Response) => {
@@ -111,8 +139,8 @@ app.get('/mcp', async (req: Request, res: Response) => {
   await transport.handleRequest(req, res)
 })
 
-const PORT = Number(process.env.PORT ?? 3100)
+const PORT = Number(process.env.MCP_PORT ?? 3100)
 app.listen(PORT, () => {
   console.log(`MCP server listening on port ${PORT}`)
-  if (!API_KEY) console.warn('Warning: MCP_API_KEY not set — server is open to anyone')
+  if (!ADMIN_KEY) console.warn('Warning: MCP_ADMIN_KEY not set — admin endpoints are disabled')
 })
