@@ -97,8 +97,11 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 
-const MCP_PORT = import.meta.env.VITE_MCP_PORT ?? 3100
-const MCP_BASE = `${window.location.protocol}//${window.location.hostname}:${MCP_PORT}`
+// In dev, VITE_MCP_PORT lets us hit the MCP server directly (e.g. :3100).
+// In production nginx proxies /api/ and /mcp to the container, so we use the current origin.
+const MCP_BASE = window.location.hostname.startsWith('localhost') ?
+  ? `${window.location.protocol}//${window.location.hostname}:${import.meta.env.VITE_MCP_PORT ?? 3100}`
+  : window.location.origin
 
 interface KeyInfo {
   id: string
