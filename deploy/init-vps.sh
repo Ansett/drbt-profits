@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # One-time VPS setup script for drbt-profits
 # Run as root on a fresh Hetzner VPS (Ubuntu/Debian)
+# (deactivate Cloudflare proxy on domaine, at least for the setup)
 #
 # Usage:
 #   Set the GitHub Actions secrets
