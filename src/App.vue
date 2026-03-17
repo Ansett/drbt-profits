@@ -27,7 +27,7 @@
       class="m-0 text-xl lg:text-4xl text-color-secondary flex-grow-1 flex-order-1 lg:flex-order-0 text-left lg:text-center"
     >
       <a href="https://t.me/DeFi_Robot_Portal" style="color: inherit" target="_blank">DRBT</a>
-      tools
+      profits
       <a v-if="oldHost" class="text-xs font-normal block" href="https://drbt-profits.ansett.xyz"
         >(&hairsp;new address
         <i class="pi pi-external-link inline" style="font-size: 9px"></i>&hairsp;)</a
