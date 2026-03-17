@@ -1,3 +1,4 @@
+# NOTE: thos file is not auto-deployed. Edit /opt/drbt-profits/docker-compose.yml
 services:
   web:
     image: ghcr.io/${GITHUB_REPO}:web-latest
@@ -27,6 +28,7 @@ services:
 
   certbot:
     image: certbot/certbot
+    restart: unless-stopped
     volumes:
       - certbot-webroot:/var/www/certbot
       - certbot-certs:/etc/letsencrypt

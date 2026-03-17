@@ -1,6 +1,6 @@
 <template>
   <main class="px-3 py-4" style="max-width: 800px; margin: 0 auto">
-    <h2 class="mt-0 mb-4">API Keys</h2>
+    <h2 class="mt-0 mb-4">MCP Keys</h2>
 
     <!-- Admin key input -->
     <div class="flex align-items-center gap-2 mb-4">
@@ -13,7 +13,7 @@
         class="flex-grow-1"
         @keyup.enter="fetchKeys"
       />
-      <Button label="Load" icon="pi pi-refresh" @click="fetchKeys" :loading="loading" />
+      <Button label="Load" icon="pi pi-refresh" :disabled="!adminKey" :loading="loading" @click="fetchKeys" />
     </div>
 
     <Message v-if="error" severity="error" :closable="false" class="mb-3">{{ error }}</Message>
@@ -29,7 +29,6 @@
       <Button
         label="Generate"
         icon="pi pi-plus"
-        severity="success"
         @click="generateKey"
         :disabled="!newKeyName.trim() || !adminKey"
         :loading="generating"
@@ -132,6 +131,7 @@ function authHeaders() {
 
 async function fetchKeys() {
   if (!adminKey.value) return
+
   localStorage.setItem('mcp-admin-key', adminKey.value)
   error.value = ''
   loading.value = true
@@ -147,7 +147,8 @@ async function fetchKeys() {
 }
 
 async function generateKey() {
-  if (!newKeyName.value.trim() || !adminKey.value) return
+  if (!newKeyName.value.trim() || !adminKey.value.trim()) return
+  
   generating.value = true
   error.value = ''
   try {

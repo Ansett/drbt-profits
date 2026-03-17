@@ -12,7 +12,8 @@ const routes = [
   { path: '/sol', component: SolView },
   { path: '/token-sol', component: TokenSolView },
   { path: '/wallets', component: WalletsView },
-  { path: '/api-keys', component: ApiKeysView },
+  { path: '/keys', component: ApiKeysView },
+  { path: '/api-keys', redirect: '/keys' },
 ]
 
 export default createRouter({

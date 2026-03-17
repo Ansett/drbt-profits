@@ -32,7 +32,7 @@ function saveKeys(keys: ApiKey[]) {
 export function getKeys(): Omit<ApiKey, 'key'>[] {
   return loadKeys().map(({ key, ...rest }) => ({
     ...rest,
-    maskedKey: key.slice(0, 8) + '…' + key.slice(-4),
+    maskedKey: key.slice(0, 7) + '…' + key.slice(-4),
   })) as any
 }
 
