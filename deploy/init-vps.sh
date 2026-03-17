@@ -10,6 +10,7 @@
 #   ssh root@<VPS_IP>
 #   sudo cp init-vps.sh /root
 #   cd root
+#   sudo usermod -aG docker tiky
 #   sudo DOMAIN=drbt-profits.ansett.xyz GITHUB_REPO=<lowercase user>/<repo> GITHUB_TOKEN=<ghcr_pat> MCP_API_KEY=<key> EMAIL=<email>  bash init-vps.sh
 
 set -euo pipefail
