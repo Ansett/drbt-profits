@@ -45,9 +45,9 @@ export default async ({ backtest_link, position, take_profits }: { backtest_link
   })
 
   const structuredContent = {
-    total_pnl: result.totalPnl,
-    drawdown: result.drawdown,
-    worst_drawdown: result.worstDrawdown[1],
+    pnl_sol: result.totalPnl,
+    drawdown_sol: result.drawdown,
+    worst_drawdown_sol: result.worstDrawdown[1],
     calls_count: calls.length,
   }
   return {

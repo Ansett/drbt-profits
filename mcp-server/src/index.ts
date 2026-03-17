@@ -38,9 +38,9 @@ function buildServer(): McpServer {
           ),
       },
       outputSchema: {
-        total_pnl: z.number().describe('Net profit/loss in SOL.'),
-        drawdown: z.number().describe('Drawdown from the first call date in SOL.'),
-        worst_drawdown: z.number().describe('Worst drawdown across all dates in SOL.'),
+        pnl_sol: z.number().describe('Net profit/loss in SOL.'),
+        drawdown_sol: z.number().describe('Drawdown from the first call date in SOL.'),
+        worst_drawdown_sol: z.number().describe('Worst drawdown across all dates in SOL.'),
         calls_count: z.number().int().describe('Total number of calls in the backtest.'),
       },
     },
@@ -70,9 +70,9 @@ function buildServer(): McpServer {
       outputSchema: {
         results: z.array(z.object({
           target: z.string().describe('The take-profit target value (e.g. "5x" or "$100000").'),
-          total_pnl: z.number().describe('Net profit/loss in SOL at this target.'),
-          drawdown: z.number().describe('Drawdown from the first call date in SOL.'),
-          worst_drawdown: z.number().describe('Worst drawdown across all dates in SOL.'),
+          pnl_sol: z.number().describe('Net profit/loss in SOL at this target.'),
+          drawdown_sol: z.number().describe('Drawdown from the first call date in SOL.'),
+          worst_drawdown_sol: z.number().describe('Worst drawdown across all dates in SOL.'),
         })),
       },
     },

@@ -39,9 +39,9 @@ export default async ({ backtest_link, position, range }: { backtest_link: strin
   const structuredContent = {
     results: results.map(r => ({
       target: r.target,
-      total_pnl: r.totalPnl,
-      drawdown: r.drawdown,
-      worst_drawdown: r.worstDrawdown[1],
+      pnl_sol: r.totalPnl,
+      drawdown_sol: r.drawdown,
+      worst_drawdown_sol: r.worstDrawdown[1],
     }))
   }
   return {

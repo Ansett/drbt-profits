@@ -6,14 +6,14 @@ export type StoredArchive = {
   storedAt: Date
 }
 
-const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000
+const ONE_HOUR_MS = 60 * 60 * 1000
 const backtestCache = new Map<string, StoredArchive>()
 
 export function storeBacktest(url: string, calls: SolCall[]) {
   // cleanup
   const now = new Date()
   for (const [id, archive] of backtestCache) {
-    if (now.getTime() - archive.storedAt.getTime() > TWO_DAYS_MS) backtestCache.delete(id)
+    if (now.getTime() - archive.storedAt.getTime() > ONE_HOUR_MS) backtestCache.delete(id)
   }
 
   backtestCache.set(url, { calls, storedAt: now })
@@ -31,6 +31,6 @@ export async function getBacktestCalls(url: string): Promise<SolCall[]> {
 
   const calls = rawRowsToSolCalls(rows)
   storeBacktest(url, calls)
-  
+
   return calls
 }
