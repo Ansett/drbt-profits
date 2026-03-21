@@ -287,6 +287,9 @@
                 chooseButton: {
                   class: 'p-button-icon-only p-button-secondary p-button-outlined h-full ml-3',
                 },
+                label: {
+                  class: 'hidden',
+                },
               }"
               v-tooltip.bottom="{
                 value: 'Import settings into a new preset',
@@ -384,8 +387,8 @@
                       state.week[day.index] === false
                         ? 'bg-orange-300 border-orange-300'
                         : state.week[day.index] === null
-                        ? 'bg-primary border-primary'
-                        : undefined,
+                          ? 'bg-primary border-primary'
+                          : undefined,
                   },
                 }"
               >
@@ -607,11 +610,7 @@ import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, 
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
 import { CallArchive, SolCall } from './types/Call'
-import {
-  DEFAULT_SOL_SCREENER_URL,
-  getPtNumberInput,
-  INITIAL_TP_SIZE_CODE,
-} from './constants'
+import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE } from './constants'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -810,16 +809,14 @@ const exportXlsx = async (logs: Log[]) => {
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
 
-function parseRows(rows: (string | number | Date)[][]): { rawRows: RawSolRow[]; caColumn: number } | null {
+function parseRows(
+  rows: (string | number | Date)[][],
+): { rawRows: RawSolRow[]; caColumn: number } | null {
   if (rows.length <= 1) return null
 
-  const indexes = getHeaderIndexes(
-    rows[0],
-    SOL_HEADERS,
-    message => {
-      error.value = message
-    },
-  )
+  const indexes = getHeaderIndexes(rows[0], SOL_HEADERS, message => {
+    error.value = message
+  })
 
   if (!indexes) return null
 
