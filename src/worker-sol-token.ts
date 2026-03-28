@@ -8,7 +8,7 @@ import { extractDate } from '../shared/utils'
 type WhereEvalResult = { passed: boolean; failed: string[] }
 
 export const SUPPORTED_FUNCTIONS = [
-  "LENGTH", "NULLIF", "KOL", "SUM", "MAX", "MIN", "UPPER", "LOWER", "COALESCE", "CARDINALITY", "CA"
+  "LENGTH", "NULLIF", "KOL", "SUM", "MAX", "MIN", "UPPER", "LOWER", "COALESCE", "CARDINALITY", "CA", "NOT"
 ]
 
 const parser = new Parser()
@@ -90,16 +90,37 @@ function evaluateQuery(query: string, history: SolTokenHistory): MatchingResults
   return results
 }
 
+function isFunction(node: any): boolean {
+  return node.type === 'function' || node.type === 'aggr_func'
+}
+
 function evaluateWhereClause(
   node: Binary | ExpressionValue | ExprList,
   record: Record<string, any>,
   originalQuery: string,
   allowedFields: Set<string>,
 ): WhereEvalResult {
-  if (node.type === 'function' || node.type === 'aggr_func') {
+  if (isFunction(node) && String(getFunctionName(node)).toUpperCase() === 'NOT') {
+    const args = getFunctionArgs(node)
+    if (args.length === 1) {
+      const inner = evaluateWhereClause(args[0], record, originalQuery, allowedFields)
+      if (inner.passed) return { passed: false, failed: [extractValueText(node)] }
+      return { passed: true, failed: [] }
+    }
+  }
+
+  if (isFunction(node)) {
     const value = evaluateExpression(node, record, allowedFields)
     const passed = value === true
     return { passed, failed: passed ? [] : [extractValueText(node)] }
+  }
+
+  if (node.type === 'unary_expr' && String((node as any).operator).toUpperCase() === 'NOT') {
+    const inner = evaluateWhereClause((node as any).expr, record, originalQuery, allowedFields)
+    if (inner.passed) {
+      return { passed: false, failed: [extractValueText(node)] }
+    }
+    return { passed: true, failed: [] }
   }
 
   if (node.type === 'binary_expr') {
@@ -255,11 +276,17 @@ function evaluateExpression(
     return undefined
   }
 
+  if (node.type === 'unary_expr' && String(node.operator).toUpperCase() === 'NOT') {
+    const inner = evaluateExpression(node.expr, record, allowedFields)
+    if (isUnsupportedValue(inner)) return UNSUPPORTED_ELEMENT
+    return !inner
+  }
+
   if (node.type === 'expr_list') {
     return node.value.map((v: any) => evaluateExpression(v, record, allowedFields))
   }
 
-  if (node.type === 'function' || node.type === 'aggr_func') {
+  if (isFunction(node)) {
     const fn = String(getFunctionName(node)).toUpperCase()
     const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record, allowedFields))
     if (args.some(isUnsupportedValue)) return UNSUPPORTED_ELEMENT
@@ -296,7 +323,8 @@ function extractValueText(node: any): string {
   if (!node) return 'null'
   if (node.type === 'column_ref') return getNodeValue(node)
   if (node.type === 'binary_expr') return `(${extractConditionText(node as Binary, '')})`
-  if (node.type === 'function' || node.type === 'aggr_func') return extractFunctionText(node)
+  if (node.type === 'unary_expr' && String(node.operator).toUpperCase() === 'NOT') return `NOT(${extractValueText(node.expr)})`
+  if (isFunction(node)) return extractFunctionText(node)
   if (node.type === 'cast') return extractCastText(node)
   if (node.type === 'string') return `'${node.value}'`
   if (node.type === 'number' || node.type === 'bool') return String(node.value)
@@ -315,7 +343,7 @@ function extractCastText(node: any): string {
 }
 
 function extractFunctionText(node: any): string {
-  if (node.type === 'function' || node.type === 'aggr_func') {
+  if (isFunction(node)) {
     const args = getFunctionArgs(node).map((arg: any) => extractValueText(arg)).join(', ') || ''
     return `${getFunctionName(node)}(${args})`
   }
@@ -365,7 +393,13 @@ function getFunctionArgs(node: any): any[] {
 
 // Make sure AND and OR are ordered properly
 function normalizeWhereAst(node: Binary | ExpressionValue | ExprList, query?: string): Binary | ExpressionValue | ExprList {
-  if (!node || node.type !== 'binary_expr') return node
+  if (!node) return node
+
+  if (node.type === 'unary_expr' && String((node as any).operator).toUpperCase() === 'NOT') {
+    return { ...node, expr: normalizeWhereAst((node as any).expr, query) } as any
+  }
+
+  if (node.type !== 'binary_expr') return node
 
   const left = normalizeWhereAst((node as Binary).left, query) as any
   const right = normalizeWhereAst((node as Binary).right, query) as any
@@ -424,6 +458,7 @@ function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any
     postMessage({ type: 'UNSUPPORTED_FUNCTION', name: fn + '()' })
     return UNSUPPORTED_ELEMENT
   }
+  if (fn === 'NOT') return !args[0]
   // nullif(x, 0) returns null if x is equal to 0
   if (fn === 'NULLIF') return args[0] == args[1] ? null : args[0]
   if (fn === 'COALESCE') return args.find((v: any) => v !== null && v !== undefined)
