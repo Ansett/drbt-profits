@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file=.env src/index.ts",
     "inspect": "npx @modelcontextprotocol/inspector --transport http --server-url http://localhost:3100/mcp",
     "inspect-prod": "npx @modelcontextprotocol/inspector --transport http --server-url https://drbt-profits.ansett.xyz/mcp",
     "inspect-drbt": "npx @modelcontextprotocol/inspector --transport http --server-url https://mcp.defirobot.org/mcp"

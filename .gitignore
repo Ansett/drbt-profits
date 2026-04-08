@@ -30,3 +30,4 @@ dist-ssr/
 # MCP server runtime data
 mcp-server/data/
 data/api-keys.json
+data/oauth-store.json

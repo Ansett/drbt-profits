@@ -112,10 +112,10 @@ app.delete('/api/keys/:id', adminAuth, (req: Request, res: Response) => {
   res.json({ ok: true })
 })
 
-// Bearer-token auth guard for MCP endpoints
+// Bearer-token auth guard for MCP endpoints (header or ?key= query param)
 app.use('/mcp', (req: Request, res: Response, next) => {
   const auth = req.headers['authorization'] ?? ''
-  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''
+  const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : (req.query.key as string ?? '')
   if (!bearer) { res.status(401).json({ error: 'Unauthorized' }); return }
   const apiKey = validateBearer(bearer)
   if (!apiKey) { res.status(401).json({ error: 'Invalid API key' }); return }
