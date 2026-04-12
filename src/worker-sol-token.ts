@@ -391,6 +391,59 @@ function getFunctionArgs(node: any): any[] {
   return []
 }
 
+function findPrevNonWhitespaceIndex(text: string, startIndex: number): number | undefined {
+  for (let i = Math.min(startIndex, text.length - 1); i >= 0; i--) {
+    if (!/\s/.test(text[i])) return i
+  }
+  return undefined
+}
+
+function findNextNonWhitespaceIndex(text: string, startIndex: number): number | undefined {
+  for (let i = Math.max(0, startIndex); i < text.length; i++) {
+    if (!/\s/.test(text[i])) return i
+  }
+  return undefined
+}
+
+function findMatchingClosingParen(text: string, openParenIndex: number): number | undefined {
+  let depth = 0
+  for (let i = openParenIndex; i < text.length; i++) {
+    const char = text[i]
+    if (char === '(') {
+      depth += 1
+      continue
+    }
+    if (char === ')') {
+      depth -= 1
+      if (depth === 0) return i
+      if (depth < 0) return undefined
+    }
+  }
+  return undefined
+}
+
+// true => explicitly wrapped in outer parentheses
+// false => definitively not wrapped
+// undefined => cannot determine with confidence
+function isExplicitlyParenthesized(node: any, query?: string): boolean | undefined {
+  if (!query || !node?.loc) return undefined
+
+  const startOffset = node?.loc?.start?.offset
+  const endOffset = node?.loc?.end?.offset
+  if (typeof startOffset !== 'number' || typeof endOffset !== 'number') return undefined
+
+  const leftBoundary = findPrevNonWhitespaceIndex(query, startOffset - 1)
+  const rightBoundary = findNextNonWhitespaceIndex(query, endOffset)
+
+  if (leftBoundary === undefined || rightBoundary === undefined) return undefined
+  if (query[leftBoundary] !== '(' || query[rightBoundary] !== ')') return false
+
+  const matchingRight = findMatchingClosingParen(query, leftBoundary)
+  if (matchingRight === undefined) return undefined
+
+  return matchingRight === rightBoundary
+}
+
 // Make sure AND and OR are ordered properly
 function normalizeWhereAst(node: Binary | ExpressionValue | ExprList, query?: string): Binary | ExpressionValue | ExprList {
   if (!node) return node
@@ -414,19 +467,9 @@ function normalizeWhereAst(node: Binary | ExpressionValue | ExprList, query?: st
     left?.type === 'binary_expr' &&
     String(left.operator).toUpperCase() === 'OR'
   ) {
-    // Check if the LEFT side was explicitly parenthesized in source: ((A OR B) AND C)
-    let isParenthesized = false
-    if (query && (left as any).loc) {
-      const { start, end } = (left as any).loc
-      if (typeof start?.offset === 'number' && typeof end?.offset === 'number') {
-        const text = query.substring(start.offset, end.offset).trim()
-        if (text.startsWith('(') && text.endsWith(')')) {
-          isParenthesized = true
-        }
-      }
-    }
-
-    if (!isParenthesized) {
+    // Respect explicit grouping in source and avoid risky rewrites when detection is uncertain.
+    const explicitGrouping = isExplicitlyParenthesized(left, query)
+    if (explicitGrouping === false) {
       // Rotate tree to fix precedence
       const A = left.left
       const B = left.right

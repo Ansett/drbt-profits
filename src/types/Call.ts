@@ -1,3 +1,5 @@
+import { Call, SolCall } from '../../shared/types.js'
+
 export type { Call, SolCall } from '../../shared/types.js'
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'
