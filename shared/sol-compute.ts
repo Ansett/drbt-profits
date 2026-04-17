@@ -117,7 +117,7 @@ export function computeDrawdowns(gainByDate: Record<string, number>): { drawdown
   }
 
   return {
-    drawdown: drawdownByDate[0][1],
+    drawdown: drawdownByDate[0]?.[1] || 0,
     worstDrawdown: drawdownByDate.reduce<[string, number]>(
       (prev, cur) => (cur[1] < prev[1] ? cur : prev),
       ['', 0],
