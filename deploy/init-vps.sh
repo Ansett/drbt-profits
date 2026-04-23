@@ -44,72 +44,11 @@ GITHUB_REPO=$GITHUB_REPO
 MCP_ADMIN_KEY=$MCP_ADMIN_KEY
 EOF
 
-cat > "$APP_DIR/docker-compose.yml" <<'COMPOSE'
-services:
-  web:
-    image: ghcr.io/${GITHUB_REPO}:web-latest
-    restart: unless-stopped
-    depends_on:
-      - mcp
-    volumes:
-      - certbot-webroot:/var/www/certbot:ro
-      - certbot-certs:/etc/letsencrypt:ro
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - DOMAIN=${DOMAIN}
-
-  mcp:
-    image: ghcr.io/${GITHUB_REPO}:mcp-latest
-    restart: unless-stopped
-    environment:
-      - PORT=3100
-      - MCP_ADMIN_KEY=${MCP_ADMIN_KEY}
-    expose:
-      - "3100"
-
-  certbot:
-    image: certbot/certbot
-    volumes:
-      - certbot-webroot:/var/www/certbot
-      - certbot-certs:/etc/letsencrypt
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-
-volumes:
-  certbot-webroot:
-  certbot-certs:
-COMPOSE
+cp deploy/docker-compose.yml "$APP_DIR/docker-compose.yml"
 
 echo "==> Pulling images..."
 cd "$APP_DIR"
 docker compose pull
-
-echo "==> Obtaining initial SSL certificate..."
-# Start a temporary nginx to serve the ACME challenge
-docker run -d --name certbot-init \
-  -p 80:80 \
-  -v "$(docker volume inspect drbt-profits_certbot-webroot -f '{{ .Mountpoint }}' 2>/dev/null || echo '/tmp/certbot-webroot'):/var/www/certbot" \
-  nginx:alpine sh -c "echo 'server { listen 80; location /.well-known/acme-challenge/ { root /var/www/certbot; } location / { return 444; } }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'" \
-  2>/dev/null || true
-
-# Create volumes if they don't exist
-docker compose up --no-start 2>/dev/null || true
-docker compose down 2>/dev/null || true
-
-# Run certbot to get initial certs
-docker run --rm \
-  -v drbt-profits_certbot-webroot:/var/www/certbot \
-  -v drbt-profits_certbot-certs:/etc/letsencrypt \
-  --network host \
-  certbot/certbot certonly \
-    --webroot -w /var/www/certbot \
-    -d "$DOMAIN" \
-    --email "$EMAIL" \
-    --agree-tos \
-    --non-interactive
-
-docker rm -f certbot-init 2>/dev/null || true
 
 echo "==> Starting services..."
 docker compose up -d
