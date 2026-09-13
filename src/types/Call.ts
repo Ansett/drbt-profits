@@ -1,9 +1,9 @@
-import { Call, SolCall } from '../../shared/types.js'
+import { AnyCall, Call } from '../../shared/types.js'
 
-export type { Call, SolCall } from '../../shared/types.js'
+export type { AnyCall, Call, ChainId, RhCall, SolCall } from '../../shared/types.js'
 
 export type DiffType = 'ADDED' | 'REMOVED' | 'IN-BOTH'
-export type CallDiff<C extends Call | SolCall = Call> = {
+export type CallDiff<C extends AnyCall = Call> = {
   call: C
   status: DiffType
 }
@@ -15,7 +15,7 @@ export type RowsForExport = {
   align?: 'left' | 'center' | 'right'
 }[][]
 
-export type CallArchive<C extends Call | SolCall = Call> = {
+export type CallArchive<C extends AnyCall = Call> = {
   fileName: string
   calls: C[]
   rows: (string | number | Date)[][]

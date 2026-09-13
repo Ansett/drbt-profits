@@ -5,6 +5,8 @@ import cors from 'cors'
 import { z } from 'zod'
 import computeTool from './computeTool.js'
 import targetTool, { STEPS } from './targetTool.js'
+import rhComputeTool from './rhComputeTool.js'
+import rhTargetTool from './rhTargetTool.js'
 import { validateBearer, recordUsage, getKeys, createKey, deleteKey } from './apiKeys.js'
 
 const ADMIN_KEY = process.env.MCP_ADMIN_KEY
@@ -77,6 +79,86 @@ function buildServer(): McpServer {
       },
     },
     targetTool
+  )
+
+  // @ts-ignore TS2589: MCP SDK registerTool deep type inference limitation
+  server.registerTool(
+    'simulate_pnl_rh',
+    {
+      description:
+        'Run profits and losses simulation on a Robinhood calls list from DRBT backtesting and return performance data in ETH.',
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      inputSchema: {
+        backtest_link: z
+          .string()
+          .describe(
+            `The download_url returned by the DRBT run_backtest tool, pointing to the JSON calls list.`,
+          ),
+        position: z.number().positive().default(0.01).describe('ETH amount invested per call.'),
+        take_profits: z
+          .array(z.string())
+          .min(1)
+          .default(['33.3% 50x', '33.3% 500000', '33.4% 100x'])
+          .describe(
+            'Array of take profit rules. Each rule is "<size>% <target>" where target is either a multiplier or a market cap (e.g. ["10% 3x", "15.5% 500000"] to sell 10% at 3x and 15.5% at $500k MC). The sum of sizes must be <=100',
+          ),
+      },
+      outputSchema: {
+        pnl_eth: z.number().describe('Net profit/loss in ETH.'),
+        drawdown_eth: z.number().describe('Drawdown from the first call date in ETH.'),
+        worst_drawdown_eth: z.number().describe('Worst drawdown across all dates in ETH.'),
+        calls_count: z.number().int().describe('Total number of calls in the backtest.'),
+      },
+    },
+    rhComputeTool,
+  )
+
+  // @ts-ignore TS2589: MCP SDK registerTool deep type inference limitation
+  server.registerTool(
+    'find_targets_rh',
+    {
+      description: [
+        'Runs PnL simulations on a range of take profit targets for Robinhood calls from DRBT backtesting, in order to see where the hot spots are to place take profits, if drawdowns are reasonable.',
+        `Range is split into ${STEPS} steps (or less if too close).`,
+        'Returns an array of performance data in ETH.',
+      ].join('\n'),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+      inputSchema: {
+        backtest_link: z
+          .string()
+          .describe(
+            'The download_url returned by the DRBT run_backtest tool, pointing to the JSON calls list.',
+          ),
+        position: z.number().positive().default(0.01).describe('ETH amount invested per call.'),
+        range: z
+          .string()
+          .default('2x 101x')
+          .describe(
+            `Target range as "<start> <end>". Use "x" suffix for multipliers (e.g. "2.5x 10x") or plain numbers for market cap (e.g. "50000 1000000").`,
+          ),
+      },
+      outputSchema: {
+        results: z.array(
+          z.object({
+            target: z.string().describe('The take-profit target value (e.g. "5x" or "$100000").'),
+            pnl_eth: z.number().describe('Net profit/loss in ETH at this target.'),
+            drawdown_eth: z.number().describe('Drawdown from the first call date in ETH.'),
+            worst_drawdown_eth: z.number().describe('Worst drawdown across all dates in ETH.'),
+          }),
+        ),
+      },
+    },
+    rhTargetTool,
   )
 
   return server

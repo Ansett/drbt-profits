@@ -1,0 +1,565 @@
+import readXlsxFile from 'read-excel-file/web-worker'
+import { Binary, ColumnRef, ExpressionValue, ExprList, Parser, Select, Value } from 'node-sql-parser'
+import { MatchingResults, RhTokenHistory } from './types/History'
+import { extractTime } from './lib'
+import { extractDate } from '../shared/utils'
+import { RH_BLOCK_MS, RH_REF_BLOCK, RH_REF_TIME_MS } from './constants'
+
+type WhereEvalResult = { passed: boolean; failed: string[] }
+
+export const SUPPORTED_FUNCTIONS = [
+  "LENGTH", "NULLIF", "SUM", "MAX", "MIN", "UPPER", "LOWER", "COALESCE", "CARDINALITY", "NOT"
+]
+
+const parser = new Parser()
+
+const UNSUPPORTED_ELEMENT = Symbol('UNSUPPORTED_ELEMENT')
+const isUnsupportedValue = (v: any) => v === UNSUPPORTED_ELEMENT
+
+self.onmessage = async ({ data }: MessageEvent) => {
+  if (!data?.type) return
+
+  if (data.type === 'PARSE_XLSX') {
+    for (const xlsx of data.allXlsx) {
+      const rows = await readXlsxFile(xlsx)
+      postMessage({ type: 'PARSED_XLSX', rows, fileName: xlsx.name })
+    }
+    return
+  }
+
+  if (data.type === 'EVALUATE_QUERY') {
+    const { query, history } = data as { history: RhTokenHistory, query: string }
+    const results = evaluateQuery(query, history)
+    self.postMessage({ type: 'QUERY_EVALUATION', results })
+  }
+}
+
+function showError(message: string) {
+  self.postMessage({ type: 'ERROR', message: message })
+}
+
+function blockToDate(block: number): Date {
+  return new Date(RH_REF_TIME_MS + (block - RH_REF_BLOCK) * RH_BLOCK_MS)
+}
+
+function snapshotTimestamp(snapshot: Record<string, string | number>): string {
+  if (snapshot.snapshot_at) return String(snapshot.snapshot_at)
+  const ageS = Number(snapshot.age_s)
+  const launchedBlock = Number(snapshot.launched_block)
+  if (Number.isFinite(launchedBlock) && launchedBlock > 0) {
+    const launched = blockToDate(launchedBlock)
+    if (Number.isFinite(ageS) && ageS >= 0) return new Date(launched.getTime() + ageS * 1000).toISOString()
+    return launched.toISOString()
+  }
+  const updatedBlock = Number(snapshot.updated_block)
+  if (Number.isFinite(updatedBlock) && updatedBlock > 0) return blockToDate(updatedBlock).toISOString()
+  return ''
+}
+
+function evaluateQuery(query: string, history: RhTokenHistory): MatchingResults {
+  if (!query.trim() || !history.snapshots) return []
+
+  const fullQuery = `SELECT * FROM tokens WHERE ${query}`
+  let ast: Select
+  try {
+    ast = parser.astify(fullQuery, { database: 'PostgresQL', trimQuery: true, parseOptions: { includeLocations: true } }) as Select
+  } catch (error) {
+    showError(error.message)
+    return []
+  }
+  if (!ast.where) return []
+
+  const allowedFields = new Set(history.allFields)
+  const normalizedWhere = normalizeWhereAst(ast.where, fullQuery)
+  const results: MatchingResults = []
+
+  let line = 1 // first line on XLSX is header
+  for (const snapshot of history.snapshots) {
+    line += 1
+    const { failed: failedConditions } = evaluateWhereClause(normalizedWhere, snapshot, query, allowedFields)
+
+    const currentValues: Map<string, string> = new Map()
+    const orderedFields = Array.from(new Set(
+      failedConditions.flatMap(cond =>
+        Object.keys(snapshot).filter(field => new RegExp(`\\b${field}\\b`).test(cond))
+      )
+    ))
+    for (const field of orderedFields) {
+      if (!currentValues.has(field)) currentValues.set(field, String(snapshot[field]))
+    }
+
+    const timestamp = snapshotTimestamp(snapshot)
+    results.unshift({
+      line,
+      timestamp,
+      time: extractTime(timestamp) || '',
+      date: extractDate(timestamp) || '',
+      mc: Number(snapshot.mc),
+      failedConditions,
+      currentValues
+    })
+  }
+
+  return results
+}
+
+function isFunction(node: any): boolean {
+  return node.type === 'function' || node.type === 'aggr_func'
+}
+
+function evaluateWhereClause(
+  node: Binary | ExpressionValue | ExprList,
+  record: Record<string, any>,
+  originalQuery: string,
+  allowedFields: Set<string>,
+): WhereEvalResult {
+  if (isFunction(node) && String(getFunctionName(node)).toUpperCase() === 'NOT') {
+    const args = getFunctionArgs(node)
+    if (args.length === 1) {
+      const inner = evaluateWhereClause(args[0], record, originalQuery, allowedFields)
+      if (inner.passed) return { passed: false, failed: [extractValueText(node)] }
+      return { passed: true, failed: [] }
+    }
+  }
+
+  if (isFunction(node)) {
+    const value = evaluateExpression(node, record, allowedFields)
+    const passed = value === true
+    return { passed, failed: passed ? [] : [extractValueText(node)] }
+  }
+
+  if (node.type === 'column_ref') {
+    const value = evaluateExpression(node, record, allowedFields)
+    if (isUnsupportedValue(value)) return { passed: true, failed: [] }
+    const passed = isTruthySql(value)
+    return { passed, failed: passed ? [] : [extractValueText(node)] }
+  }
+
+  if (node.type === 'unary_expr' && String((node as any).operator).toUpperCase() === 'NOT') {
+    const inner = evaluateWhereClause((node as any).expr, record, originalQuery, allowedFields)
+    if (inner.passed) {
+      return { passed: false, failed: [extractValueText(node)] }
+    }
+    return { passed: true, failed: [] }
+  }
+
+  if (node.type === 'binary_expr') {
+    const { operator, left, right } = node as Binary
+    const opUpper = String(operator).toUpperCase()
+
+    if (opUpper === 'AND') {
+      const leftRes = evaluateWhereClause(left, record, originalQuery, allowedFields)
+      const rightRes = evaluateWhereClause(right, record, originalQuery, allowedFields)
+      return { passed: leftRes.passed && rightRes.passed, failed: [...leftRes.failed, ...rightRes.failed] }
+    }
+
+    if (opUpper === 'OR') {
+      const leftRes = evaluateWhereClause(left, record, originalQuery, allowedFields)
+      if (leftRes.passed) return { passed: true, failed: [] }
+
+      const rightRes = evaluateWhereClause(right, record, originalQuery, allowedFields)
+      if (rightRes.passed) return { passed: true, failed: [] }
+
+      // instead of returning the whole blob, return the specific failures from both sides
+      return { passed: false, failed: [...leftRes.failed, ...rightRes.failed] }
+    }
+
+    const passed = evaluateBinaryCondition(node as Binary, record, allowedFields)
+    return { passed, failed: passed ? [] : [extractConditionText(node as Binary, originalQuery)] }
+  }
+
+  return { passed: true, failed: [] }
+}
+
+function evaluateBinaryCondition(
+  node: Binary,
+  record: Record<string, any>,
+  allowedFields: Set<string>,
+): boolean {
+  const { operator, left, right } = node
+
+  const leftValue = normalizeNullish(evaluateExpression(left as any, record, allowedFields))
+  const rightValue = evaluateExpression(right as any, record, allowedFields)
+  const opUpper = operator.toUpperCase()
+
+  // if ((node.left as any)?.column?.expr?.value === 'rugcheck_risks')
+  // console.debug({ node, leftValue, operator, rightValue })
+
+  // unsupported fields are ignored (evaluation is truthy)
+  if (isUnsupportedValue(leftValue) || isUnsupportedValue(rightValue)) return true
+
+  // nullish values
+  if (leftValue === undefined || leftValue === null) {
+    if (opUpper === 'IS' && (rightValue === true || rightValue === 'TRUE' || rightValue === false || rightValue === 'FALSE')) return false
+    if (opUpper === 'IS NOT' && (rightValue === true || rightValue === 'TRUE' || rightValue === false || rightValue === 'FALSE')) return true
+    if (opUpper === 'IS' && rightValue === null) return true
+    if (opUpper === 'IS NOT' && rightValue === null) return false
+
+    return opUpper.includes('NULL')
+  }
+
+  if (opUpper === 'BETWEEN' || opUpper === 'NOT BETWEEN') {
+    if (right.type === 'expr_list' && right.value.length === 2) {
+      const min = evaluateExpression(right.value[0], record, allowedFields)
+      const max = evaluateExpression(right.value[1], record, allowedFields)
+      if (isUnsupportedValue(min) || isUnsupportedValue(max)) return true
+
+      const numValue = Number(leftValue)
+      const isBetween = numValue >= Number(min) && numValue <= Number(max)
+      return opUpper === 'BETWEEN' ? isBetween : !isBetween
+    }
+    return false
+  }
+
+  if (opUpper === 'IN' || opUpper === 'NOT IN') {
+    if (right.type === 'expr_list') {
+      const values = right.value.map((v: any) => evaluateExpression(v, record, allowedFields))
+      if (values.some(isUnsupportedValue)) return true
+
+      const isIn = values.includes(leftValue)
+      return opUpper === 'IN' ? isIn : !isIn
+    }
+    return false
+  }
+
+  switch (opUpper) {
+    case '>': return Number(leftValue) > Number(rightValue)
+    case '<': return Number(leftValue) < Number(rightValue)
+    case '>=': return Number(leftValue) >= Number(rightValue)
+    case '<=': return Number(leftValue) <= Number(rightValue)
+    case '=': return leftValue == rightValue
+    case '!=':
+    case '<>': return leftValue != rightValue
+    case 'LIKE': return String(leftValue).includes(String(rightValue).replace(/%/g, ''))
+    case 'NOT LIKE': return !String(leftValue).includes(String(rightValue).replace(/%/g, ''))
+    case '~': return buildJsRegex(String(rightValue)).test(String(leftValue))
+    case '!~': return !buildJsRegex(String(rightValue)).test(String(leftValue))
+    case 'IS': {
+      if (rightValue === true || rightValue === 'TRUE') return normalizeBooleanValue(leftValue) === true
+      if (rightValue === false || rightValue === 'FALSE') return normalizeBooleanValue(leftValue) === false
+      if (rightValue === null) return leftValue === null
+      return false
+    }
+    case 'IS NOT': {
+      if (rightValue === true || rightValue === 'TRUE') return leftValue === null || normalizeBooleanValue(leftValue) !== true
+      if (rightValue === false || rightValue === 'FALSE') return leftValue === null || normalizeBooleanValue(leftValue) !== false
+      if (rightValue === null) return leftValue !== null
+      return false
+    }
+    default:
+      postMessage({ type: 'UNSUPPORTED_FUNCTION', name: opUpper })
+      return true
+  }
+}
+
+function evaluateExpression(
+  node: any,
+  record: Record<string, any>,
+  allowedFields: Set<string>,
+): any {
+  if (!node) return undefined
+
+  if (node.type === 'column_ref') {
+    const key = getNodeValue(node)
+    if (!allowedFields.has(key)) {
+      postMessage({ type: 'UNSUPPORTED_FIELD', name: key })
+      return UNSUPPORTED_ELEMENT
+    }
+    return record[key]
+  }
+
+  if (node.type === 'number' || node.type === 'string' || node.type === 'bool') {
+    return node.value
+  }
+
+  if (node.type === 'null') return null
+
+  if (node.type === 'binary_expr') {
+    const op = String(node.operator).toUpperCase()
+    const leftVal = evaluateExpression(node.left, record, allowedFields)
+    const rightVal = evaluateExpression(node.right, record, allowedFields)
+
+    if (isUnsupportedValue(leftVal) || isUnsupportedValue(rightVal)) return UNSUPPORTED_ELEMENT
+
+    if (['+', '-', '*', '/'].includes(op)) {
+      const l = Number(leftVal)
+      const r = Number(rightVal)
+      if (Number.isNaN(l) || Number.isNaN(r)) return undefined
+      switch (op) {
+        case '+': return l + r
+        case '-': return l - r
+        case '*': return l * r
+        case '/': return r === 0 ? undefined : l / r
+      }
+    }
+
+    return undefined
+  }
+
+  if (node.type === 'unary_expr' && String(node.operator).toUpperCase() === 'NOT') {
+    const inner = evaluateExpression(node.expr, record, allowedFields)
+    if (isUnsupportedValue(inner)) return UNSUPPORTED_ELEMENT
+    return !inner
+  }
+
+  if (node.type === 'expr_list') {
+    return node.value.map((v: any) => evaluateExpression(v, record, allowedFields))
+  }
+
+  if (isFunction(node)) {
+    const fn = String(getFunctionName(node)).toUpperCase()
+    const args = getFunctionArgs(node).map((arg: any) => evaluateExpression(arg, record, allowedFields))
+    if (args.some(isUnsupportedValue)) return UNSUPPORTED_ELEMENT
+    return evaluateSqlFunction(fn, args, record)
+  }
+
+  // Handle casts like uri_content::text
+  if (node.type === 'cast') {
+    const val = evaluateExpression(node.expr, record, allowedFields)
+    return String(val)
+  }
+
+  if ('value' in node) return node.value
+
+  return undefined
+}
+
+function getNodeValue(v: ColumnRef | Value) {
+  return 'value' in v ? v.value : 'column' in v ? typeof v.column === 'string' ? v.column : v.column.expr?.value : String(v)
+}
+
+function extractConditionText(node: Binary, originalQuery: string): string {
+  if (node.type === 'binary_expr') {
+    const { operator, left, right } = node
+    const leftText = extractValueText(left)
+    const rightText = extractValueText(right)
+    return `${leftText} ${operator} ${rightText}`
+  }
+
+  return 'unknown condition'
+}
+
+function extractValueText(node: any): string {
+  if (!node) return 'null'
+  if (node.type === 'column_ref') return getNodeValue(node)
+  if (node.type === 'binary_expr') return `(${extractConditionText(node as Binary, '')})`
+  if (node.type === 'unary_expr' && String(node.operator).toUpperCase() === 'NOT') return `NOT(${extractValueText(node.expr)})`
+  if (isFunction(node)) return extractFunctionText(node)
+  if (node.type === 'cast') return extractCastText(node)
+  if (node.type === 'string') return `'${node.value}'`
+  if (node.type === 'number' || node.type === 'bool') return String(node.value)
+  if (node.type === 'null') return 'NULL'
+  if (node.type === 'expr_list') {
+    return `(${node.value.map((v: any) => extractValueText(v)).join(', ')})`
+  }
+  if (node.type === "single_quote_string" || node.type === "double_quote_string") return `'${String(node.value)}'`
+  return 'value' in node ? String(node.value) : String(node)
+}
+
+function extractCastText(node: any): string {
+  const exprText = extractValueText(node.expr)
+  const typeText = node.target?.dataType || node.target?.name || node.target?.value || 'text'
+  return `${exprText}::${typeText}`
+}
+
+function extractFunctionText(node: any): string {
+  if (isFunction(node)) {
+    const args = getFunctionArgs(node).map((arg: any) => extractValueText(arg)).join(', ') || ''
+    return `${getFunctionName(node)}(${args})`
+  }
+  return ''
+}
+
+function buildJsRegex(pgPattern: string): RegExp {
+  const inlineFlagMatch = pgPattern.match(/^\(\?([imsu]+)\)/)
+  const flags = inlineFlagMatch ? inlineFlagMatch[1] : ''
+  const pattern = inlineFlagMatch ? pgPattern.replace(/^\(\?[imsu]+\)/, '') : pgPattern
+  return new RegExp(pattern, flags)
+}
+
+function normalizeBooleanValue(value: any): boolean | undefined {
+  if (value === true || value === false) return value
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase()
+    if (v === 'true') return true
+    if (v === 'false') return false
+  }
+  return undefined
+}
+
+function isTruthySql(value: any): boolean {
+  const asBool = normalizeBooleanValue(value)
+  if (asBool !== undefined) return asBool
+  if (value === null || value === undefined || value === '') return false
+  if (typeof value === 'number') return value !== 0
+  return Boolean(value)
+}
+
+function normalizeNullish(value: any): any {
+  return value === undefined ? null : value
+}
+
+function getFunctionName(node: any): string {
+  if (typeof node.name === 'string') return node.name
+  if (Array.isArray(node.name?.name)) {
+    const token = node.name.name[0]
+    if (token?.value) return String(token.value)
+  }
+  if (node.name?.name) return node.name.name
+  return String(node.name || '')
+}
+
+function getFunctionArgs(node: any): any[] {
+  const args = node.args
+  if (!args) return []
+  if (Array.isArray(args)) return args
+  if (Array.isArray(args.value)) return args.value
+  if (args.expr) return [args.expr]
+  if (Array.isArray(args.expr?.value)) return args.expr.value
+  return []
+}
+
+function findPrevNonWhitespaceIndex(text: string, startIndex: number): number | undefined {
+  for (let i = Math.min(startIndex, text.length - 1); i >= 0; i--) {
+    if (!/\s/.test(text[i])) return i
+  }
+  return undefined
+}
+
+function findNextNonWhitespaceIndex(text: string, startIndex: number): number | undefined {
+  for (let i = Math.max(0, startIndex); i < text.length; i++) {
+    if (!/\s/.test(text[i])) return i
+  }
+  return undefined
+}
+
+function findMatchingClosingParen(text: string, openParenIndex: number): number | undefined {
+  let depth = 0
+  for (let i = openParenIndex; i < text.length; i++) {
+    const char = text[i]
+    if (char === '(') {
+      depth += 1
+      continue
+    }
+    if (char === ')') {
+      depth -= 1
+      if (depth === 0) return i
+      if (depth < 0) return undefined
+    }
+  }
+  return undefined
+}
+
+// true => explicitly wrapped in outer parentheses
+// false => definitively not wrapped
+// undefined => cannot determine with confidence
+function isExplicitlyParenthesized(node: any, query?: string): boolean | undefined {
+  if (!query || !node?.loc) return undefined
+
+  const startOffset = node?.loc?.start?.offset
+  const endOffset = node?.loc?.end?.offset
+  if (typeof startOffset !== 'number' || typeof endOffset !== 'number') return undefined
+
+  const leftBoundary = findPrevNonWhitespaceIndex(query, startOffset - 1)
+  const rightBoundary = findNextNonWhitespaceIndex(query, endOffset)
+
+  if (leftBoundary === undefined || rightBoundary === undefined) return undefined
+  if (query[leftBoundary] !== '(' || query[rightBoundary] !== ')') return false
+
+  const matchingRight = findMatchingClosingParen(query, leftBoundary)
+  if (matchingRight === undefined) return undefined
+
+  return matchingRight === rightBoundary
+}
+
+// Make sure AND and OR are ordered properly
+function normalizeWhereAst(node: Binary | ExpressionValue | ExprList, query?: string): Binary | ExpressionValue | ExprList {
+  if (!node) return node
+
+  if (node.type === 'unary_expr' && String((node as any).operator).toUpperCase() === 'NOT') {
+    return { ...node, expr: normalizeWhereAst((node as any).expr, query) } as any
+  }
+
+  if (node.type !== 'binary_expr') return node
+
+  const left = normalizeWhereAst((node as Binary).left, query) as any
+  const right = normalizeWhereAst((node as Binary).right, query) as any
+
+  const currentNode = { ...(node as any), left, right } as Binary
+
+  // Fix: parser might produce left-associative tree for mixed AND/OR (treating them as equal precedence).
+  // Standard SQL requires AND to bind tighter than OR.
+  // Structure (A OR B) AND C should become A OR (B AND C) unless explicitly parenthesized.
+  if (
+    String(currentNode.operator).toUpperCase() === 'AND' &&
+    left?.type === 'binary_expr' &&
+    String(left.operator).toUpperCase() === 'OR'
+  ) {
+    // Respect explicit grouping in source and avoid risky rewrites when detection is uncertain.
+    const explicitGrouping = isExplicitlyParenthesized(left, query)
+    if (explicitGrouping === false) {
+      // Rotate tree to fix precedence
+      const A = left.left
+      const B = left.right
+      const C = right
+
+      const newAnd: Binary = {
+        type: 'binary_expr',
+        operator: 'AND',
+        left: B,
+        right: C
+      } as any
+
+      const newOr: Binary = {
+        type: 'binary_expr',
+        operator: 'OR',
+        left: A,
+        right: normalizeWhereAst(newAnd, query) // Recurse on new structure
+      } as any
+
+      return newOr
+    }
+  }
+
+  return currentNode
+}
+
+function evaluateSqlFunction(fn: string, args: any[], record: Record<string, any>): any {
+  if (!SUPPORTED_FUNCTIONS.includes(fn)) {
+    postMessage({ type: 'UNSUPPORTED_FUNCTION', name: fn + '()' })
+    return UNSUPPORTED_ELEMENT
+  }
+  if (fn === 'NOT') return !args[0]
+  // nullif(x, 0) returns null if x is equal to 0
+  if (fn === 'NULLIF') return args[0] == args[1] ? null : args[0]
+  if (fn === 'COALESCE') return args.find((v: any) => v !== null && v !== undefined)
+  if (fn === 'CARDINALITY') {
+    const val = args[0]
+    if (Array.isArray(val)) return val.length
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        if (Array.isArray(parsed)) return parsed.length
+      } catch { }
+    }
+    return null
+  }
+  if (fn === 'LENGTH') return String(args[0] ?? '').length
+  if (fn === 'SUM') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.reduce((acc, n) => acc + n, 0)
+  }
+  if (fn === 'MAX') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.length ? Math.max(...nums) : undefined
+  }
+  if (fn === 'MIN') {
+    const nums = args.map(Number).filter(n => !Number.isNaN(n))
+    return nums.length ? Math.min(...nums) : undefined
+  }
+  if (fn === 'UPPER') return String(args[0] ?? '').toUpperCase()
+  if (fn === 'LOWER') return String(args[0] ?? '').toLowerCase()
+
+  return undefined
+}
+

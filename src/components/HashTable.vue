@@ -272,7 +272,7 @@ import { FilterMatchMode } from 'primevue/api'
 import { prettifyMc } from '../lib'
 import CaLink from './CaLink.vue'
 import InfoButton from './InfoButton.vue'
-import { Call, SolCall } from '@/types/Call'
+import { AnyCall } from '@/types/Call'
 import { useTimezone } from '@/compose/useTimezone'
 import { round } from '../../shared/utils'
 
@@ -285,7 +285,7 @@ const {
   timezone = 'UTC',
   showName = false,
 } = defineProps<{
-  lines: HashInfo<Call | SolCall>[]
+  lines: HashInfo<AnyCall>[]
   filterTemplate: string
   screenerUrl: string
   timezone?: string
@@ -298,7 +298,7 @@ const emit = defineEmits<{
 
 const { formatDate } = useTimezone()
 
-const inspectedHash = ref<HashInfo | null>(null)
+const inspectedHash = ref<HashInfo<AnyCall> | null>(null)
 const tagDropdown = ref<InstanceType<typeof OverlayPanel>>()
 const tagInput = ref()
 const newTag = ref('')
@@ -334,12 +334,12 @@ const addTag = () => {
 
 const getSortablePct = (num: number) => ('' + num * 1000).padStart(4, '0')
 
-let currentData: HashInfo[] = []
+let currentData: HashInfo<AnyCall>[] = []
 // when sorting or searching
-const onDataChange = (data: HashInfo[]) => {
+const onDataChange = (data: HashInfo<AnyCall>[]) => {
   currentData = data
 }
-const selection = ref<HashInfo[]>([])
+const selection = ref<HashInfo<AnyCall>[]>([])
 // when checking rows
 const getSelection = () => (selection.value.length ? selection.value : currentData)
 

@@ -7,6 +7,15 @@ export type SolTokenHistory = {
   snapshots: Record<string, string | number>[]
 }
 
+export type RhTokenHistory = {
+  fileName: string
+  ca: string
+  name: string
+  created: [string, string]
+  allFields: string[]
+  snapshots: Record<string, string | number>[]
+}
+
 export type MatchingResults = {
   line: number,
   mc: number

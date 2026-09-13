@@ -154,7 +154,7 @@ const {
   nbCallsOnHours?: number
   loading: boolean | string
   final: number
-  currency?: 'ETH' | 'SOL'
+  currency?: 'ETH' | 'SOL' | 'USD'
   drawdown: number
   volume: number
   worstDrawdown: [string, number]

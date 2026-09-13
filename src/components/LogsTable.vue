@@ -46,7 +46,7 @@
             :class="['font-bold', log.gain > 0 ? 'text-cyan-300 underline' : 'text-purple-600	']"
             >{{ (log.gain > 0 ? '+' : '') + log.gain }}</span
           >
-          <span class="text-color-secondary"> ETH</span>
+          <span class="text-color-secondary"> {{ chain === 'SOL' ? 'SOL' : 'ETH' }}</span>
           <span v-if="log.hitTp.length">
             (
             {{ log.hitTp.join(' & ') + ' hit' }}
@@ -172,7 +172,7 @@
           <span
             class="flex flex-wrap column-gap-2"
             v-tooltip.right="{
-              value: `${chain === 'ETH' ? 'Launched' : 'Created'} at ${formatDate(
+              value: `${chain === 'SOL' ? 'Created' : 'Launched'} at ${formatDate(
                 data.creation,
                 timezone,
               ).join(' ')}`,
@@ -208,9 +208,7 @@
             <span class="nowrap text-color-secondary"
               >(+{{ data.theoricBlock - data.callBlock }})
             </span>
-            <a :href="'https://etherscan.io/block/' + data.theoricBlock" target="_blank">{{
-              data.theoricBlock
-            }}</a>
+            <a :href="blockExplorer + data.theoricBlock" target="_blank">{{ data.theoricBlock }}</a>
           </div>
         </template>
       </Column>
@@ -277,9 +275,15 @@
       >
         <template #body="{ data }">
           <span
-            :class="['help', { 'text-color-secondary font-italic': data.xs === -99 }]"
+            :class="[
+              'help',
+              {
+                'text-color-secondary font-italic': data.xs === -99,
+                'text-primary': hasAthOverride(data.ca),
+              },
+            ]"
             v-tooltip.top="{
-              value: data.ath + '',
+              value: athTooltip(data),
               showDelay: 500,
             }"
             >{{ prettifyMc(data.ath) }}</span
@@ -366,29 +370,82 @@
         </template>
       </Column>
     </DataTable>
+
+    <Dialog
+      v-model:visible="athDialog.visible"
+      modal
+      header="Correcting the ATH"
+      :style="{ width: '24rem' }"
+      @show="onAthDialogShow"
+    >
+      <form @submit.prevent="saveAthMc">
+        <p class="mt-0 mb-3 text-sm text-color-secondary">
+          <CaLink
+            :name="athDialog.name"
+            :ca="athDialog.ca"
+            :screener-url="screenerUrl"
+            class="mt-2"
+          />
+        </p>
+        <label for="ath-mc-input" class="block mb-2">ATH market cap (USD)</label>
+        <InputGroup class="w-full">
+          <InputNumber
+            v-model="athDialog.value"
+            inputId="ath-mc-input"
+            :min="0"
+            :step="10000"
+            :maxFractionDigits="0"
+            class="w-full"
+            :inputProps="{ autofocus: true }"
+          />
+          <Button
+            icon="pi pi-times"
+            outlined
+            class="text-color-secondary"
+            :disabled="athDialog.value == null"
+            aria-label="Clear"
+            @click="athDialog.value = null"
+          />
+        </InputGroup>
+        <p class="mt-2 mb-0 text-sm text-color-secondary">
+          Saving again updates your value. Clear and save to remove it. Simulations use the average
+          across users.
+        </p>
+        <button type="submit" class="hidden" tabindex="-1">Save</button>
+      </form>
+      <template #footer>
+        <Button label="Cancel" text severity="secondary" @click="athDialog.visible = false" />
+        <Button label="Save" @click="saveAthMc" />
+      </template>
+    </Dialog>
   </section>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, reactive, nextTick } from 'vue'
+import type { ChainId } from '@/types/Call'
 import type { Log } from '@/types/Log'
 import { prettifyMc } from '@/lib'
+import { addAthMc, athSampleCount, getMyAthMc, hasAthOverride } from '@/ath-mc'
 import { FilterMatchMode } from 'primevue/api'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
+import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import DataTable, { type DataTableSortMeta, type DataTableSortEvent } from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
+import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
 import Paginator from 'primevue/paginator'
 import MultiSelect from 'primevue/multiselect'
+import { useToast } from 'primevue/usetoast'
 import vTooltip from 'primevue/tooltip'
 import InfoButton from './InfoButton.vue'
 import CaLink from './CaLink.vue'
 import MenuButton from './MenuButton.vue'
-import { XS_WORTH_OF_ONCHAIN_DATA } from '../constants'
+import { RH_BLOCK_EXPLORER_URL, SOL_BLOCK_EXPLORER_URL, ETH_BLOCK_EXPLORER_URL } from '../constants'
 import { useTimezone } from '@/compose/useTimezone'
 
 const {
@@ -407,15 +464,75 @@ const {
   withDisplaySwitch?: boolean
   withActions?: boolean
   screenerUrl: string
-  chain?: 'ETH' | 'SOL'
+  chain?: ChainId
   timezone?: string
 }>()
 
 const emit = defineEmits<{
   (e: 'ignore', ca: string, state: boolean): void
   (e: 'rug', ca: string, state: boolean): void
+  (e: 'athMc', ca: string, ath: number | null): void
   (e: 'exportXlsx', logs: Log[]): void
 }>()
+
+const toast = useToast()
+const athDialog = reactive({
+  visible: false,
+  ca: '',
+  name: '',
+  value: null as number | null,
+})
+
+function athTooltip(log: Log) {
+  const n = athSampleCount(log.ca)
+  if (!n) return String(log.ath)
+  return `Corrected ATH (average of ${n} user${n === 1 ? '' : 's'}, outliers excluded): ${Math.round(log.ath)}`
+}
+
+function openAthDialog(log: Log) {
+  athDialog.ca = log.ca
+  athDialog.name = log.name
+  athDialog.value = getMyAthMc(log.ca) ?? log.ath
+  athDialog.visible = true
+}
+
+function onAthDialogShow() {
+  nextTick(() => {
+    const input = document.getElementById('ath-mc-input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
+async function saveAthMc() {
+  if (!athDialog.visible || !athDialog.ca) return
+  const raw = athDialog.value
+  const cleared = raw == null
+  const value = cleared ? null : Number(raw)
+  if (!cleared && (!Number.isFinite(value) || (value as number) <= 0)) return
+
+  athDialog.visible = false
+  const { ath, persisted, replaced, removed } = await addAthMc(athDialog.ca, value)
+  emit('athMc', athDialog.ca, ath)
+  const users = athSampleCount(athDialog.ca)
+  const userLabel = users === 1 ? '1 user' : `${users} users`
+  let summary = 'ATH saved'
+  if (!persisted) summary = 'ATH applied this session'
+  else if (removed) summary = 'ATH cleared'
+  else if (replaced) summary = 'ATH updated'
+  let detail =
+    'Could not write src/data/ath-mc.json. Value is used until reload; run locally and commit the file to share it.'
+  if (persisted) {
+    if (ath == null) detail = 'Using ATH from the export'
+    else detail = `Using ${prettifyMc(ath)} (average of ${userLabel})`
+  }
+  toast.add({
+    severity: persisted ? 'success' : 'warn',
+    summary,
+    detail,
+    life: persisted ? 4000 : 10000,
+  })
+}
 
 const textual = defineModel<boolean>('textual', {
   default: false,
@@ -427,9 +544,16 @@ const profitableFilter = ref(false)
 const filteredLogs = computed(() => (profitableFilter.value ? logs.filter(l => l.gain > 0) : logs))
 
 const noBlock = computed(() => chain === 'SOL')
-const noGas = computed(() => chain === 'SOL')
+const noGas = computed(() => chain !== 'ETH')
 const noTaxes = computed(() => chain === 'SOL')
 const canRug = computed(() => chain === 'ETH')
+const blockExplorer = computed(() =>
+  chain === 'RH'
+    ? RH_BLOCK_EXPLORER_URL
+    : chain === 'SOL'
+      ? SOL_BLOCK_EXPLORER_URL
+      : ETH_BLOCK_EXPLORER_URL,
+)
 
 const { formatDate } = useTimezone()
 
@@ -479,14 +603,14 @@ const getActions = (log: Log) => [
     ? [
         log.xs === -99
           ? {
-              label: 'Not rug',
+              label: 'Unset as rug',
               icon: 'pi pi-thumbs-up',
               command: () => {
                 emit('rug', log.ca, false)
               },
             }
           : {
-              label: 'Rug',
+              label: 'Set as rug',
               icon: 'pi pi-thumbs-down',
               command: () => {
                 emit('rug', log.ca, true)
@@ -494,16 +618,21 @@ const getActions = (log: Log) => [
             },
       ]
     : []),
+  {
+    label: 'Correct ATH',
+    icon: 'pi pi-chart-line',
+    command: () => openAthDialog(log),
+  },
   log.ignored
     ? {
-        label: 'Not ignored',
+        label: 'Do not ignore',
         icon: 'pi pi-eye',
         command: () => {
           emit('ignore', log.ca, false)
         },
       }
     : {
-        label: 'Ignored',
+        label: 'Ignore',
         icon: 'pi pi-eye-slash',
         command: () => {
           emit('ignore', log.ca, true)

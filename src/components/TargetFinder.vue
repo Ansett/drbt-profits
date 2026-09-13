@@ -208,7 +208,7 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import type { Call, SolCall } from '@/types/Call'
+import type { AnyCall, ChainId } from '@/types/Call'
 import { getPtNumberInput } from '@/constants'
 import type { ComputationShortResult } from '@/types/ComputationResult'
 import { debounce } from '@/lib'
@@ -222,9 +222,9 @@ const {
   mcRange,
   initialKind = 'MC targets',
 } = defineProps<{
-  chain?: 'ETH' | 'SOL'
+  chain?: ChainId
   data: {
-    calls: Call[] | SolCall[]
+    calls: AnyCall[]
     position: number
     gweiDelta?: number
     prioBySnipes?: [number, number][] | null
@@ -233,6 +233,7 @@ const {
     chainApiKey?: string
     averageSlippage?: number
     realisticEntry?: boolean
+    applySnipeTax?: boolean
   }
   mcRange: [number, number, number]
   xsRange: [number, number, number]
@@ -292,7 +293,7 @@ const selectedtargetKind = computed({
   set: val => emit('update:initialKind', val),
 })
 
-const suffix = computed(() => ' ' + (chain === 'ETH' ? 'Ξ' : '◎'))
+const suffix = computed(() => ' ' + (chain === 'SOL' ? '◎' : 'Ξ'))
 const loading = ref(false)
 const result = ref<ComputationShortResult[]>([])
 const worker = shallowRef<Worker | null>(null)
@@ -300,7 +301,9 @@ const debouncedCompute = debounce(compute, 1000)
 
 onMounted(async () => {
   const WorkerConstructor = (
-    await import(chain === 'ETH' ? '@/worker?worker' : '@/worker-sol?worker')
+    await import(
+      chain === 'ETH' ? '@/worker?worker' : chain === 'RH' ? '@/worker-rh?worker' : '@/worker-sol?worker'
+    )
   ).default
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage
@@ -325,6 +328,8 @@ watch(
     () => data.feeInXs,
     () => data.chainApiKey,
     () => data.averageSlippage,
+    () => data.realisticEntry,
+    () => data.applySnipeTax,
     () => selectedtargetKind.value,
     () => xTargetStart.value,
     () => mcTargetStart.value,
@@ -351,6 +356,8 @@ function compute() {
     position: data.position,
     gweiDelta: data.gweiDelta,
     averageSlippage: data.averageSlippage,
+    realisticEntry: data.realisticEntry,
+    applySnipeTax: data.applySnipeTax,
     prioBySnipes: data.prioBySnipes,
     buyTaxInXs: data.buyTaxInXs,
     feeInXs: data.feeInXs,

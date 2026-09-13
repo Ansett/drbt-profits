@@ -249,7 +249,7 @@ const {
 } = defineProps<{
   initialTp: TakeProfit[]
   autoRedistributeTargets: boolean
-  currency?: 'Ξ' | '◎'
+  currency?: 'Ξ' | '◎' | '$'
   steps: {
     'All Xs': number
     'All amount': number

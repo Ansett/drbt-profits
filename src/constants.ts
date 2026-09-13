@@ -26,7 +26,21 @@ export const INITIAL_TP_SIZE_CODE = -1
 export const ESTIMATED_TIME_FOR_ALCHEMY = 1.3 // s
 export const DEFAULT_SCREENER_URL = 'https://gmgn.ai/eth/token/'
 export const DEFAULT_SOL_SCREENER_URL = 'https://gmgn.ai/sol/token/'
+export const DEFAULT_RH_SCREENER_URL = 'https://gmgn.ai/robinhood/token/'
+export const ETH_BLOCK_EXPLORER_URL = 'https://etherscan.io/block/'
+export const SOL_BLOCK_EXPLORER_URL = 'https://solscan.io/block/'
+export const RH_BLOCK_EXPLORER_URL = 'https://rh-scan.com/block/'
 export const REALISTIC_MAX_XS = 100000
+export const PONS_FEE_BPS = 100
+export const PONS_SNIPE_START_BPS = 9900
+export const PONS_DEFAULT_SNIPE_SECONDS = 3
+export const PONS_SUPPLY = 1_000_000_000
+export const RH_BLOCK_MS = 100
+// Calibrated from ~10 blocks/s around 2026-09-13 (block 37618472).
+export const RH_REF_BLOCK = 37_618_472
+export const RH_REF_TIME_MS = Date.parse('2026-09-13T17:26:00.000Z')
+export const DEFAULT_RH_ETH_PRICE = 2500
+export const RH_ETH_USD_DAYS = 31
 
 // https://etherscan.io/accounts/label/mev-builder?subcatid=undefined&size=100&start=0&col=3&order=desc (transform to lowercase)
 export const BUILDER_ADDYS = [

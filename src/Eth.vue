@@ -171,6 +171,7 @@
               :timezone="state.timezone"
               @ignore="ignoreCa"
               @rug="onRug"
+              @athMc="onAthMc"
               @exportXlsx="exportXlsx"
             />
           </AccordionTab>
@@ -709,6 +710,7 @@
       }"
       @closed="showDiff = false"
       @ignore="ignoreCa"
+      @athMc="onAthMc"
     />
 
     <ScatterDialog v-if="showAccuracy" :data="accuracyLogs" @closed="showAccuracy = false" />
@@ -758,10 +760,12 @@ import type { AccuracyLog, Log } from './types/Log'
 import type { TakeProfit } from './types/TakeProfit'
 import type { HashInfo } from './types/HashInfo'
 import LogsTable from './components/LogsTable.vue'
+import { applyAthOverrides, athMcReady, patchCallAth } from './ath-mc'
 import TargetFinder from './components/TargetFinder.vue'
 import TimingFinder from './components/TimingFinder.vue'
 import {
   DEFAULT_GAS_USED,
+  DEFAULT_RH_ETH_PRICE,
   DEFAULT_SCREENER_URL,
   getPtNumberInput,
   INITIAL_TP_SIZE_CODE,
@@ -936,13 +940,15 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
       nbBribes: row[indexes.Bribes] as number,
       lp: row[indexes.LP_CRT] as number,
       block: row[indexes.Block] as number,
-      ethPrice: indexes.ETHPrice > -1 ? (row[indexes.ETHPrice] as number) : 3500,
+      ethPrice: indexes.ETHPrice > -1 ? (row[indexes.ETHPrice] as number) : DEFAULT_RH_ETH_PRICE,
       ignored: state.blackList.includes(ca),
       decimals: (row[indexes.Decimals] as number) || 18,
       lpVersion: (row[indexes.LPVersion] as number) || 2,
     })
   }
 
+  await athMcReady
+  newCalls = applyAthOverrides(newCalls)
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   const newArchive = { calls: newCalls, fileName, rows, caColumn: indexes.CA }
   current.value = newArchive
@@ -1123,6 +1129,12 @@ const ignoreCa = (ca: string, isIgnored: boolean) => {
       ...call,
       ignored: ca === call.ca ? isIgnored : call.ignored,
     }))
+  }
+}
+
+const onAthMc = (ca: string, ath: number | null) => {
+  for (const archive of archives.value) {
+    archive.calls = archive.calls.map(call => patchCallAth(call, ca, ath))
   }
 }
 

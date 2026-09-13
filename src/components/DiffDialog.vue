@@ -75,7 +75,7 @@
             :volume="common.stats.volume"
             :counters="left.stats.counters"
             :nbCalls="left.stats.logs.length"
-            :currency="chain"
+            :currency="chain === 'RH' ? 'ETH' : chain"
           />
 
           <LogsTable
@@ -90,6 +90,7 @@
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Left')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
+            @athMc="(ca, ath) => $emit('athMc', ca, ath)"
           />
         </template>
       </Card>
@@ -116,7 +117,7 @@
             :volume="common.stats.volume"
             :counters="right.stats.counters"
             :nbCalls="right.stats.logs.length"
-            :currency="chain"
+            :currency="chain === 'RH' ? 'ETH' : chain"
           />
 
           <LogsTable
@@ -131,6 +132,7 @@
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Right')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
+            @athMc="(ca, ath) => $emit('athMc', ca, ath)"
           />
         </template>
       </Card>
@@ -156,7 +158,7 @@
             :volume="common.stats.volume"
             :counters="common.stats.counters"
             :nbCalls="common.stats.logs.length"
-            :currency="chain"
+            :currency="chain === 'RH' ? 'ETH' : chain"
           />
 
           <LogsTable
@@ -171,6 +173,7 @@
             class="mt-3"
             @exportXlsx="exportXlsx($event, 'Intersection')"
             @ignore="(ca, state) => $emit('ignore', ca, state)"
+            @athMc="(ca, ath) => $emit('athMc', ca, ath)"
           />
         </template>
       </Card>
@@ -195,18 +198,17 @@ import Dropdown from 'primevue/dropdown'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import vTooltip from 'primevue/tooltip'
-import { type CallDiff, type CallArchive } from '@/types/Call'
+import type { AnyCall, CallArchive, CallDiff, ChainId } from '@/types/Call'
 import { getRowsCorrespondingToLogs, sleep, downloadRowsXlsx } from '@/lib'
 import Statistics from './Statistics.vue'
 import type { ComputationResult } from '@/types/ComputationResult'
 import LogsTable from './LogsTable.vue'
-import type { Call, SolCall } from '@/types/Call'
 import { ComputeVariant } from '@/types/ComputeVariant'
 import type { Log } from '@/types/Log'
 
 type DiffPart = {
-  archive: CallArchive | CallArchive<SolCall>
-  diff: Call[] | SolCall[]
+  archive: CallArchive<AnyCall>
+  diff: AnyCall[]
   loading: boolean
   stats: ComputationResult
 }
@@ -219,10 +221,10 @@ const {
   chain = 'ETH',
   timezone = 'UTC',
 } = defineProps<{
-  archives: CallArchive[] | CallArchive<SolCall>[]
-  current: CallArchive | CallArchive<SolCall>
+  archives: CallArchive<AnyCall>[]
+  current: CallArchive<AnyCall>
   screenerUrl: string
-  chain?: 'ETH' | 'SOL'
+  chain?: ChainId
   timezone?: string
 
   computingParams: {
@@ -236,6 +238,7 @@ const {
     withPriceImpact?: boolean
     averageSlippage?: number
     realisticEntry?: boolean
+    applySnipeTax?: boolean
     timeOnCreation?: boolean
     week?: Array<boolean | null>
     hours?: boolean[][]
@@ -248,8 +251,8 @@ const logsColumns = defineModel<string[]>('logsColumns', {
 
 const emit = defineEmits<{
   (e: 'closed'): void
-  (e: 'closed'): void
   (e: 'ignore', ca: string, state: boolean): void
+  (e: 'athMc', ca: string, ath: number | null): void
 }>()
 
 const currentIndex = archives.findIndex(a => a.fileName === current.fileName)
@@ -324,7 +327,9 @@ const worker = shallowRef<Worker | null>(null)
 
 onMounted(async () => {
   const WorkerConstructor = (
-    await import(chain === 'ETH' ? '@/worker?worker' : '@/worker-sol?worker')
+    await import(
+      chain === 'ETH' ? '@/worker?worker' : chain === 'RH' ? '@/worker-rh?worker' : '@/worker-sol?worker'
+    )
   ).default
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage

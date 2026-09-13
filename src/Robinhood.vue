@@ -85,16 +85,6 @@
                       <span class="material-symbols-outlined cursor-pointer">difference</span>
                     </template>
                   </Button>
-                  <!-- Wallets special button -->
-                  <Button
-                    v-if="canSeeWallets"
-                    icon="pi pi-wallet"
-                    aria-label="Wallets analysis"
-                    outlined
-                    severity="primary"
-                    class="mx-1"
-                    @click="showWalletsView()"
-                  />
                 </InputGroup>
               </template>
               <template v-else>
@@ -142,7 +132,7 @@
               :loading="loading"
               info
               :final="finalWorth"
-              currency="SOL"
+              currency="ETH"
               :drawdown="drawdown"
               :volume="volume"
               :worstDrawdown="worstDrawdown"
@@ -167,7 +157,7 @@
               v-model:selectedColumns="state.logsColumns"
               withDisplaySwitch
               withActions
-              chain="SOL"
+              chain="RH"
               :screener-url="state.screenerUrl"
               :timezone="state.timezone"
               @ignore="ignoreCa"
@@ -180,12 +170,14 @@
           <!-- TARGETS -->
           <AccordionTab header="TARGET SIMULATOR" :pt="{ content: { class: 'p-0' } }">
             <TargetFinder
-              chain="SOL"
+              chain="RH"
               :data="{
                 calls,
                 position: state.position,
                 averageSlippage: state.extraSlippage,
                 realisticEntry: state.realisticEntry,
+                applySnipeTax: state.applySnipeTax,
+                buyTaxInXs: state.buyTaxInXs,
               }"
               v-model:xsRange="state.xsRange"
               v-model:mcRange="state.mcRange"
@@ -203,28 +195,28 @@
             />
           </AccordionTab>
 
-          <!-- PROGRAMS -->
-          <AccordionTab header="PROGRAM IDS" :pt="{ content: { class: 'p-0' } }">
+          <!-- QUOTE SYMBOLS -->
+          <AccordionTab header="QUOTE SYMBOLS" :pt="{ content: { class: 'p-0' } }">
             <HashTable
-              :lines="programsWithTags"
-              filter-template="program_ids::text !~ '({})'"
+              :lines="quotesWithTags"
+              filter-template="quote_symbol !~ '({})'"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
               :timezone="state.timezone"
+              show-name
               @removeTag="removeTag"
               @addTag="addTag"
             />
           </AccordionTab>
 
-          <!-- URI IMAGES -->
-          <AccordionTab header="URI IMAGES" :pt="{ content: { class: 'p-0' } }">
+          <!-- DEPLOYERS -->
+          <AccordionTab header="DEPLOYERS" :pt="{ content: { class: 'p-0' } }">
             <HashTable
-              :lines="uriImagesWithTags"
-              filter-template="(uri_content::text IS NULL OR uri_content::text !~ '({})')"
+              :lines="deployersWithTags"
+              filter-template="deployer !~ '({})'"
               v-model:selectedColumns="state.hashColumns"
               :screener-url="state.screenerUrl"
               :timezone="state.timezone"
-              showName
               @removeTag="removeTag"
               @addTag="addTag"
             />
@@ -329,12 +321,12 @@
                 v-bind="{ id: 'position-input' }"
                 showButtons
                 buttonLayout="stacked"
-                suffix=" ◎"
-                :min="0.1"
+                suffix=" Ξ"
+                :min="0.005"
                 mode="decimal"
-                :step="0.1"
+                :step="0.005"
                 :minFractionDigits="0"
-                :maxFractionDigits="1"
+                :maxFractionDigits="3"
                 :pt="getPtNumberInput()"
                 class="settingInput"
                 style="height: 4rem"
@@ -348,12 +340,12 @@
           v-model:takeProfits="state.takeProfits"
           v-model:autoRedistributeTargets="state.autoRedistributeTargets"
           :initial-tp="INIT_TP"
-          currency="◎"
+          currency="Ξ"
           :whenError="errorMessage"
           :steps="{
             'All Xs': 0.5,
-            'All amount': 1,
-            'All MC': 1000,
+            'All amount': 0.1,
+            'All MC': 10000,
           }"
         />
 
@@ -368,8 +360,8 @@
             </div>
             <div v-if="state.withHours" class="flex gap-2 pt-1">
               <InputSwitch v-model="state.timeOnCreation" inputId="snapshot-time" />
-              <label for="snapshot-time" class="white-space-nowrap">Use created_at</label>
-              <InfoButton :text="`Use created_at instead of snapshot_at`" direction="bottom" />
+              <label for="snapshot-time" class="white-space-nowrap">Use launch time</label>
+              <InfoButton :text="`Use launch time instead of snapshot time`" direction="bottom" />
             </div>
           </div>
 
@@ -492,7 +484,7 @@
           </div>
           <!-- MIN CALLS -->
           <div class="flex flex-column gap-2">
-            <label for="mincalls-input">Minimum for IDs/URIs</label>
+            <label for="mincalls-input">Minimum for quotes/deployers</label>
             <InputGroup>
               <InputGroupAddon>
                 <i class="pi pi-megaphone"></i>
@@ -536,6 +528,24 @@
             <label for="realistic" class="white-space-nowrap">Realistic entry</label>
             <InfoButton
               text="If activated, considered entry entry_mc with the configured delay, rather than call price"
+              class="align-self-start"
+            />
+          </div>
+          <!-- SNIPE TAX -->
+          <div class="flex gap-2 pt-5">
+            <InputSwitch v-model="state.applySnipeTax" inputId="snipe-tax" />
+            <label for="snipe-tax" class="white-space-nowrap">Anti-snipe tax</label>
+            <InfoButton
+              text="Apply the decaying launch-window snipe tax when age_s is still inside snipe_tax_seconds (usually 3s, starting at 99%)"
+              class="align-self-start"
+            />
+          </div>
+          <!-- TARGETS INCLUDE TAX -->
+          <div class="flex gap-2 pt-5">
+            <InputSwitch v-model="state.buyTaxInXs" inputId="tax-in-xs" />
+            <label for="tax-in-xs" class="white-space-nowrap">Targets include tax</label>
+            <InfoButton
+              text="A 10x take-profit is wallet ROI after the buy fee (1% protocol + creator tax + snipe tax). Chart multiples are higher because fees come off the quote you spend."
               class="align-self-start"
             />
           </div>
@@ -590,12 +600,14 @@
       :archives="archives"
       :current="current"
       :screener-url="state.screenerUrl"
-      chain="SOL"
+      chain="RH"
       :computingParams="{
         position: state.position,
         takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
         averageSlippage: state.extraSlippage,
         realisticEntry: state.realisticEntry,
+        applySnipeTax: state.applySnipeTax,
+        buyTaxInXs: state.buyTaxInXs,
         timeOnCreation: state.timeOnCreation,
         week: state.withHours ? state.week : undefined,
         hours: state.withHours ? state.hours : undefined,
@@ -608,11 +620,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import FileUpload, { type FileUploadSelectEvent } from 'primevue/fileupload'
-import { CallArchive, SolCall } from './types/Call'
-import { DEFAULT_SOL_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE } from './constants'
+import { CallArchive, RhCall } from './types/Call'
+import { DEFAULT_RH_SCREENER_URL, getPtNumberInput, INITIAL_TP_SIZE_CODE } from './constants'
+import { applyBinanceEthUsd, fetchEthUsdDaily, type EthUsdByDay } from './eth-usd'
 import Toast from 'primevue/toast'
 import DiffDialog from './components/DiffDialog.vue'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -632,12 +645,11 @@ import {
   getHeaderIndexes,
   getRowsCorrespondingToLogs,
   localStorageGetObject,
-  localStorageSetObject,
   sleep,
   downloadDataUrl,
   getTextFileContent,
 } from './lib'
-import { rawRowsToSolCalls } from '../shared/sol-compute'
+import { parseRhRow, rawRowsToRhCalls } from '../shared/rh-compute'
 import { applyAthOverrides, athMcReady, patchCallAth } from './ath-mc'
 import { TakeProfit } from './types/TakeProfit'
 import Statistics from './components/Statistics.vue'
@@ -651,8 +663,6 @@ import { HashInfo } from './types/HashInfo'
 import HashTable from './components/HashTable.vue'
 import TimingFinder from './components/TimingFinder.vue'
 import { ComputationResult } from './types/ComputationResult'
-import { useRouter } from 'vue-router'
-import { STORAGE_KEY } from './storage'
 import { useTimezone } from './compose/useTimezone'
 import TriStateCheckbox from 'primevue/tristatecheckbox'
 import Checkbox from 'primevue/checkbox'
@@ -660,9 +670,7 @@ import InputSwitch from 'primevue/inputswitch'
 import InfoButton from './components/InfoButton.vue'
 import OverlayPanel from 'primevue/overlaypanel'
 import { useSettings } from './compose/useSettings'
-import { RawSolRow, SOL_HEADERS } from '../shared/types'
-
-const router = useRouter()
+import { RH_HEADERS, RH_OPTIONAL_HEADERS, type RawRhRow } from '../shared/types'
 
 const error = ref('')
 const loading = ref<string | boolean>(false)
@@ -689,27 +697,27 @@ const counters = ref<ComputationResult['counters']>({
   x2: 0,
 })
 
-const archives = ref<CallArchive<SolCall>[]>([])
-const current = ref<CallArchive<SolCall> | null>(null)
+const archives = ref<CallArchive<RhCall>[]>([])
+const current = ref<CallArchive<RhCall> | null>(null)
 const removeArchive = (index: number) => {
   if (archives.value[index].fileName === current.value?.fileName)
     current.value = archives.value[index - 1] || null
   archives.value.splice(index, 1)
 }
 
-const INIT_POSITION = 0.5
+const INIT_POSITION = 0.01
 // prettier-ignore
 const INIT_TP = [
-  { "size": INITIAL_TP_SIZE_CODE, "xs": 10, "withXs": false, "mc": 50000, "withMc": false, "amount": 10, "withAmount": false, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 50, "withXs": true, "mc": 100000, "withMc": false, "amount": 50, "withAmount": false, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 50, "withXs": false, "mc": 500000, "withMc": true, "amount": 75, "withAmount": false, "andLogic": true },
-  { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 1000000, "withMc": true, "amount": 100, "withAmount": false, "andLogic": false }
+  { "size": INITIAL_TP_SIZE_CODE, "xs": 10, "withXs": false, "mc": 50000, "withMc": false, "amount": 0.5, "withAmount": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 50, "withXs": true, "mc": 100000, "withMc": false, "amount": 2.5, "withAmount": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 50, "withXs": false, "mc": 500000, "withMc": true, "amount": 5, "withAmount": false, "andLogic": true },
+  { "size": 33.333333333333336, "xs": 100, "withXs": true, "mc": 1000000, "withMc": true, "amount": 10, "withAmount": false, "andLogic": false }
 ] as TakeProfit[]
 const INIT_FULL_STATS = false
 const INIT_AUTO_REDISTRIBUTE = true
 const INIT_TEXT_LOGS = false
 const INIT_LOGS_COLUMNS = ['Entry MC', 'ATH MC']
-const INIT_SCREENER_URL = DEFAULT_SOL_SCREENER_URL
+const INIT_SCREENER_URL = DEFAULT_RH_SCREENER_URL
 const INIT_HASH_COLUMNS = ['Count', 'Average', 'x100', 'ATH', 'Tags']
 const INIT_MIN_CALLS = 10
 const INIT_TIMEZONE = 'UTC'
@@ -727,11 +735,13 @@ const INIT_HOURS = [
 ];
 const INIT_EXTRA_SLIPPAGE = 0
 const INIT_TIME_ON_CREATION = false
-const INIT_XS_RANGE = [1, 1, 10] as [number, number, number]
+const INIT_XS_RANGE = [1, 1, 100] as [number, number, number]
 const INIT_MC_RANGE = [10000, 10000, 2000000] as [number, number, number]
-const INIT_AMOUNT_RANGE = [10, 10, 200] as [number, number, number]
+const INIT_AMOUNT_RANGE = [1, 1, 20] as [number, number, number]
 const INIT_INITIAL_KIND = 'Xs targets' as 'Xs targets' | 'Amount targets' | 'MC targets'
 const INIT_REALISTIC_ENTRY = true
+const INIT_APPLY_SNIPE_TAX = true
+const INIT_BUY_TAX_IN_XS = true
 
 const state = reactive({
   position: INIT_POSITION,
@@ -756,6 +766,8 @@ const state = reactive({
   amountRange: INIT_AMOUNT_RANGE,
   initialKind: INIT_INITIAL_KIND,
   realisticEntry: INIT_REALISTIC_ENTRY,
+  applySnipeTax: INIT_APPLY_SNIPE_TAX,
+  buyTaxInXs: INIT_BUY_TAX_IN_XS,
 })
 const isSticky = ref(false)
 
@@ -817,49 +829,38 @@ const exportXlsx = async (logs: Log[]) => {
 
 const selectedFile = computed(() => current.value?.fileName || '')
 const calls = computed(() => current.value?.calls || [])
+const ethUsdByDay = ref<EthUsdByDay>({})
+
+function stampEthUsd(callsToStamp: RhCall[]) {
+  applyBinanceEthUsd(callsToStamp, ethUsdByDay.value)
+}
 
 function parseRows(
   rows: (string | number | Date)[][],
-): { rawRows: RawSolRow[]; caColumn: number } | null {
+): { rawRows: RawRhRow[]; caColumn: number } | null {
   if (rows.length <= 1) return null
 
-  const indexes = getHeaderIndexes(rows[0], SOL_HEADERS, message => {
-    error.value = message
-  })
+  const indexes = getHeaderIndexes(
+    rows[0],
+    RH_HEADERS,
+    message => {
+      error.value = message
+    },
+    RH_OPTIONAL_HEADERS,
+  )
 
   if (!indexes) return null
 
-  const rawRows: RawSolRow[] = []
+  const rawRows: RawRhRow[] = []
   for (const rowIndex in rows) {
     if (!rowIndex || rowIndex === '0') continue
 
-    const row = rows[rowIndex]
-    const mint = row[indexes.mint] as string
-    const snapshot_at = row[indexes.snapshot_at] as Date
-    if (!snapshot_at || !mint) continue
-
-    rawRows.push({
-      mint,
-      snapshot_at,
-      created_at: row[indexes.created_at] as Date,
-      name: row[indexes.name] as string,
-      post_ath: row[indexes.post_ath] as string,
-      xs: row[indexes.xs] as string,
-      total_supply: row[indexes.total_supply] as number,
-      mc: row[indexes.mc] as number,
-      entry_mc: row[indexes.entry_mc] as number,
-      current_ath_mc: row[indexes.current_ath_mc] as number,
-      lp_sol_launch: row[indexes.lp_sol_launch] as number,
-      sol_price: row[indexes.sol_price] as number,
-      launched_slot: row[indexes.launched_slot] as number,
-      current_ath_slot: row[indexes.current_ath_slot] as number,
-      program_ids: row[indexes.program_ids] as string,
-      lp_ratio: row[indexes.lp_ratio] as number,
-      uri_content: row[indexes.uri_content] as string,
-    })
+    const parsed = parseRhRow(rows[rowIndex], indexes)
+    if (!parsed) continue
+    rawRows.push(parsed)
   }
 
-  return { rawRows, caColumn: indexes.mint }
+  return { rawRows, caColumn: indexes.ca }
 }
 
 async function storeData(rows: (string | number | Date)[][], fileName: string) {
@@ -867,7 +868,8 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   if (!parsed) return
 
   await athMcReady
-  const newCalls = applyAthOverrides(rawRowsToSolCalls(parsed.rawRows, state.blackList))
+  const newCalls = applyAthOverrides(rawRowsToRhCalls(parsed.rawRows, state.blackList))
+  stampEthUsd(newCalls)
   newCalls.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
   const newArchive = { calls: newCalls, fileName, rows, caColumn: parsed.caColumn }
   current.value = newArchive
@@ -889,6 +891,8 @@ const runCompute = async () => {
     takeProfits: JSON.parse(JSON.stringify(state.takeProfits)),
     averageSlippage: state.extraSlippage,
     realisticEntry: state.realisticEntry,
+    applySnipeTax: state.applySnipeTax,
+    buyTaxInXs: state.buyTaxInXs,
     timeOnCreation: state.timeOnCreation,
     week: state.withHours ? JSON.parse(JSON.stringify(state.week)) : undefined,
     hours: state.withHours ? JSON.parse(JSON.stringify(state.hours)) : undefined,
@@ -907,6 +911,8 @@ watch(
     () => state.takeProfits,
     () => state.extraSlippage,
     () => state.realisticEntry,
+    () => state.applySnipeTax,
+    () => state.buyTaxInXs,
     () => state.timeOnCreation,
     () => state.withHours,
     () => state.week,
@@ -933,7 +939,7 @@ const {
   deleteSettingsSet,
   getLastSettingsName,
   setLastSettingsName,
-} = useSettings('sol-settings')
+} = useSettings('rh-settings')
 
 const saveSettingsPanel = ref<InstanceType<typeof OverlayPanel>>()
 const settingsNameInput = ref()
@@ -1123,7 +1129,7 @@ const importState = async (event: FileUploadSelectEvent) => {
   }
 }
 
-const buyInfo = `Final wallet worth, starting from 0.<ul><li>Buy calculations: Investing selected max bag with some slippage.</li><li>Sell calculations: price impact is removed from each sale.</li><li>Investment is counted as a loss if not reaching targets.</li><li>Each sale's date is guessed from sale MC vs. ATH MC ratio: on a 1 month 4m MC token, selling at 1m means selling after 1 week.</li></ul>`
+const buyInfo = `Final wallet worth, starting from 0 ETH. Bag is converted to USD with that day's ETH quote, so NVDA/USDG quotes still compute. Results are shown back in ETH.<ul><li>Pons V2 bonded launches: selected ETH bag, minus the 1% Pons protocol fee, the token's creator tax, optional decaying anti-snipe tax, extra slippage, and curve/pool price impact. A buy that would finish a nearly full curve is capped to remaining capacity. Sells take the same 1% + creator tax on quote received, plus price impact.</li><li>Direct Uniswap V4 deploys: no Pons fee and no anti-snipe tax. Creator tax still applies if the export has one, plus extra slippage and pool impact.</li><li>Investment is counted as a loss if not reaching targets.</li><li>Each sale's date is guessed from sale MC vs. ATH MC ratio.</li></ul>`
 
 const worker = shallowRef<Worker | null>(null)
 onMounted(async () => {
@@ -1133,8 +1139,9 @@ onMounted(async () => {
 
   if (stored) {
     applyState(stored)
+    saveSettingsSet(lastName, JSON.parse(JSON.stringify(state)))
   } else {
-    const legacyState = localStorageGetObject('state-sol-a')
+    const legacyState = localStorageGetObject('state-rh-a')
     if (legacyState) {
       applyState(legacyState)
     }
@@ -1145,11 +1152,19 @@ onMounted(async () => {
 
   initialized.value = true
 
-  const WorkerConstructor = (await import('@/worker-sol?worker')).default
+  const WorkerConstructor = (await import('@/worker-rh?worker')).default
   worker.value = new WorkerConstructor()
   worker.value!.onmessage = handleWorkerMessage
   worker.value!.onerror = ({ message }) => {
     error.value = message
+  }
+
+  try {
+    ethUsdByDay.value = await fetchEthUsdDaily()
+    for (const archive of archives.value) stampEthUsd(archive.calls)
+    if (calls.value.length) debouncedCompute()
+  } catch {
+    // Keep the fallback when Binance is unreachable.
   }
 })
 
@@ -1164,8 +1179,8 @@ async function handleWorkerMessage({ data }: any) {
     worstDrawdown.value = data.worstDrawdown
     counters.value = data.counters
     logs.value = data.logs
-    programs.value = data.programs
-    uriImages.value = data.uriImages
+    quotes.value = data.quotes
+    deployers.value = data.deployers
     loading.value = false
   }
 }
@@ -1182,38 +1197,16 @@ const onUpload = async (event: FileUploadSelectEvent) => {
 }
 
 const { localTags, removeTag, addTag } = useTags()
-const programs = ref<Record<string, HashInfo<SolCall>>>({})
-const programsWithTags = computed<HashInfo<SolCall>[]>(() =>
-  addTagsToHashes(programs.value, localTags.value, state.minCallsForHash),
+const quotes = ref<Record<string, HashInfo<RhCall>>>({})
+const quotesWithTags = computed<HashInfo<RhCall>[]>(() =>
+  addTagsToHashes(quotes.value, localTags.value, state.minCallsForHash),
 )
-const uriImages = ref<Record<string, HashInfo<SolCall>>>({})
-const uriImagesWithTags = computed<HashInfo<SolCall>[]>(() =>
-  addTagsToHashes(uriImages.value, localTags.value, state.minCallsForHash),
+const deployers = ref<Record<string, HashInfo<RhCall>>>({})
+const deployersWithTags = computed<HashInfo<RhCall>[]>(() =>
+  addTagsToHashes(deployers.value, localTags.value, state.minCallsForHash),
 )
 
 const { timezoneOptions } = useTimezone()
-
-const canSeeWallets = ref(false)
-try {
-  canSeeWallets.value =
-    !!localStorage.getItem(STORAGE_KEY.WALLET_FEATURE) ||
-    router.currentRoute.value.query.wallets !== undefined
-} catch (e) {
-  console.error(`Failed to parse ${STORAGE_KEY.WALLET_FEATURE} storage data:`, e)
-}
-
-const showWalletsView = () => {
-  const mooners = logs.value
-    .filter(log => !log.flag && log.xs >= 50) // remove ignored CAs or below 100x
-    .sort((a, b) => b.xs - a.xs)
-    .slice(0, 50)
-    .map(log => ({ ca: log.ca, xs: Math.round(log.xs), name: log.name }))
-
-  localStorage.setItem(STORAGE_KEY.MOONERS_NEW, JSON.stringify(mooners))
-
-  const route = router.resolve('/wallets')
-  window.open(route.href, '_blank')
-}
 </script>
 
 <style scoped>

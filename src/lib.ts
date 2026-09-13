@@ -1,5 +1,5 @@
 import writeXlsxFile from 'write-excel-file'
-import type { Call, CallArchive, CallExportType, RowsForExport, SolCall } from './types/Call'
+import type { AnyCall, Call, CallArchive, CallExportType, RowsForExport } from './types/Call'
 import type { HashInfo } from './types/HashInfo'
 import type { AccuracyLog, Log } from './types/Log'
 import type { ToastServiceMethods } from 'primevue/toastservice'
@@ -110,7 +110,7 @@ export function localStorageGetObject(key: string): Record<string, any> | null {
   return null
 }
 
-export function addTagsToHashes<C extends Call | SolCall = Call>(
+export function addTagsToHashes<C extends AnyCall = Call>(
   hashes: Record<string, HashInfo<C>>,
   tags: Record<string, string[]> | null,
   minCallsCount: number,
@@ -334,19 +334,21 @@ export function drbtSetRug(ca: string, state: boolean, apiKey: string, toast: To
 export const getHeaderIndexes = <T extends string>(
   header: (string | number | Date)[],
   names: T[],
-  onFail: (message: string) => void
+  onFail: (message: string) => void,
+  optional: readonly T[] = [],
 ): Record<T, number> | null => {
   const indexes = {} as Record<T, number>
+  const optionalSet = new Set<string>(optional)
 
   for (const name of names) {
     const allIndexes = header.flatMap((h, i) => (h === name ? i : []))
     if (!allIndexes.length) {
-      if (name !== 'entry_mc') {
-        onFail(`${name} header not found`)
-        return null
+      if (name === 'entry_mc' || optionalSet.has(name)) {
+        indexes[name] = -1
+        continue
       }
-      indexes[name] = -1
-      continue
+      onFail(`${name} header not found`)
+      return null
     }
 
     // if the same header is present multiple time in sheet, take the last one
@@ -356,7 +358,7 @@ export const getHeaderIndexes = <T extends string>(
   return indexes
 }
 
-export function initHash(id: string) {
+export function initHash<C extends AnyCall = Call>(id: string): HashInfo<C> {
   return {
     id,
     tags: [],

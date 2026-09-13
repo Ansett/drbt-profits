@@ -1,5 +1,3 @@
-import type { Call, SolCall } from './types.js'
-
 export function extractDate(rawDate: string): string {
   const [date] = rawDate.split(/[T ]/)
   return date
@@ -10,7 +8,10 @@ export function round(num: number, decimals = 2): number {
   return Math.round(num * multiplicator) / multiplicator
 }
 
-export function getSaleDate(call: Call | SolCall, saleMc: number): string {
+export function getSaleDate(
+  call: { athDelayHours: number; ath: number; date: string },
+  saleMc: number,
+): string {
   const saleDelayHours = (call.athDelayHours / call.ath) * saleMc
   const saleDate = new Date(call.date)
   saleDate.setTime(saleDate.getTime() + saleDelayHours * 60 * 60 * 1000)
