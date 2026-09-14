@@ -279,7 +279,7 @@
               'help',
               {
                 'text-color-secondary font-italic': data.xs === -99,
-                'text-primary': hasAthOverride(data.ca),
+                'text-green-400': hasAthOverride(data.ca),
               },
             ]"
             v-tooltip.top="{
@@ -485,8 +485,8 @@ const athDialog = reactive({
 
 function athTooltip(log: Log) {
   const n = athSampleCount(log.ca)
-  if (!n) return String(log.ath)
-  return `Corrected ATH (average of ${n} user${n === 1 ? '' : 's'}, outliers excluded): ${Math.round(log.ath)}`
+  if (!n) return String(Math.round(log.ath))
+  return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${Math.round(log.ath)}`
 }
 
 function openAthDialog(log: Log) {
