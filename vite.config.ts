@@ -1,10 +1,11 @@
 import { fileURLToPath, URL } from 'node:url'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
-import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from 'vite'
+import { defineConfig, loadEnv, type Plugin, type PluginOption, type ViteDevServer } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { USER_ID_RE, caKey, upsertAthMc } from './shared/ath-mc-file'
+import { fetchAthMc, parseAthLookupChain } from './shared/ath-lookup'
 
 const ATH_MC_FILE = fileURLToPath(new URL('./data/ath-mc.json', import.meta.url))
 
@@ -28,7 +29,42 @@ async function writeAthMcFile(data: unknown) {
 
 function athMcFilePlugin(): Plugin {
   const attach = (server: ViteDevServer) => {
+    const env = loadEnv(server.config.mode, process.cwd(), '')
+    if (env.GMGN_API_KEY) process.env.GMGN_API_KEY = env.GMGN_API_KEY
+
     server.middlewares.use('/api/ath-mc', (req, res, next) => {
+      const path = (req.url || '').split('?')[0]
+      if (path === '/lookup' || path.endsWith('/lookup')) {
+        if (req.method !== 'GET') {
+          next()
+          return
+        }
+        const query = new URL(req.url || '', 'http://localhost').searchParams
+        const chain = parseAthLookupChain(query.get('chain'))
+        const ca = (query.get('ca') || '').trim()
+        if (!chain || !ca) {
+          res.statusCode = 400
+          res.end('chain and ca are required')
+          return
+        }
+        fetchAthMc(chain, ca)
+          .then(result => {
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify(result))
+          })
+          .catch(error => {
+            res.statusCode = 502
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: error instanceof Error ? error.message : 'lookup failed' }))
+          })
+        return
+      }
+
+      if (path && path !== '/' && path !== '') {
+        next()
+        return
+      }
+
       if (req.method === 'GET') {
         readAthMcFile()
           .then(data => {

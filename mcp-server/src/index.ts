@@ -10,6 +10,7 @@ import rhTargetTool from './rhTargetTool.js'
 import { validateBearer, recordUsage, getKeys, createKey, deleteKey } from './apiKeys.js'
 import { getAthMcMap, saveAthMc } from './athMc.js'
 import { USER_ID_RE, caKey } from '../../shared/ath-mc-file.js'
+import { fetchAthMc, parseAthLookupChain } from '../../shared/ath-lookup.js'
 
 const ADMIN_KEY = process.env.MCP_ADMIN_KEY
 
@@ -194,6 +195,20 @@ app.delete('/api/keys/:id', adminAuth, (req: Request, res: Response) => {
   const deleted = deleteKey(req.params.id)
   if (!deleted) { res.status(404).json({ error: 'Key not found' }); return }
   res.json({ ok: true })
+})
+
+app.get('/api/ath-mc/lookup', async (req: Request, res: Response) => {
+  const chain = parseAthLookupChain(req.query.chain)
+  const ca = typeof req.query.ca === 'string' ? req.query.ca.trim() : ''
+  if (!chain || !ca) {
+    res.status(400).json({ error: 'chain and ca are required' })
+    return
+  }
+  try {
+    res.json(await fetchAthMc(chain, ca))
+  } catch (error) {
+    res.status(502).json({ error: error instanceof Error ? error.message : 'lookup failed' })
+  }
 })
 
 app.get('/api/ath-mc', (_req: Request, res: Response) => {

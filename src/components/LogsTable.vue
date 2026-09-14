@@ -399,6 +399,17 @@
             :inputProps="{ autofocus: true }"
           />
           <Button
+            icon="pi pi-cloud-download"
+            outlined
+            :loading="athLookupLoading"
+            aria-label="Fetch ATH from GMGN"
+            v-tooltip.top="{
+              value: 'Fetch ATH MC from GMGN (GeckoTerminal fallback)',
+              showDelay: 400,
+            }"
+            @click="lookupAthMc"
+          />
+          <Button
             icon="pi pi-times"
             outlined
             class="text-color-secondary"
@@ -476,6 +487,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const athLookupLoading = ref(false)
 const athDialog = reactive({
   visible: false,
   ca: '',
@@ -502,6 +514,37 @@ function onAthDialogShow() {
     input?.focus()
     input?.select()
   })
+}
+
+async function lookupAthMc() {
+  if (!athDialog.ca || athLookupLoading.value) return
+  athLookupLoading.value = true
+  try {
+    const res = await fetch(
+      `/api/ath-mc/lookup?chain=${encodeURIComponent(chain)}&ca=${encodeURIComponent(athDialog.ca)}`,
+    )
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.error || `Lookup failed (${res.status})`)
+    const athMc = Number(body.ath)
+    if (!(athMc > 0)) throw new Error('Lookup returned no ATH')
+    athDialog.value = Math.round(athMc)
+    const source = body.source === 'gmgn' ? 'GMGN' : 'GeckoTerminal'
+    toast.add({
+      severity: 'success',
+      summary: 'ATH fetched',
+      detail: `${prettifyMc(athDialog.value)} from ${source}. Save to apply.`,
+      life: 4000,
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Could not fetch ATH',
+      detail: error instanceof Error ? error.message : String(error),
+      life: 8000,
+    })
+  } finally {
+    athLookupLoading.value = false
+  }
 }
 
 async function saveAthMc() {

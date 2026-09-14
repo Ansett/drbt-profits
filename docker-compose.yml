@@ -15,6 +15,7 @@ services:
       - PORT=3100
       - MCP_ADMIN_KEY=${MCP_ADMIN_KEY}
       - DATA_DIR=/data
+      - GMGN_API_KEY=${GMGN_API_KEY}
     expose:
       - "3100"
 

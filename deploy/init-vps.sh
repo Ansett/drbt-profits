@@ -11,7 +11,7 @@
 #   sudo cp init-vps.sh /root
 #   cd root
 #   sudo usermod -aG docker tiky
-#   sudo DOMAIN=drbt-profits.ansett.xyz GITHUB_REPO=<lowercase user>/<repo> GITHUB_TOKEN=<ghcr_pat> MCP_ADMIN_KEY=<key> EMAIL=<email>  bash init-vps.sh
+#   sudo DOMAIN=drbt-profits.ansett.xyz GITHUB_REPO=<lowercase user>/<repo> GITHUB_TOKEN=<ghcr_pat> MCP_ADMIN_KEY=<key> EMAIL=<email> GMGN_API_KEY=<key>  bash init-vps.sh
 
 set -euo pipefail
 
@@ -19,6 +19,7 @@ DOMAIN="${DOMAIN:?Set DOMAIN}"
 GITHUB_REPO="${GITHUB_REPO:?Set GITHUB_REPO (owner/repo)}"
 GITHUB_TOKEN="${GITHUB_TOKEN:?Set GITHUB_TOKEN (PAT with read:packages scope)}"
 MCP_ADMIN_KEY="${MCP_ADMIN_KEY:?Set MCP_ADMIN_KEY}"
+GMGN_API_KEY="${GMGN_API_KEY:?Set GMGN_API_KEY}"
 EMAIL="${EMAIL:?Set EMAIL (for Lets Encrypt)}"
 APP_DIR="/opt/drbt-profits"
 
@@ -42,6 +43,7 @@ cat > "$APP_DIR/.env" <<EOF
 DOMAIN=$DOMAIN
 GITHUB_REPO=$GITHUB_REPO
 MCP_ADMIN_KEY=$MCP_ADMIN_KEY
+GMGN_API_KEY=${GMGN_API_KEY:-}
 EOF
 
 cp deploy/docker-compose.yml "$APP_DIR/docker-compose.yml"
