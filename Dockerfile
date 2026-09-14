@@ -16,7 +16,7 @@ ENV VITE_BUGSNAP_API=$VITE_BUGSNAP_API
 
 RUN yarn build
 
-# --- Stage 2: Serve with nginx + SSL proxy ---
+# --- Stage 2: Serve with nginx ---
 FROM nginx:alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY deploy/nginx.conf /etc/nginx/nginx.conf.template

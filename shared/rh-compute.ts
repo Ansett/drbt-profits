@@ -1,4 +1,5 @@
 import type { RawRhRow, RhCall, TakeProfit } from './types.js'
+import { applyAthMap, type AthMcMap } from './ath-mc-file.js'
 import {
   AVERAGE_LP_TO_MC_RATIO,
   DEFAULT_RH_ETH_PRICE,
@@ -228,6 +229,7 @@ export interface ComputeParams {
   realisticEntry: boolean
   applySnipeTax: boolean
   buyTaxInXs: boolean
+  athMc?: AthMcMap
 }
 
 export interface ComputeResult {
@@ -239,6 +241,7 @@ export interface ComputeResult {
 
 export function compute(calls: RhCall[], params: ComputeParams): ComputeResult {
   const { position, takeProfits, averageSlippage, realisticEntry, applySnipeTax, buyTaxInXs } = params
+  const list = applyAthMap(calls, params.athMc)
 
   let finalWorth = 0
   let volume = 0
@@ -249,7 +252,7 @@ export function compute(calls: RhCall[], params: ComputeParams): ComputeResult {
     gainByDate[day] = (gainByDate[day] || 0) + gain
   }
 
-  for (const call of calls) {
+  for (const call of list) {
     if (call.ignored) continue
 
     const result = computeCallGain(
@@ -290,6 +293,7 @@ export function findRhTarget(
   realisticEntry = true,
   applySnipeTax = true,
   buyTaxInXs = true,
+  athMc?: AthMcMap,
 ): FindTargetResult[] {
   const increment = (end - start) / (steps - 1)
   const values = [...new Set(Array.from({ length: steps }, (_, i) => round(start + increment * i, 1)))]
@@ -314,6 +318,7 @@ export function findRhTarget(
       realisticEntry,
       applySnipeTax,
       buyTaxInXs,
+      athMc,
     })
 
     results.push({

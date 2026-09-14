@@ -8,6 +8,8 @@ import targetTool, { STEPS } from './targetTool.js'
 import rhComputeTool from './rhComputeTool.js'
 import rhTargetTool from './rhTargetTool.js'
 import { validateBearer, recordUsage, getKeys, createKey, deleteKey } from './apiKeys.js'
+import { getAthMcMap, saveAthMc } from './athMc.js'
+import { USER_ID_RE, caKey } from '../../shared/ath-mc-file.js'
 
 const ADMIN_KEY = process.env.MCP_ADMIN_KEY
 
@@ -192,6 +194,30 @@ app.delete('/api/keys/:id', adminAuth, (req: Request, res: Response) => {
   const deleted = deleteKey(req.params.id)
   if (!deleted) { res.status(404).json({ error: 'Key not found' }); return }
   res.json({ ok: true })
+})
+
+app.get('/api/ath-mc', (_req: Request, res: Response) => {
+  res.json(getAthMcMap())
+})
+
+app.post('/api/ath-mc', (req: Request, res: Response) => {
+  const body = req.body ?? {}
+  const ca = typeof body.ca === 'string' ? caKey(body.ca.trim()) : ''
+  const user = typeof body.user === 'string' ? body.user.trim() : ''
+  let value: number | null = null
+  if (body.value != null) {
+    const parsed = Number(body.value)
+    if (!Number.isFinite(parsed)) {
+      res.status(400).json({ error: 'invalid ath mc' })
+      return
+    }
+    value = parsed > 0 ? parsed : null
+  }
+  if (!ca || !USER_ID_RE.test(user)) {
+    res.status(400).json({ error: 'invalid ath mc' })
+    return
+  }
+  res.json(saveAthMc(ca, user, value))
 })
 
 // Bearer-token auth guard for MCP endpoints (header or ?key= query param)

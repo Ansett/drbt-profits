@@ -1,6 +1,7 @@
 import { getRhBacktestCalls } from './store.js'
 import { parseTakeProfit } from '../../shared/sol-compute.js'
 import { compute } from '../../shared/rh-compute.js'
+import { getAthMcMap } from './athMc.js'
 import type { RhCall, TakeProfit } from '../../shared/types.js'
 import { sumObjectProperty } from '../../shared/utils.js'
 
@@ -59,6 +60,7 @@ export default async ({
     realisticEntry: true,
     applySnipeTax: true,
     buyTaxInXs: true,
+    athMc: getAthMcMap(),
   })
 
   const structuredContent = {

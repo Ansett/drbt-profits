@@ -1,5 +1,6 @@
 import { getRhBacktestCalls } from './store.js'
 import { findRhTarget } from '../../shared/rh-compute.js'
+import { getAthMcMap } from './athMc.js'
 import type { RhCall } from '../../shared/types.js'
 import { parseRange, STEPS } from './targetTool.js'
 
@@ -39,6 +40,9 @@ export default async ({
     parsed.isXs,
     0,
     true,
+    true,
+    true,
+    getAthMcMap(),
   )
 
   const structuredContent = {

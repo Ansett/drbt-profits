@@ -4,6 +4,7 @@ import {
   USER_ID_RE,
   caKey,
   cloneMap,
+  meanWithoutOutliers,
   type AthMcMap,
   type AthMcReports,
 } from '../shared/ath-mc-file'
@@ -19,7 +20,7 @@ function replaceOverrides(data: unknown) {
   Object.assign(overrides, cloneMap(data))
 }
 
-export { caKey }
+export { caKey, meanWithoutOutliers }
 
 export function athMcUserId(): string {
   const stored = localStorageGet(USER_STORAGE_KEY)
@@ -37,18 +38,16 @@ function reportValues(ca: string): number[] {
   return Object.values(reportsFor(ca))
 }
 
-/** Resolves after the local file is loaded (or immediately in production). */
-export const athMcReady: Promise<void> = import.meta.env.DEV
-  ? loadFromDevServer()
-  : Promise.resolve()
+/** Resolves after data/ath-mc.json is loaded (empty map if the file is missing). */
+export const athMcReady: Promise<void> = loadAthMc()
 
-async function loadFromDevServer() {
+async function loadAthMc() {
   try {
-    const res = await fetch('/__ath-mc')
+    const res = await fetch('/api/ath-mc')
     if (!res.ok) return
     replaceOverrides(await res.json())
   } catch {
-    // Keep an empty map if the Vite write endpoint is unavailable.
+    // Keep an empty map if the persist endpoint is unavailable.
   }
 }
 
@@ -130,38 +129,9 @@ export async function addAthMc(
   }
 }
 
-/** Average after dropping IQR outliers when there are enough samples. */
-export function meanWithoutOutliers(values: number[]): number {
-  const nums = values.filter(v => Number.isFinite(v) && v > 0)
-  if (!nums.length) return 0
-  if (nums.length < 4) return mean(nums)
-
-  const sorted = [...nums].sort((a, b) => a - b)
-  const q1 = quantile(sorted, 0.25)
-  const q3 = quantile(sorted, 0.75)
-  const iqr = q3 - q1
-  const lo = q1 - 1.5 * iqr
-  const hi = q3 + 1.5 * iqr
-  const filtered = sorted.filter(v => v >= lo && v <= hi)
-  return mean(filtered.length ? filtered : sorted)
-}
-
-function mean(values: number[]): number {
-  return values.reduce((sum, v) => sum + v, 0) / values.length
-}
-
-function quantile(sorted: number[], q: number): number {
-  const pos = (sorted.length - 1) * q
-  const base = Math.floor(pos)
-  const rest = pos - base
-  const next = sorted[base + 1]
-  if (next === undefined) return sorted[base]
-  return sorted[base] + rest * (next - sorted[base])
-}
-
 async function persist(ca: string, value: number | null, user: string): Promise<boolean> {
   try {
-    const res = await fetch('/__ath-mc', {
+    const res = await fetch('/api/ath-mc', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ca, value, user }),

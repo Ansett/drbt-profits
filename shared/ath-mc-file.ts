@@ -64,3 +64,50 @@ export function upsertAthMc(
   else delete map[key]
   return { map: sortAthMcFile(map), reports }
 }
+
+export function meanWithoutOutliers(values: number[]): number {
+  const nums = values.filter(v => Number.isFinite(v) && v > 0)
+  if (!nums.length) return 0
+  if (nums.length < 4) return mean(nums)
+
+  const sorted = [...nums].sort((a, b) => a - b)
+  const q1 = quantile(sorted, 0.25)
+  const q3 = quantile(sorted, 0.75)
+  const iqr = q3 - q1
+  const lo = q1 - 1.5 * iqr
+  const hi = q3 + 1.5 * iqr
+  const filtered = sorted.filter(v => v >= lo && v <= hi)
+  return mean(filtered.length ? filtered : sorted)
+}
+
+function mean(values: number[]): number {
+  return values.reduce((sum, v) => sum + v, 0) / values.length
+}
+
+function quantile(sorted: number[], q: number): number {
+  const pos = (sorted.length - 1) * q
+  const base = Math.floor(pos)
+  const rest = pos - base
+  const next = sorted[base + 1]
+  if (next === undefined) return sorted[base]
+  return sorted[base] + rest * (next - sorted[base])
+}
+
+export function resolvedAthFromMap(athMc: AthMcMap, ca: string, exportAth: number): number {
+  const values = Object.values(athMc[caKey(ca)] || {})
+  if (!values.length) return exportAth
+  return meanWithoutOutliers(values)
+}
+
+export function applyAthMap<T extends { ca: string; ath: number; exportAth?: number }>(
+  calls: T[],
+  athMc?: AthMcMap,
+): T[] {
+  if (!athMc || !Object.keys(athMc).length) return calls
+  return calls.map(call => {
+    const exportAth = call.exportAth ?? call.ath
+    const ath = resolvedAthFromMap(athMc, call.ca, exportAth)
+    if (ath === call.ath && call.exportAth === exportAth) return call
+    return { ...call, ath, exportAth }
+  })
+}

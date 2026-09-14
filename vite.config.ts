@@ -28,7 +28,7 @@ async function writeAthMcFile(data: unknown) {
 
 function athMcFilePlugin(): Plugin {
   const attach = (server: ViteDevServer) => {
-    server.middlewares.use('/__ath-mc', (req, res, next) => {
+    server.middlewares.use('/api/ath-mc', (req, res, next) => {
       if (req.method === 'GET') {
         readAthMcFile()
           .then(data => {
