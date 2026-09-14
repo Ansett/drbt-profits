@@ -393,6 +393,7 @@ async function compute(
       xs: call.rug ? -99 : round(reducedBestXs, 1),
       xsDiff: call.rug ? null : round(reducedBestXs - call.xs, 0),
       ath: call.ath,
+      exportAth: call.exportAth,
       callMc: call.callMc,
       entryMc: call.callMc,
       info: unrealistic

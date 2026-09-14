@@ -183,6 +183,7 @@ async function compute(
       xs: round(bestXs, 1),
       xsDiff: round(bestXs - call.xs, 0),
       ath: call.ath,
+      exportAth: call.exportAth,
       callMc: call.callMc,
       entryMc: realisticEntryMc,
       info: unrealistic
@@ -201,7 +202,7 @@ async function compute(
     })
   }
 
-  const { drawdown, worstDrawdown} = computeDrawdowns(gainByDate)
+  const { drawdown, worstDrawdown } = computeDrawdowns(gainByDate)
 
   return {
     finalWorth: finalWorth ? round(finalWorth) : finalWorth, // keep undefined value for abort controller

@@ -276,7 +276,7 @@
         <template #body="{ data }">
           <span
             :class="[
-              'help',
+              athTooltip(data) ? 'help' : 'text',
               {
                 'text-color-secondary font-italic': data.xs === -99,
                 'text-green-400': hasAthOverride(data.ca),
@@ -536,8 +536,9 @@ const athLookupPlaceholder = computed(() => {
 
 function athTooltip(log: Log) {
   const n = athSampleCount(log.ca)
-  if (!n) return String(Math.round(log.ath))
-  return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${Math.round(log.ath)}`
+  if (!n) return ''
+
+  return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${prettifyMc(log.exportAth!)}`
 }
 
 function resetAthLookup() {

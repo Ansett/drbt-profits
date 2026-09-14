@@ -10,6 +10,7 @@ export type Log = {
   callMc: number
   entryMc: number
   ath: number
+  exportAth?: number
   gain: number
   info: string
   hitTp: string[]
