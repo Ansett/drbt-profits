@@ -521,7 +521,7 @@ async function saveAthMc() {
   else if (removed) summary = 'ATH cleared'
   else if (replaced) summary = 'ATH updated'
   let detail =
-    'Could not write src/data/ath-mc.json. Value is used until reload; run locally and commit the file to share it.'
+    'Could not write data/ath-mc.json. Value is used until reload; run locally and commit the file to share it.'
   if (persisted) {
     if (ath == null) detail = 'Using ATH from the export'
     else detail = `Using ${prettifyMc(ath)} (average of ${userLabel})`

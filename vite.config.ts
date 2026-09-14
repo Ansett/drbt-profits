@@ -1,20 +1,39 @@
 import { fileURLToPath, URL } from 'node:url'
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { USER_ID_RE, caKey, upsertAthMc } from './shared/ath-mc-file'
 
-const ATH_MC_FILE = fileURLToPath(new URL('./src/data/ath-mc.json', import.meta.url))
+const ATH_MC_FILE = fileURLToPath(new URL('./data/ath-mc.json', import.meta.url))
+
+function isNotFound(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT')
+}
+
+async function readAthMcFile(): Promise<Record<string, unknown>> {
+  try {
+    return JSON.parse(await readFile(ATH_MC_FILE, 'utf8')) as Record<string, unknown>
+  } catch (error) {
+    if (isNotFound(error)) return {}
+    throw error
+  }
+}
+
+async function writeAthMcFile(data: unknown) {
+  await mkdir(dirname(ATH_MC_FILE), { recursive: true })
+  await writeFile(ATH_MC_FILE, JSON.stringify(data, null, 2) + '\n')
+}
 
 function athMcFilePlugin(): Plugin {
   const attach = (server: ViteDevServer) => {
     server.middlewares.use('/__ath-mc', (req, res, next) => {
       if (req.method === 'GET') {
-        readFile(ATH_MC_FILE, 'utf8')
-          .then(contents => {
+        readAthMcFile()
+          .then(data => {
             res.setHeader('Content-Type', 'application/json')
-            res.end(contents)
+            res.end(JSON.stringify(data))
           })
           .catch(error => {
             res.statusCode = 500
@@ -55,9 +74,9 @@ function athMcFilePlugin(): Plugin {
             return
           }
 
-          const current = JSON.parse(await readFile(ATH_MC_FILE, 'utf8')) as Record<string, unknown>
+          const current = await readAthMcFile()
           const { map, reports } = upsertAthMc(current, ca, user, value)
-          await writeFile(ATH_MC_FILE, JSON.stringify(map, null, 2) + '\n')
+          await writeAthMcFile(map)
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify(reports))
         } catch (error) {
@@ -108,7 +127,7 @@ export default defineConfig({
     strictPort: true, // Ensures Vite fails if the port is already in use
     watch: {
       // Writing this file must not reload the app (archives live only in memory).
-      ignored: ['**/src/data/ath-mc.json'],
+      ignored: ['**/data/ath-mc.json'],
     },
   },
 })

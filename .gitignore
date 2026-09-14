@@ -27,7 +27,8 @@ dist-ssr/
 
 *.tsbuildinfo
 
-# MCP server runtime data
+# runtime data
 mcp-server/data/
 data/api-keys.json
+data/ath-mc.json
 data/oauth-store.json

@@ -1,4 +1,3 @@
-import bundled from './data/ath-mc.json'
 import { reactive } from 'vue'
 import { localStorageGet, localStorageSet, uuid } from './lib'
 import {
@@ -13,7 +12,7 @@ export type { AthMcMap, AthMcReports }
 
 const USER_STORAGE_KEY = 'ath-mc-user'
 
-const overrides = reactive<AthMcMap>(cloneMap(bundled))
+const overrides = reactive<AthMcMap>({})
 
 function replaceOverrides(data: unknown) {
   for (const key of Object.keys(overrides)) delete overrides[key]
@@ -49,7 +48,7 @@ async function loadFromDevServer() {
     if (!res.ok) return
     replaceOverrides(await res.json())
   } catch {
-    // Keep the bundled JSON if the Vite write endpoint is unavailable.
+    // Keep an empty map if the Vite write endpoint is unavailable.
   }
 }
 
