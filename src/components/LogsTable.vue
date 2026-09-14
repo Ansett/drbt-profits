@@ -387,7 +387,40 @@
             class="mt-2"
           />
         </p>
-        <label for="ath-mc-input" class="block mb-2">ATH market cap (USD)</label>
+        <label for="ath-mc-fetched" class="block mb-2">
+          Fetched ATH
+          <span v-if="athLookupSourceLabel" class="font-normal text-color-secondary">
+            · {{ athLookupSourceLabel }}
+          </span>
+        </label>
+        <InputGroup class="w-full">
+          <InputNumber
+            v-model="athLookup.value"
+            inputId="ath-mc-fetched"
+            :min="0"
+            :maxFractionDigits="0"
+            class="w-full"
+            readonly
+            :placeholder="athLookupPlaceholder"
+          />
+          <Button
+            icon="pi pi-arrow-down"
+            outlined
+            :loading="athLookupLoading"
+            :disabled="!athLookupLoading && athLookup.value == null"
+            aria-label="Copy fetched ATH"
+            v-tooltip.top="{
+              value: 'Copy fetched ATH into the field below',
+              showDelay: 400,
+            }"
+            @click="applyLookedUpAth"
+          />
+        </InputGroup>
+        <p v-if="athLookup.error" class="mt-2 mb-0 text-sm text-red-400">
+          {{ athLookup.error }}
+          <Button label="Retry" text size="small" class="p-0 ml-1" @click="lookupAthMc" />
+        </p>
+        <label for="ath-mc-input" class="block mb-2 mt-3">ATH market cap (USD)</label>
         <InputGroup class="w-full">
           <InputNumber
             v-model="athDialog.value"
@@ -397,17 +430,6 @@
             :maxFractionDigits="0"
             class="w-full"
             :inputProps="{ autofocus: true }"
-          />
-          <Button
-            icon="pi pi-cloud-download"
-            outlined
-            :loading="athLookupLoading"
-            aria-label="Fetch ATH from GMGN"
-            v-tooltip.top="{
-              value: 'Fetch ATH MC from GMGN (GeckoTerminal fallback)',
-              showDelay: 400,
-            }"
-            @click="lookupAthMc"
           />
           <Button
             icon="pi pi-times"
@@ -488,11 +510,28 @@ const emit = defineEmits<{
 
 const toast = useToast()
 const athLookupLoading = ref(false)
+let athLookupSeq = 0
+const athLookup = reactive({
+  value: null as number | null,
+  source: '' as '' | 'gmgn' | 'geckoterminal',
+  error: '',
+})
 const athDialog = reactive({
   visible: false,
   ca: '',
   name: '',
   value: null as number | null,
+})
+
+const athLookupSourceLabel = computed(() => {
+  if (athLookup.source === 'gmgn') return 'GMGN'
+  if (athLookup.source === 'geckoterminal') return 'GeckoTerminal'
+  return ''
+})
+const athLookupPlaceholder = computed(() => {
+  if (athLookupLoading.value) return 'Fetching…'
+  if (athLookup.error) return 'Unavailable'
+  return ''
 })
 
 function athTooltip(log: Log) {
@@ -501,11 +540,21 @@ function athTooltip(log: Log) {
   return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${Math.round(log.ath)}`
 }
 
+function resetAthLookup() {
+  athLookupSeq += 1
+  athLookupLoading.value = false
+  athLookup.value = null
+  athLookup.source = ''
+  athLookup.error = ''
+}
+
 function openAthDialog(log: Log) {
+  resetAthLookup()
   athDialog.ca = log.ca
   athDialog.name = log.name
   athDialog.value = getMyAthMc(log.ca) ?? log.ath
   athDialog.visible = true
+  lookupAthMc()
 }
 
 function onAthDialogShow() {
@@ -516,34 +565,39 @@ function onAthDialogShow() {
   })
 }
 
+function applyLookedUpAth() {
+  if (athLookup.value == null) return
+  athDialog.value = athLookup.value
+  nextTick(() => {
+    const input = document.getElementById('ath-mc-input') as HTMLInputElement | null
+    input?.focus()
+    input?.select()
+  })
+}
+
 async function lookupAthMc() {
-  if (!athDialog.ca || athLookupLoading.value) return
+  if (!athDialog.ca) return
+  const seq = ++athLookupSeq
   athLookupLoading.value = true
+  athLookup.value = null
+  athLookup.source = ''
+  athLookup.error = ''
   try {
     const res = await fetch(
       `/api/ath-mc/lookup?chain=${encodeURIComponent(chain)}&ca=${encodeURIComponent(athDialog.ca)}`,
     )
     const body = await res.json().catch(() => ({}))
+    if (seq !== athLookupSeq) return
     if (!res.ok) throw new Error(body.error || `Lookup failed (${res.status})`)
     const athMc = Number(body.ath)
     if (!(athMc > 0)) throw new Error('Lookup returned no ATH')
-    athDialog.value = Math.round(athMc)
-    const source = body.source === 'gmgn' ? 'GMGN' : 'GeckoTerminal'
-    toast.add({
-      severity: 'success',
-      summary: 'ATH fetched',
-      detail: `${prettifyMc(athDialog.value)} from ${source}. Save to apply.`,
-      life: 4000,
-    })
+    athLookup.value = Math.round(athMc)
+    athLookup.source = body.source === 'gmgn' ? 'gmgn' : 'geckoterminal'
   } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Could not fetch ATH',
-      detail: error instanceof Error ? error.message : String(error),
-      life: 8000,
-    })
+    if (seq !== athLookupSeq) return
+    athLookup.error = error instanceof Error ? error.message : String(error)
   } finally {
-    athLookupLoading.value = false
+    if (seq === athLookupSeq) athLookupLoading.value = false
   }
 }
 
