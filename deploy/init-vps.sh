@@ -53,14 +53,47 @@ docker compose pull
 echo "==> Starting services..."
 docker compose up -d
 
+echo "==> Installing pull timer (VPS pulls GHCR; GitHub Actions does not SSH in)..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/drbt-profits-pull.service" && -f "$SCRIPT_DIR/drbt-profits-pull.timer" ]]; then
+  cp "$SCRIPT_DIR/drbt-profits-pull.service" /etc/systemd/system/
+  cp "$SCRIPT_DIR/drbt-profits-pull.timer" /etc/systemd/system/
+else
+  cat >/etc/systemd/system/drbt-profits-pull.service <<'EOF'
+[Unit]
+Description=Pull and restart drbt-profits from GHCR
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/drbt-profits
+ExecStart=/usr/bin/docker compose pull
+ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStart=/usr/bin/docker image prune -f
+EOF
+  cat >/etc/systemd/system/drbt-profits-pull.timer <<'EOF'
+[Unit]
+Description=Pull drbt-profits images every minute
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+fi
+systemctl daemon-reload
+systemctl enable --now drbt-profits-pull.timer
+
 echo ""
 echo "=== Setup complete ==="
 echo "Site: https://$DOMAIN"
 echo "MCP:  https://$DOMAIN/mcp"
 echo ""
-echo "GitHub Actions will auto-deploy on push to master."
-echo "Make sure these GitHub repo secrets are set:"
-echo "  VPS_HOST     — your VPS IP"
-echo "  VPS_USER     — ssh user (e.g. root)"
-echo "  VPS_SSH_KEY  — ssh private key"
+echo "GitHub Actions builds and pushes images on master. This VPS pulls them about every minute."
+echo "Keep SSH (22) allowlisted to your IP only."
+echo "Make sure this GitHub repo secret is set:"
 echo "  VITE_BUGSNAP_API — Bugsnag API key"
