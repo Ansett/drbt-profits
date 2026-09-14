@@ -1,54 +1,26 @@
 import bundled from './data/ath-mc.json'
 import { reactive } from 'vue'
 import { localStorageGet, localStorageSet, uuid } from './lib'
+import {
+  USER_ID_RE,
+  caKey,
+  cloneMap,
+  type AthMcMap,
+  type AthMcReports,
+} from '../shared/ath-mc-file'
 
-export type AthMcReports = Record<string, number>
-export type AthMcMap = Record<string, AthMcReports>
+export type { AthMcMap, AthMcReports }
 
 const USER_STORAGE_KEY = 'ath-mc-user'
-const USER_ID_RE = /^[a-zA-Z0-9:_-]{2,64}$/
 
 const overrides = reactive<AthMcMap>(cloneMap(bundled))
-
-function cloneMap(data: unknown): AthMcMap {
-  const src =
-    data && typeof data === 'object' && !Array.isArray(data)
-      ? (data as Record<string, unknown>)
-      : {}
-  return Object.fromEntries(
-    Object.entries(src).map(([ca, values]) => [caKey(ca), normalizeReports(values)]),
-  )
-}
-
-export function normalizeReports(value: unknown): AthMcReports {
-  if (Array.isArray(value)) {
-    const reports: AthMcReports = {}
-    value.forEach((raw, index) => {
-      const n = Number(raw)
-      if (Number.isFinite(n) && n > 0) reports[`anon:${index}`] = n
-    })
-    return reports
-  }
-
-  if (!value || typeof value !== 'object') return {}
-
-  const reports: AthMcReports = {}
-  for (const [user, raw] of Object.entries(value as Record<string, unknown>)) {
-    const n = Number(raw)
-    if (!USER_ID_RE.test(user) || !Number.isFinite(n) || n <= 0) continue
-    reports[user] = n
-  }
-  return reports
-}
 
 function replaceOverrides(data: unknown) {
   for (const key of Object.keys(overrides)) delete overrides[key]
   Object.assign(overrides, cloneMap(data))
 }
 
-export function caKey(ca: string): string {
-  return ca.startsWith('0x') ? ca.toLowerCase() : ca
-}
+export { caKey }
 
 export function athMcUserId(): string {
   const stored = localStorageGet(USER_STORAGE_KEY)

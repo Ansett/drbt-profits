@@ -3,46 +3,9 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { defineConfig, type Plugin, type PluginOption, type ViteDevServer } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { USER_ID_RE, caKey, upsertAthMc } from './shared/ath-mc-file'
 
 const ATH_MC_FILE = fileURLToPath(new URL('./src/data/ath-mc.json', import.meta.url))
-
-function caKey(ca: string): string {
-  return ca.startsWith('0x') ? ca.toLowerCase() : ca
-}
-
-const USER_ID_RE = /^[a-zA-Z0-9:_-]{2,64}$/
-
-function normalizeReports(value: unknown): Record<string, number> {
-  if (Array.isArray(value)) {
-    const reports: Record<string, number> = {}
-    value.forEach((raw, index) => {
-      const n = Number(raw)
-      if (Number.isFinite(n) && n > 0) reports[`anon:${index}`] = n
-    })
-    return reports
-  }
-
-  if (!value || typeof value !== 'object') return {}
-
-  const reports: Record<string, number> = {}
-  for (const [user, raw] of Object.entries(value as Record<string, unknown>)) {
-    const n = Number(raw)
-    if (!USER_ID_RE.test(user) || !Number.isFinite(n) || n <= 0) continue
-    reports[user] = n
-  }
-  return reports
-}
-
-function sortAthMcFile(data: Record<string, Record<string, number>>) {
-  return Object.fromEntries(
-    Object.entries(data)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([ca, reports]) => [
-        ca,
-        Object.fromEntries(Object.entries(reports).sort(([a], [b]) => a.localeCompare(b))),
-      ]),
-  )
-}
 
 function athMcFilePlugin(): Plugin {
   const attach = (server: ViteDevServer) => {
@@ -93,17 +56,8 @@ function athMcFilePlugin(): Plugin {
           }
 
           const current = JSON.parse(await readFile(ATH_MC_FILE, 'utf8')) as Record<string, unknown>
-          const reports = normalizeReports(current[ca])
-          if (value === null) delete reports[user]
-          else reports[user] = value
-          if (Object.keys(reports).length) current[ca] = reports
-          else delete current[ca]
-          const normalized = Object.fromEntries(
-            Object.entries(current)
-              .map(([token, entry]) => [caKey(token), normalizeReports(entry)] as const)
-              .filter(([, reports]) => Object.keys(reports).length),
-          )
-          await writeFile(ATH_MC_FILE, JSON.stringify(sortAthMcFile(normalized), null, 2) + '\n')
+          const { map, reports } = upsertAthMc(current, ca, user, value)
+          await writeFile(ATH_MC_FILE, JSON.stringify(map, null, 2) + '\n')
           res.setHeader('Content-Type', 'application/json')
           res.end(JSON.stringify(reports))
         } catch (error) {

@@ -77,8 +77,7 @@ EOF
 Description=Pull drbt-profits images every minute
 
 [Timer]
-OnBootSec=30s
-OnUnitActiveSec=1min
+OnCalendar=minutely
 Persistent=true
 
 [Install]
