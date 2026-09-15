@@ -422,7 +422,9 @@
           {{ athLookup.error }}
           <Button label="Retry" text size="small" class="p-0 ml-1" @click="lookupAthMc" />
         </p>
-        <label for="ath-mc-input" class="block mb-2 mt-3">ATH market cap (USD)</label>
+        <label for="ath-mc-input" :class="['block', 'mb-2', 'mt-3', athLookup.color]">{{
+          `ATH market cap (${athLookup.diff})`
+        }}</label>
         <InputGroup class="w-full">
           <InputNumber
             v-model="athDialog.value"
@@ -517,6 +519,8 @@ const athLookup = reactive({
   value: null as number | null,
   source: '' as '' | 'gmgn' | 'geckoterminal',
   error: '',
+  diff: '0%',
+  color: '',
 })
 const athDialog = reactive({
   visible: false,
@@ -549,6 +553,8 @@ function resetAthLookup() {
   athLookup.value = null
   athLookup.source = ''
   athLookup.error = ''
+  athLookup.diff = '0%'
+  athLookup.color = ''
 }
 
 function openAthDialog(log: Log) {
@@ -585,6 +591,8 @@ async function lookupAthMc() {
   athLookup.value = null
   athLookup.source = ''
   athLookup.error = ''
+  athLookup.diff = '0%'
+  athLookup.color = ''
   try {
     const res = await fetch(
       `/api/ath-mc/lookup?chain=${encodeURIComponent(chain)}&ca=${encodeURIComponent(athDialog.ca)}`,
@@ -596,6 +604,14 @@ async function lookupAthMc() {
     if (!(athMc > 0)) throw new Error('Lookup returned no ATH')
     athLookup.value = Math.round(athMc)
     athLookup.source = body.source === 'gmgn' ? 'gmgn' : 'geckoterminal'
+    const diff = athDialog.value ? ((athMc - athDialog.value) / athDialog.value) * 100 : 0
+    athLookup.diff = `${Math.round(diff)}%`
+    athLookup.color =
+      diff > 25 || diff < -25
+        ? 'text-red-400'
+        : diff > 10 || diff < -10
+          ? 'text-yellow-400'
+          : 'text-green-400'
   } catch (error) {
     if (seq !== athLookupSeq) return
     athLookup.error = error instanceof Error ? error.message : String(error)
