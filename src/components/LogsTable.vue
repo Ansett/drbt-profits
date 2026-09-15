@@ -129,6 +129,18 @@
             class="small-button"
             @click="exportSourceCalls()"
           />
+          <Button
+            icon="pi pi-chart-line"
+            aria-label="Review uncorrected ATHs"
+            outlined
+            severity="secondary"
+            v-tooltip.top="{
+              value: 'Fetch and review uncorrected ATHs above $100k',
+              showDelay: 500,
+            }"
+            class="small-button"
+            @click="openBulkAthDialog"
+          />
           <InputGroup class="w-auto">
             <InputGroupAddon class="narrowInput">
               <i class="pi pi-sliders-v"></i>
@@ -275,12 +287,20 @@
       >
         <template #body="{ data }">
           <span
-            :class="{
-              'text-color-secondary font-italic': data.xs === -99,
+            :class="[
+              data.ath - data.exportAth !== 0 ? 'help' : 'text',
+              {
+                'text-color-secondary font-italic': data.xs === -99,
+                'font-bold': data.ath - data.exportAth !== 0,
+              },
+            ]"
+            v-tooltip.top="{
+              value: athTooltip(data),
+              showDelay: 500,
             }"
             >{{ prettifyMc(data.ath) }}</span
           >
-          <span
+          <!-- <span
             v-if="data.ath - data.exportAth"
             class="text-sm text-color-secondary nowrap help"
             v-tooltip.top="{
@@ -289,7 +309,7 @@
             }"
           >
             (&hairsp;{{ prettifyMc(data.exportAth) }}&hairsp;)
-          </span>
+          </span> -->
         </template></Column
       >
 
@@ -455,6 +475,62 @@
         <Button label="Save" @click="saveAthMc" />
       </template>
     </Dialog>
+
+    <Dialog
+      v-model:visible="bulkAth.visible"
+      modal
+      :style="{ width: '54rem' }"
+      @hide="stopBulkAthLookup"
+    >
+      <template #header>
+        <span>
+          Uncorrected ATHs
+          <span class="text-sm font-normal text-color-secondary ml-2">
+            {{ bulkAth.done }}/{{ bulkAth.total }}
+          </span>
+        </span>
+      </template>
+      <p class="mt-0 mb-3 text-sm text-color-secondary">
+        Uncorrected ATHs above $100k. Saving marks them corrected so they are skipped next time.
+      </p>
+      <ul v-if="bulkAth.rows.length" class="list-none p-0 m-0 bulk-ath-list">
+        <li
+          v-for="row in bulkAth.rows"
+          :key="row.log.ca"
+          class="flex flex-wrap align-items-center column-gap-3 row-gap-1 py-2 border-bottom-1 surface-border"
+        >
+          <CaLink
+            :name="row.log.name"
+            :ca="row.log.ca"
+            :screener-url="screenerUrl"
+            class="flex-grow-1"
+          />
+          <span class="nowrap">{{ prettifyMc(row.log.ath) }}</span>
+          <span v-if="row.loading" style="width: 20px">
+            <i class="pi pi-spin pi-spinner text-color-secondary" />
+          </span>
+          <template v-else-if="row.fetched != null && row.diff != null">
+            <span class="nowrap text-color-secondary">→ {{ prettifyMc(row.fetched) }}</span>
+            <span :class="['nowrap font-bold', athDiffColor(row.diff)]">{{
+              formatAthDiff(row.diff)
+            }}</span>
+          </template>
+          <span v-else-if="row.error" class="text-sm text-red-400">{{ row.error }}</span>
+        </li>
+      </ul>
+      <p v-else class="m-0 text-sm font-italic text-color-secondary">
+        {{ bulkAthEmptyMessage }}
+      </p>
+      <template #footer>
+        <Button label="Cancel" text severity="secondary" @click="bulkAth.visible = false" />
+        <Button
+          :label="bulkAthUpdateLabel"
+          :loading="bulkAth.saving"
+          :disabled="!bulkAthUpdatableRows.length || bulkAth.running"
+          @click="applyBulkAth"
+        />
+      </template>
+    </Dialog>
   </section>
 </template>
 
@@ -544,7 +620,38 @@ function athTooltip(log: Log) {
   const n = athSampleCount(log.ca)
   if (!n) return ''
 
-  return `Original ATH before correction from ${n} user${n === 1 ? '' : 's'}`
+  return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${prettifyMc(log.exportAth!)}`
+}
+
+function formatAthDiff(diff: number) {
+  const rounded = Math.round(diff)
+  return `${rounded > 0 ? '+' : ''}${rounded}%`
+}
+
+function athDiffColor(diff: number) {
+  if (diff > 25 || diff < -25) return 'text-red-400'
+  if (diff > 10 || diff < -10) return 'text-yellow-400'
+  return 'text-green-400'
+}
+
+function isUncorrectedAth(log: Log) {
+  return log.ath === (log.exportAth ?? log.ath)
+}
+
+type AthLookupSource = 'gmgn' | 'geckoterminal'
+
+async function fetchAthLookup(ca: string): Promise<{ ath: number; source: AthLookupSource }> {
+  const res = await fetch(
+    `/api/ath-mc/lookup?chain=${encodeURIComponent(chain)}&ca=${encodeURIComponent(ca)}`,
+  )
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(body.error || `Lookup failed (${res.status})`)
+  const athMc = Number(body.ath)
+  if (!(athMc > 0)) throw new Error('Lookup returned no ATH')
+  return {
+    ath: Math.round(athMc),
+    source: body.source === 'gmgn' ? 'gmgn' : 'geckoterminal',
+  }
 }
 
 function resetAthLookup() {
@@ -594,29 +701,144 @@ async function lookupAthMc() {
   athLookup.diff = '0%'
   athLookup.color = ''
   try {
-    const res = await fetch(
-      `/api/ath-mc/lookup?chain=${encodeURIComponent(chain)}&ca=${encodeURIComponent(athDialog.ca)}`,
-    )
-    const body = await res.json().catch(() => ({}))
+    const result = await fetchAthLookup(athDialog.ca)
     if (seq !== athLookupSeq) return
-    if (!res.ok) throw new Error(body.error || `Lookup failed (${res.status})`)
-    const athMc = Number(body.ath)
-    if (!(athMc > 0)) throw new Error('Lookup returned no ATH')
-    athLookup.value = Math.round(athMc)
-    athLookup.source = body.source === 'gmgn' ? 'gmgn' : 'geckoterminal'
-    const diff = athDialog.value ? ((athMc - athDialog.value) / athDialog.value) * 100 : 0
-    athLookup.diff = `${Math.round(diff)}%`
-    athLookup.color =
-      diff > 25 || diff < -25
-        ? 'text-red-400'
-        : diff > 10 || diff < -10
-          ? 'text-yellow-400'
-          : 'text-green-400'
+    athLookup.value = result.ath
+    athLookup.source = result.source
+    const current = athDialog.value
+    const diff = current ? ((result.ath - current) / current) * 100 : 0
+    athLookup.diff = formatAthDiff(diff)
+    athLookup.color = athDiffColor(diff)
   } catch (error) {
     if (seq !== athLookupSeq) return
     athLookup.error = error instanceof Error ? error.message : String(error)
   } finally {
     if (seq === athLookupSeq) athLookupLoading.value = false
+  }
+}
+
+type BulkAthRow = {
+  log: Log
+  fetched: number | null
+  diff: number | null
+  error: string
+  loading: boolean
+}
+
+const BULK_ATH_MIN = 100000
+const BULK_ATH_PER_SEC = 1
+let bulkAthSeq = 0
+const bulkAth = reactive({
+  visible: false,
+  running: false,
+  saving: false,
+  done: 0,
+  total: 0,
+  rows: [] as BulkAthRow[],
+})
+
+const bulkAthUpdatableRows = computed(() => bulkAth.rows.filter(row => row.fetched != null))
+const bulkAthUpdateLabel = computed(() => {
+  const n = bulkAthUpdatableRows.value.length
+  return n === 1 ? 'Update 1 ATH' : `Update ${n} ATHs`
+})
+const bulkAthEmptyMessage = computed(() => {
+  if (bulkAth.running) return 'Fetching…'
+  return 'No uncorrected ATHs above $100k'
+})
+
+function stopBulkAthLookup() {
+  bulkAthSeq += 1
+  bulkAth.running = false
+}
+
+function openBulkAthDialog() {
+  stopBulkAthLookup()
+  const candidates = logs
+    .filter(log => log.ath > BULK_ATH_MIN && isUncorrectedAth(log))
+    .slice()
+    .sort((a, b) => b.ath - a.ath)
+  bulkAth.rows = candidates.map(log => ({
+    log,
+    fetched: null,
+    diff: null,
+    error: '',
+    loading: true,
+  }))
+  bulkAth.done = 0
+  bulkAth.total = candidates.length
+  bulkAth.saving = false
+  bulkAth.visible = true
+  runBulkAthLookup()
+}
+
+function sleep(ms: number) {
+  return new Promise<void>(resolve => setTimeout(resolve, ms))
+}
+
+async function runBulkAthLookup() {
+  const seq = ++bulkAthSeq
+  bulkAth.running = true
+  if (!bulkAth.rows.length) {
+    bulkAth.running = false
+    return
+  }
+  const interval = 1000 / BULK_ATH_PER_SEC
+  let nextStart = 0
+  const pending: Promise<void>[] = []
+  for (const row of bulkAth.rows) {
+    if (seq !== bulkAthSeq) return
+    const wait = nextStart - Date.now()
+    if (wait > 0) await sleep(wait)
+    if (seq !== bulkAthSeq) return
+    nextStart = Date.now() + interval
+    pending.push(lookupBulkAthRow(row, seq))
+  }
+  await Promise.all(pending)
+  if (seq === bulkAthSeq) bulkAth.running = false
+}
+
+async function lookupBulkAthRow(row: BulkAthRow, seq: number) {
+  try {
+    const result = await fetchAthLookup(row.log.ca)
+    if (seq !== bulkAthSeq) return
+    row.fetched = result.ath
+    row.diff = row.log.ath ? ((result.ath - row.log.ath) / row.log.ath) * 100 : 0
+  } catch (error) {
+    if (seq !== bulkAthSeq) return
+    row.error = error instanceof Error ? error.message : String(error)
+  } finally {
+    if (seq === bulkAthSeq) {
+      row.loading = false
+      bulkAth.done += 1
+    }
+  }
+}
+
+async function applyBulkAth() {
+  const targets = bulkAthUpdatableRows.value
+  if (!targets.length || bulkAth.saving || bulkAth.running) return
+  bulkAth.saving = true
+  let persisted = 0
+  try {
+    for (const row of targets) {
+      if (row.fetched == null) continue
+      const { ath, persisted: ok } = await addAthMc(row.log.ca, row.fetched)
+      emit('athMc', row.log.ca, ath)
+      if (ok) persisted += 1
+    }
+    bulkAth.visible = false
+    toast.add({
+      severity: persisted === targets.length ? 'success' : 'warn',
+      summary: persisted === targets.length ? 'ATHs updated' : 'Some ATHs did not persist',
+      detail:
+        persisted === targets.length
+          ? `Saved ${targets.length} correction${targets.length === 1 ? '' : 's'}`
+          : `Saved ${persisted}/${targets.length}. Unsaved values apply this session only.`,
+      life: persisted === targets.length ? 4000 : 10000,
+    })
+  } finally {
+    bulkAth.saving = false
   }
 }
 
@@ -775,5 +997,10 @@ const exportSourceCalls = () => {
 
 td {
   overflow: hidden;
+}
+
+.bulk-ath-list {
+  max-height: 60vh;
+  overflow: auto;
 }
 </style>
