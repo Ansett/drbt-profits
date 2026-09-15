@@ -106,6 +106,18 @@
             </InputGroupAddon>
           </InputGroup>
           <Button
+            icon="pi pi-chart-line"
+            aria-label="Review uncorrected ATHs"
+            outlined
+            severity="secondary"
+            v-tooltip.top="{
+              value: 'Fetch and review uncorrected ATHs above $100k',
+              showDelay: 500,
+            }"
+            class="small-button"
+            @click="openBulkAthDialog"
+          />
+          <Button
             icon="pi pi-file-export"
             aria-label="Export CSV"
             outlined
@@ -128,18 +140,6 @@
             }"
             class="small-button"
             @click="exportSourceCalls()"
-          />
-          <Button
-            icon="pi pi-chart-line"
-            aria-label="Review uncorrected ATHs"
-            outlined
-            severity="secondary"
-            v-tooltip.top="{
-              value: 'Fetch and review uncorrected ATHs above $100k',
-              showDelay: 500,
-            }"
-            class="small-button"
-            @click="openBulkAthDialog"
           />
           <InputGroup class="w-auto">
             <InputGroupAddon class="narrowInput">
