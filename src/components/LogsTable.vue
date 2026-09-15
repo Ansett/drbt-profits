@@ -275,19 +275,21 @@
       >
         <template #body="{ data }">
           <span
-            :class="[
-              athTooltip(data) ? 'help' : 'text',
-              {
-                'text-color-secondary font-italic': data.xs === -99,
-                'text-green-400': hasAthOverride(data.ca),
-              },
-            ]"
+            :class="{
+              'text-color-secondary font-italic': data.xs === -99,
+            }"
+            >{{ prettifyMc(data.ath) }}</span
+          >
+          <span
+            v-if="data.ath - data.exportAth"
+            class="text-sm text-color-secondary nowrap help"
             v-tooltip.top="{
               value: athTooltip(data),
               showDelay: 500,
             }"
-            >{{ prettifyMc(data.ath) }}</span
           >
+            (&hairsp;{{ prettifyMc(data.exportAth) }}&hairsp;)
+          </span>
         </template></Column
       >
 
@@ -538,7 +540,7 @@ function athTooltip(log: Log) {
   const n = athSampleCount(log.ca)
   if (!n) return ''
 
-  return `Corrected ATH from ${n} user${n === 1 ? '' : 's'}. Was ${prettifyMc(log.exportAth!)}`
+  return `Original ATH before correction from ${n} user${n === 1 ? '' : 's'}`
 }
 
 function resetAthLookup() {
