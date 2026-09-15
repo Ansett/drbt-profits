@@ -57,7 +57,7 @@ function buildServer(): McpServer {
     'find_targets_sol',
     {
       description: [
-        'Runs PnL simulations on a range of take profit targets for calls from DRBT backtesting, in order to see where the hot spots are to place take profits, if drawdowns are reasonable.',
+        'Runs PnL simulation on a range of take profit targets for calls from DRBT backtesting, in order to see where the hot spots are to place take profits, if drawdowns are reasonable.',
         `Range is split into ${STEPS} steps (or less if too close).`,
         'Returns an array of performance data.'
       ].join('\n'),
@@ -126,7 +126,7 @@ function buildServer(): McpServer {
     'find_targets_rh',
     {
       description: [
-        'Runs PnL simulations on a range of take profit targets for Robinhood calls from DRBT backtesting, in order to see where the hot spots are to place take profits, if drawdowns are reasonable.',
+        'Runs PnL simulation on a range of take profit targets for Robinhood calls from DRBT backtesting, in order to see where the hot spots are to place take profits, if drawdowns are reasonable.',
         `Range is split into ${STEPS} steps (or less if too close).`,
         'Returns an array of performance data in ETH.',
       ].join('\n'),

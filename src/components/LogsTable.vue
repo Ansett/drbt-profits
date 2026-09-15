@@ -465,7 +465,7 @@
           />
         </InputGroup>
         <p class="mt-2 mb-0 text-sm text-color-secondary">
-          Saving again updates your value. Clear and save to remove it. Simulations use the average
+          Saving again updates your value. Clear and save to remove it. Simulation uses the average
           across users.
         </p>
         <button type="submit" class="hidden" tabindex="-1">Save</button>
@@ -479,7 +479,7 @@
     <Dialog
       v-model:visible="bulkAth.visible"
       modal
-      :style="{ width: '54rem' }"
+      :style="{ width: '42rem' }"
       @hide="stopBulkAthLookup"
     >
       <template #header>

@@ -9,15 +9,15 @@ import WalletsView from './Wallets.vue'
 import ApiKeysView from './ApiKeys.vue'
 
 const routes = [
-  { path: '/', redirect: '/rh/simulations' },
-  { path: '/rh', redirect: '/rh/simulations' },
-  { path: '/sol', redirect: '/sol/simulations' },
-  { path: '/eth', redirect: '/eth/simulations' },
-  { path: '/rh/simulations', component: RhView },
+  { path: '/', redirect: '/rh/simulation' },
+  { path: '/rh', redirect: '/rh/simulation' },
+  { path: '/sol', redirect: '/sol/simulation' },
+  { path: '/eth', redirect: '/eth/simulation' },
+  { path: '/rh/simulation', component: RhView },
   { path: '/rh/match', component: TokenRhView },
-  { path: '/sol/simulations', component: SolView },
+  { path: '/sol/simulation', component: SolView },
   { path: '/sol/match', component: TokenSolView },
-  { path: '/eth/simulations', component: EthView },
+  { path: '/eth/simulation', component: EthView },
   { path: '/wallets', component: WalletsView },
   { path: '/keys', component: ApiKeysView },
   { path: '/api-keys', redirect: '/keys' },

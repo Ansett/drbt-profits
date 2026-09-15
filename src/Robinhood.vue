@@ -343,7 +343,7 @@
           currency="Ξ"
           :whenError="errorMessage"
           :steps="{
-            'All Xs': 0.5,
+            'All Xs': 0.1,
             'All amount': 0.1,
             'All MC': 10000,
           }"

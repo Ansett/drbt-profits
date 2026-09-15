@@ -140,8 +140,8 @@ function chainLabel(path: string | null | undefined) {
   return chains.find(c => c.path === path)?.label ?? ''
 }
 
-function pageOf(path: string): 'simulations' | 'match' {
-  return /\/match(?:\/|$)/.test(path) ? 'match' : 'simulations'
+function pageOf(path: string): 'simulation' | 'match' {
+  return /\/match(?:\/|$)/.test(path) ? 'match' : 'simulation'
 }
 
 const selectedChain = computed({
@@ -149,7 +149,7 @@ const selectedChain = computed({
   set: (chainPath: string) => {
     const page = pageOf(route.path)
     router.push(
-      chainPath === '/eth' && page === 'match' ? '/eth/simulations' : `${chainPath}/${page}`,
+      chainPath === '/eth' && page === 'match' ? '/eth/simulation' : `${chainPath}/${page}`,
     )
   },
 })
@@ -158,9 +158,9 @@ const submenu = computed(() => {
   const chain = chainOf(route.path)
   const items = [
     {
-      label: 'Simulations',
+      label: 'Simulation',
       icon: 'ssid_chart',
-      route: `/${chain}/simulations`,
+      route: `/${chain}/simulation`,
     },
   ]
   if (chain !== 'eth') {
