@@ -23,8 +23,12 @@ async function fetchJsonArray(url: string): Promise<unknown[]> {
   if (!response.ok) {
     throw new Error(`Failed to fetch backtest at ${url}: ${response.status} ${response.statusText}`)
   }
-  const rows = await response.json()
-  return Array.isArray(rows) ? rows : []
+  const result = await response.json()
+  return Array.isArray(result)
+    ? result
+    : typeof result === 'object' && Array.isArray(result.rows)
+      ? result.rows
+      : []
 }
 
 export function storeBacktest(url: string, calls: SolCall[]) {
