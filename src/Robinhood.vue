@@ -867,6 +867,17 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
   const parsed = parseRows(rows)
   if (!parsed) return
 
+  // Header + 10,000 data rows (or 10,000 rows total) is the DRBT export cap.
+  if (rows.length === 10000 || rows.length === 10001) {
+    toast.add({
+      severity: 'warn',
+      summary: 'Cut export',
+      detail:
+        'This file has exactly 10,000 rows, so it is likely truncated. Since calls are sorted by performance, the simulation will be skewed.',
+      life: 30000,
+    })
+  }
+
   await athMcReady
   const newCalls = applyAthOverrides(rawRowsToRhCalls(parsed.rawRows, state.blackList))
   stampEthUsd(newCalls)
