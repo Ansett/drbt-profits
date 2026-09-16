@@ -235,6 +235,39 @@ app.post('/api/ath-mc', (req: Request, res: Response) => {
   res.json(saveAthMc(ca, user, value))
 })
 
+const SSE_KEEPALIVE_MS = 15_000
+
+function attachSseKeepAlive(req: Request, res: Response) {
+  res.setHeader('Cache-Control', 'no-cache, no-transform')
+  res.setHeader('X-Accel-Buffering', 'no')
+
+  const timer = setInterval(() => {
+    if (res.writableEnded || res.destroyed) {
+      clearInterval(timer)
+      return
+    }
+    if (!res.headersSent) return
+    const contentType = String(res.getHeader('Content-Type') ?? '')
+    if (!contentType.includes('text/event-stream')) return
+    try {
+      res.write(': keepalive\n\n')
+    } catch {
+      clearInterval(timer)
+    }
+  }, SSE_KEEPALIVE_MS)
+  timer.unref()
+
+  const stop = () => clearInterval(timer)
+  req.once('close', stop)
+  res.once('close', stop)
+  res.once('finish', stop)
+  return stop
+}
+
+function createMcpTransport() {
+  return new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+}
+
 // Bearer-token auth guard for MCP endpoints (header or ?key= query param)
 app.use('/mcp', (req: Request, res: Response, next) => {
   const auth = req.headers['authorization'] ?? ''
@@ -247,23 +280,35 @@ app.use('/mcp', (req: Request, res: Response, next) => {
 })
 
 app.post('/mcp', async (req: Request, res: Response) => {
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+  const transport = createMcpTransport()
   const mcpServer = buildServer()
+  const stopKeepAlive = attachSseKeepAlive(req, res)
   await mcpServer.connect(transport)
-  await transport.handleRequest(req, res, req.body)
-  await mcpServer.close()
+  try {
+    await transport.handleRequest(req, res, req.body)
+  } finally {
+    stopKeepAlive()
+    await mcpServer.close()
+  }
 })
 
-// SSE upgrade endpoint for clients that prefer it (e.g. older Claude Desktop versions)
+// SSE upgrade endpoint for clients that prefer it (e.g. Cursor's long-lived session stream)
 app.get('/mcp', async (req: Request, res: Response) => {
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
+  const transport = createMcpTransport()
   const mcpServer = buildServer()
+  attachSseKeepAlive(req, res)
   await mcpServer.connect(transport)
+  const cleanup = () => { void mcpServer.close() }
+  req.once('close', cleanup)
+  res.once('close', cleanup)
   await transport.handleRequest(req, res)
 })
 
 const PORT = Number(process.env.MCP_PORT ?? 3100)
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.log(`MCP server listening on port ${PORT}`)
   if (!ADMIN_KEY) console.warn('Warning: MCP_ADMIN_KEY not set — admin endpoints are disabled')
 })
+httpServer.requestTimeout = 0
+httpServer.headersTimeout = 0
+httpServer.timeout = 0
