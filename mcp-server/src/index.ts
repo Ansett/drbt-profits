@@ -100,7 +100,7 @@ function buildServer(): McpServer {
         backtest_link: z
           .string()
           .describe(
-            `The download.url returned by the DRBT run_backtest tool, pointing to the JSON backtest export.`,
+            'The download.url returned by the DRBT backtest tool, pointing to the JSON backtest export.',
           ),
         position: z.number().positive().default(0.01).describe('ETH amount invested per call.'),
         take_profits: z
@@ -140,7 +140,7 @@ function buildServer(): McpServer {
         backtest_link: z
           .string()
           .describe(
-            'The download_url returned by the DRBT run_backtest tool, pointing to the JSON calls list.',
+            'The download.url returned by the DRBT backtest tool, pointing to the JSON export.',
           ),
         position: z.number().positive().default(0.01).describe('ETH amount invested per call.'),
         range: z
