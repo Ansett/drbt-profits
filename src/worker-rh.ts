@@ -112,7 +112,7 @@ async function compute(
   for (const call of calls) {
     if (abortSignal.aborted) return {}
 
-    const offPeriods = !isCallInActiveHour(timeOnCreation ? call.creation : call.date, week, hours)
+    const offPeriods = !isCallInActiveHour(timeOnCreation ? call.launch : call.date, week, hours)
     if (offPeriods) {
       counters.offPeriods = (counters.offPeriods || 0) + 1
     }
@@ -179,7 +179,8 @@ async function compute(
 
     logs.unshift({
       date: call.date,
-      creation: call.creation,
+      launch: call.launch,
+      creation: call.launch,
       ca: call.ca,
       name: call.name,
       xs: round(bestXs, 1),

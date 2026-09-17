@@ -393,20 +393,8 @@ export function rawRowsToRhCalls(rawRows: RawRhRow[], blackList = [] as string[]
     const updatedBlock = asNumber(raw.updated_block)
     const athBlock = asNumber(raw.ath_block)
     const ageS = asNumber(raw.age_s)
-    const snapshotAt = asDate(raw.snapshot_at)
-    const createdAt = asDate(raw.created_at)
-
-    let creation: Date
-    if (createdAt) creation = createdAt
-    else if (launchedBlock) creation = blockToDate(launchedBlock)
-    else if (snapshotAt && ageS) creation = new Date(snapshotAt.getTime() - ageS * 1000)
-    else creation = snapshotAt ? new Date(snapshotAt.getTime()) : new Date()
-
-    let date: Date
-    if (snapshotAt) date = snapshotAt
-    else if (ageS) date = new Date(creation.getTime() + ageS * 1000)
-    else if (updatedBlock) date = blockToDate(updatedBlock)
-    else date = new Date(creation.getTime())
+    const date = asDate(raw.snapped_at_utc)!
+    const launch = asDate(raw.launched_at_utc)!
 
     const athDelayHours =
       athBlock && launchedBlock
@@ -427,7 +415,7 @@ export function rawRowsToRhCalls(rawRows: RawRhRow[], blackList = [] as string[]
       name,
       ca,
       nameAndCa: name + ca,
-      creation: creation.toISOString(),
+      launch: launch.toISOString(),
       date: date.toISOString(),
       postAth: asBool(raw.post_ath),
       xs,
@@ -499,8 +487,8 @@ export function parseRhRow(
     quote_class: asString(cell(row, indexes.quote_class)),
     deployer: asString(cell(row, indexes.deployer)),
     decimals: asNumber(cell(row, indexes.decimals), 18),
-    snapshot_at: asDate(cell(row, indexes.snapshot_at)) || undefined,
-    created_at: asDate(cell(row, indexes.created_at)) || undefined,
+    snapped_at_utc: asDate(cell(row, indexes.snapped_at_utc)) || undefined,
+    launched_at_utc: asDate(cell(row, indexes.launched_at_utc)) || undefined,
     eth_price: asNumber(cell(row, indexes.eth_price)),
     launchpad: asString(cell(row, indexes.launchpad)),
     curve: asString(cell(row, indexes.curve)),

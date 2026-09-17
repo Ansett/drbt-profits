@@ -561,13 +561,17 @@ async function storeData(rows: (string | number | Date)[][], fileName: string) {
 }
 
 function createdFromRow(headers: string[], row: (string | number | Date)[]): [string, string] {
+  const launched = row[headers.indexOf('launched_at_utc')]
+  if (launched instanceof Date || (typeof launched === 'string' && launched))
+    return formatDate(launched)
+
   const created = row[headers.indexOf('created_at')]
   if (created instanceof Date || (typeof created === 'string' && created))
     return formatDate(created)
 
-  const launched = Number(row[headers.indexOf('launched_block')])
-  if (Number.isFinite(launched) && launched > 0) {
-    return formatDate(new Date(RH_REF_TIME_MS + (launched - RH_REF_BLOCK) * RH_BLOCK_MS))
+  const launchedBlock = Number(row[headers.indexOf('launched_block')])
+  if (Number.isFinite(launchedBlock) && launchedBlock > 0) {
+    return formatDate(new Date(RH_REF_TIME_MS + (launchedBlock - RH_REF_BLOCK) * RH_BLOCK_MS))
   }
 
   const snapshot = row[headers.indexOf('snapshot_at')]

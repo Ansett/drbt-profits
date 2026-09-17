@@ -185,7 +185,7 @@
             class="flex flex-wrap column-gap-2"
             v-tooltip.right="{
               value: `${chain === 'SOL' ? 'Created' : 'Launched'} at ${formatDate(
-                data.creation,
+                data.launch || data.creation,
                 timezone,
               ).join(' ')}`,
               showDelay: 500,

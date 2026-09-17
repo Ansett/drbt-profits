@@ -388,6 +388,7 @@ async function compute(
     logs.unshift({
       date: call.date,
       creation: call.creation,
+      launch: call.creation, // TODO:
       ca: call.ca,
       name: call.name,
       xs: call.rug ? -99 : round(reducedBestXs, 1),

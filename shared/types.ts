@@ -111,7 +111,7 @@ export type RhCall = {
   ca: string
   nameAndCa: string
   date: string
-  creation: string
+  launch: string
   postAth: boolean
   athDelayHours: number
   xs: number
@@ -170,8 +170,8 @@ export type RawRhRow = {
   quote_class?: string
   deployer?: string
   decimals?: number
-  snapshot_at?: Date | string
-  created_at?: Date | string
+  snapped_at_utc?: Date | string
+  launched_at_utc?: Date | string
   eth_price?: number
   launchpad?: string
   curve?: string
@@ -204,8 +204,8 @@ export const RH_OPTIONAL_HEADERS: Array<keyof RawRhRow> = [
   'quote_class',
   'deployer',
   'decimals',
-  'snapshot_at',
-  'created_at',
+  'snapped_at_utc',
+  'launched_at_utc',
   'eth_price',
   'launchpad',
   'curve',

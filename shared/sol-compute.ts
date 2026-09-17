@@ -209,8 +209,8 @@ export function rawRowsToSolCalls(rawRows: RawSolRow[], blackList = [] as string
     const ca = raw.mint
     const athDelaySec =
       raw.current_ath_slot && raw.launched_slot
-        ? (raw.current_ath_slot - raw.launched_slot) * 0.4
-        : 2 * 60 * 60 // 0.4s per slot
+        ? (raw.current_ath_slot - raw.launched_slot) * 0.2
+        : 2 * 60 * 60 // 0.2s per slot
     const athDelayHours = athDelaySec / 60 / 60
 
     // there is a bug where creation date is utc+1, so we detect that and adjust all dates
