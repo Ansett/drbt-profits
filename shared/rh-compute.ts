@@ -394,7 +394,7 @@ export function rawRowsToRhCalls(rawRows: RawRhRow[], blackList = [] as string[]
     const athBlock = asNumber(raw.ath_block)
     const ageS = asNumber(raw.age_s)
     const date = asDate(raw.snapped_at_utc)!
-    const launch = asDate(raw.launched_at_utc)!
+    const launch = asDate(raw.launched_at_utc || raw.snapped_at_utc)!
 
     const athDelayHours =
       athBlock && launchedBlock
