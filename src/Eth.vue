@@ -203,7 +203,7 @@
 
           <!-- TIMING -->
           <AccordionTab header="DAILY BREAKDOWN" :pt="{ content: { class: 'p-0' } }">
-            <TimingFinder :logs="logs" :withTimeRange="state.withHours" />
+            <TimingFinder :logs="logs" :withTimeRange="state.withHours" with-creation />
           </AccordionTab>
 
           <!-- HASHES -->

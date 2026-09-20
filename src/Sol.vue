@@ -200,6 +200,7 @@
               :logs="logs"
               v-model:timeOnCreation="state.timeOnCreation"
               :withTimeRange="state.withHours"
+              with-creation
             />
           </AccordionTab>
 

@@ -17,8 +17,8 @@
           inputId="snapshot-time"
           @update:modelValue="$emit('update:timeOnCreation', $event)"
         />
-        <label for="snapshot-time" class="white-space-nowrap">Use created_at</label>
-        <InfoButton :text="`Use created_at instead of snapshot_at`" direction="bottom" />
+        <label for="snapshot-time" class="white-space-nowrap">Use {{ withCreation ? 'creation' : 'launch' }}</label>
+        <InfoButton :text="`Use ${withCreation ? 'creation' : 'launch'} time instead of snapshot time`" direction="bottom" />
       </div>
     </div>
 
@@ -170,6 +170,7 @@ const INIT_WEEK = {
 const props = defineProps<{
   logs: Log[]
   timeOnCreation?: boolean
+  withCreation?: boolean
   withTimeRange?: boolean
 }>()
 
