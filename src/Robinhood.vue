@@ -347,6 +347,7 @@
             'All amount': 0.1,
             'All MC': 10000,
           }"
+          percentages-warning
         />
 
         <!-- DAYS & HOURS -->

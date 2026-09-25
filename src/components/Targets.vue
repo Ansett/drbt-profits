@@ -161,6 +161,10 @@
           You should really add more than 2 targets to lower price impact
         </div>
 
+        <div v-if="percentagesWarning" class="text-sm text-yellow-300">
+      (&hairsp;Remember that DRBT auto-sell percentages are relative to remaning quantity, while here it's relative to initial quantity&hairsp;)
+    </div>
+
         <div class="flex flex-row flex-wrap align-items-center column-gap-5 row-gap-2">
           <Button class="my-3 align-self-start" @click="addTarget()">Add a target</Button>
 
@@ -255,6 +259,7 @@ const {
     'All amount': number
     'All MC': number
   }
+  percentagesWarning?: boolean
   whenError: (message: string) => void
 }>()
 

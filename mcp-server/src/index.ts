@@ -108,7 +108,7 @@ function buildServer(): McpServer {
           .min(1)
           .default(['33.3% 50x', '33.3% 500000', '33.4% 100x'])
           .describe(
-            'Array of take profit rules. Each rule is "<size>% <target>" where target is either a multiplier or a market cap (e.g. ["10% 3x", "15.5% 500000"] to sell 10% at 3x and 15.5% at $500k MC). The sum of sizes must be <=100',
+            'Array of take profit rules. Each rule is "<size>% <target>" where target is either a multiplier or a market cap (e.g. ["10% 3x", "15.5% 500000"] to sell 10% at 3x and 15.5% at $500k MC). Here, size percentages are relative to *initial* quantity, while DRBT filter auto-sell percentages are relative to remaining quantity at the time of trigger. The sum of % sizes must be <=100',
           ),
       },
       outputSchema: {
